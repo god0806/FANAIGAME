@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>魔鬼的計謀：正負數梭哈 - 公牌生成與算力輔助器</title>
+<style>
+  :root {
+    --bg-main: #070d19;
+    --card-bg: #111a2e;
+    --panel-bg: #162238;
+    --border-color: #243552;
+    --gold: #f59e0b;
+    --gold-light: #fbbf24;
+    --blue: #38bdf8;
+    --green: #10b981;
+    --red: #ef4444;
+    --purple: #a855f7;
+    --text: #f8fafc;
+    --text-muted: #94a3b8;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans TC", sans-serif; }
+  body { background: var(--bg-main); color: var(--text); padding: 16px; display: flex; justify-content: center; min-height: 100vh; }
+  .container { width: 100%; max-width: 760px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* 頂部導航分頁 */
+  .tab-bar { display: flex; gap: 8px; background: var(--card-bg); padding: 6px; border-radius: 12px; border: 1px solid var(--border-color); }
+  .tab-btn { flex: 1; padding: 10px 14px; font-size: 14px; font-weight: 700; border: none; border-radius: 8px; cursor: pointer; color: var(--text-muted); background: transparent; transition: all 0.2s; text-align: center; }
+  .tab-btn.active { background: var(--panel-bg); color: var(--gold); border: 1px solid var(--border-color); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+
+  /* 公用卡片容器 */
+  .card-box { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 16px; padding: 18px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+  .box-title { font-size: 15px; font-weight: 700; color: var(--gold); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; letter-spacing: 0.5px; }
+
+  /* 公牌展示區 */
+  .board-section { text-align: center; }
+  .symbol-board { display: flex; justify-content: center; gap: 14px; margin: 12px 0 16px; flex-wrap: wrap; }
+  .sym-card { width: 82px; height: 110px; background: linear-gradient(145deg, #f59e0b, #d97706); color: #070d19; font-size: 48px; font-weight: 900; display: flex; align-items: center; justify-content: center; border-radius: 14px; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35); user-select: none; transition: transform 0.15s; border: 2px solid #fde68a; }
+  .sym-card:hover { transform: translateY(-2px); }
+
+  .action-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; }
+  button { padding: 10px 18px; font-size: 14px; font-weight: 700; border: none; border-radius: 10px; cursor: pointer; color: #fff; transition: all 0.15s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+  button:hover { filter: brightness(1.15); }
+  button:active { transform: scale(0.97); }
+  .btn-gold { background: linear-gradient(135deg, var(--gold-light), var(--gold)); color: #000; font-weight: 800; box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3); }
+  .btn-blue { background: var(--blue); color: #070d19; }
+  .btn-green { background: var(--green); }
+  .btn-purple { background: var(--purple); }
+  .btn-red { background: var(--red); }
+  .btn-slate { background: #334155; color: #cbd5e1; }
+
+  /* 符號切換自訂面板 */
+  .custom-sym-selector { display: none; margin-top: 14px; padding: 12px; background: var(--panel-bg); border-radius: 10px; border: 1px dashed var(--border-color); text-align: center; }
+  .custom-sym-selector.active { display: block; }
+  .sym-check-group { display: flex; justify-content: center; gap: 15px; margin-top: 8px; }
+  .sym-check-btn { padding: 8px 16px; font-size: 18px; border-radius: 8px; border: 1px solid var(--border-color); background: #1e293b; color: #fff; cursor: pointer; }
+  .sym-check-btn.selected { background: var(--gold); color: #000; font-weight: 900; border-color: #fde68a; }
+
+  /* 算力運算助手區域 */
+  .input-label { font-size: 13px; color: var(--text-muted); margin-bottom: 6px; display: block; }
+  .hand-input-row { display: flex; gap: 10px; margin-bottom: 12px; }
+  .card-slot { flex: 1; height: 60px; background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 10px; color: var(--text); font-size: 24px; font-weight: 800; text-align: center; outline: none; transition: border-color 0.2s; }
+  .card-slot:focus { border-color: var(--blue); }
+  .quick-num-pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin-bottom: 14px; }
+  .pad-btn { padding: 8px; font-size: 16px; background: #1f2d47; border: 1px solid var(--border-color); color: var(--text); border-radius: 8px; }
+  .pad-btn:hover { background: #2b3d5e; }
+
+  /* 演算結果卡片 */
+  .result-deck { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 14px; }
+  @media (max-width: 580px) { .result-deck { grid-template-columns: 1fr; } }
+  .target-box { background: var(--panel-bg); border-radius: 12px; padding: 14px; border: 1px solid var(--border-color); position: relative; }
+  .target-box.champ { border-color: var(--gold); box-shadow: 0 0 18px rgba(245, 158, 11, 0.2); }
+  .target-badge { position: absolute; top: 10px; right: 10px; font-size: 11px; padding: 2px 8px; border-radius: 12px; font-weight: 800; }
+  .badge-1 { background: rgba(56, 189, 248, 0.2); color: var(--blue); border: 1px solid var(--blue); }
+  .badge-20 { background: rgba(245, 158, 11, 0.2); color: var(--gold); border: 1px solid var(--gold); }
+  .champ-tag { position: absolute; top: -10px; left: 14px; background: var(--gold); color: #000; font-size: 11px; font-weight: 900; padding: 2px 8px; border-radius: 10px; }
+
+  .formula-display { font-size: 18px; font-weight: 800; margin: 10px 0 6px; font-family: ui-monospace, Menlo, monospace; color: #fff; word-break: break-all; }
+  .math-val { font-size: 14px; color: var(--text-muted); }
+  .math-val strong { color: var(--gold); font-size: 16px; }
+
+  /* 備選列表 */
+  .sub-list { margin-top: 14px; background: #0c1424; border-radius: 10px; padding: 10px 14px; font-size: 12px; font-family: ui-monospace, monospace; border: 1px solid var(--border-color); max-height: 140px; overflow-y: auto; }
+  .sub-list div { padding: 3px 0; border-bottom: 1px solid #1a2538; color: var(--text-muted); }
+  .sub-list div:last-child { border-bottom: none; }
+  .sub-list strong { color: var(--blue); }
+
+  /* 裁判比大小模式 */
+  .judge-table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+  .judge-table th, .judge-table td { border: 1px solid var(--border-color); padding: 8px 10px; text-align: center; }
+  .judge-table th { background: #0c1424; color: var(--text-muted); font-size: 12px; }
+  .judge-table input { background: #1f2d47; border: 1px solid var(--border-color); color: #fff; padding: 6px; border-radius: 6px; font-size: 13px; text-align: center; width: 100%; max-width: 140px; }
+
+  /* 驗算器 */
+  .eval-input { width: 100%; background: var(--panel-bg); border: 2px solid var(--border-color); border-radius: 10px; color: #fff; padding: 12px; font-size: 16px; font-family: ui-monospace, monospace; outline: none; margin-bottom: 10px; }
+  .eval-input:focus { border-color: var(--blue); }
+  .step-box { background: #0c1424; border-radius: 10px; padding: 12px; border: 1px solid var(--border-color); font-family: ui-monospace, monospace; font-size: 13px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <!-- 頂部頁籤導航 -->
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchMainTab('solver')">⚡ 算力輔助（個人最佳解）</button>
+    <button class="tab-btn" onclick="switchMainTab('judge')">🏆 牌桌多玩家裁判</button>
+    <button class="tab-btn" onclick="switchMainTab('verifier')">🔍 自訂算式驗算</button>
+  </div>
+
+  <!-- 1. 公牌運算符號展示區 (全模式共用) -->
+  <div class="card-box board-section">
+    <div class="box-title">
+      <span>🎲 檯面運算公牌（四選三且相異）</span>
+      <button class="btn-slate" style="padding: 4px 10px; font-size: 12px;" onclick="toggleCustomSyms()">自選/調整符號 ▾</button>
+    </div>
+
+    <div class="symbol-board" id="board-symbols">
+      <div class="sym-card">+</div>
+      <div class="sym-card">-</div>
+      <div class="sym-card">×</div>
+    </div>
+
+    <div class="action-row">
+      <button class="btn-gold" onclick="rerollSymbols()">🎲 隨機重抽公牌</button>
+      <button class="btn-slate" onclick="copySymbolsText()">📋 複製符號文字</button>
+    </div>
+
+    <!-- 手動勾選指定公牌面板 -->
+    <div class="custom-sym-selector" id="custom-sym-panel">
+      <div style="font-size: 12px; color: var(--text-muted);">實體牌局手動選擇（請恰好點擊選取 3 個相異符號）：</div>
+      <div class="sym-check-group" id="sym-checkboxes">
+        <button type="button" class="sym-check-btn selected" onclick="toggleSymChoice('+')">+</button>
+        <button type="button" class="sym-check-btn selected" onclick="toggleSymChoice('-')">-</button>
+        <button type="button" class="sym-check-btn selected" onclick="toggleSymChoice('×')">×</button>
+        <button type="button" class="sym-check-btn" onclick="toggleSymChoice('÷')">÷</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 分頁 1: 單人手牌最優解演算器 -->
+  <div class="card-box" id="tab-solver">
+    <div class="box-title">
+      <span>🧠 手牌 4 數字極限算力求解</span>
+      <span style="font-size: 12px; color: var(--text-muted);">※ 數字 10 代表 0</span>
+    </div>
+
+    <label class="input-label">請輸入手中的 4 張數字牌 (0 ~ 9)：</label>
+    <div class="hand-input-row">
+      <input type="number" min="0" max="9" class="card-slot" id="card-0" placeholder="A" onfocus="activeSlot=0">
+      <input type="number" min="0" max="9" class="card-slot" id="card-1" placeholder="B" onfocus="activeSlot=1">
+      <input type="number" min="0" max="9" class="card-slot" id="card-2" placeholder="C" onfocus="activeSlot=2">
+      <input type="number" min="0" max="9" class="card-slot" id="card-3" placeholder="D" onfocus="activeSlot=3">
+    </div>
+
+    <!-- 手機快速點選鍵盤 -->
+    <div class="quick-num-pad">
+      <button type="button" class="pad-btn" onclick="quickFill(1)">1</button>
+      <button type="button" class="pad-btn" onclick="quickFill(2)">2</button>
+      <button type="button" class="pad-btn" onclick="quickFill(3)">3</button>
+      <button type="button" class="pad-btn" onclick="quickFill(4)">4</button>
+      <button type="button" class="pad-btn" onclick="quickFill(5)">5</button>
+      <button type="button" class="pad-btn" onclick="quickFill(6)">6</button>
+      <button type="button" class="pad-btn" onclick="quickFill(7)">7</button>
+      <button type="button" class="pad-btn" onclick="quickFill(8)">8</button>
+      <button type="button" class="pad-btn" onclick="quickFill(9)">9</button>
+      <button type="button" class="pad-btn" style="color:var(--gold);" onclick="quickFill(0)">0 (10)</button>
+    </div>
+
+    <div class="action-row" style="justify-content: stretch;">
+      <button class="btn-green" style="flex:1;" onclick="solveHand()">⚡ 窮舉 144 種組合，計算最佳算式</button>
+      <button class="btn-slate" onclick="clearHandInputs()">清空</button>
+    </div>
+
+    <!-- 求解結果展示 -->
+    <div id="solver-result-deck" class="result-deck" style="display:none;">
+      <!-- 最接近 1 -->
+      <div class="target-box" id="box-target-1">
+        <span class="target-badge badge-1">瞄準目標 1</span>
+        <div style="font-size: 12px; color: var(--text-muted);">低位壓制策略</div>
+        <div class="formula-display" id="formula-1">-</div>
+        <div class="math-val">運算結果：<strong id="val-1">-</strong>（距 1 差距：<span id="diff-1">-</span>）</div>
+      </div>
+
+      <!-- 最接近 20 -->
+      <div class="target-box" id="box-target-20">
+        <span class="target-badge badge-20">瞄準目標 20</span>
+        <div style="font-size: 12px; color: var(--text-muted);">高位強攻策略</div>
+        <div class="formula-display" id="formula-20">-</div>
+        <div class="math-val">運算結果：<strong id="val-20">-</strong>（距 20 差距：<span id="diff-20">-</span>）</div>
+      </div>
+    </div>
+
+    <!-- 其他前五組候選算式 -->
+    <div id="top-candidates-box" style="display:none; margin-top:12px;">
+      <div style="font-size:12px; color:var(--text-muted); margin-bottom:4px;">前 5 組最具威脅性備選方案：</div>
+      <div class="sub-list" id="sub-candidate-list"></div>
+    </div>
+  </div>
+
+  <!-- 分頁 2: 牌桌多玩家裁判比拼 -->
+  <div class="card-box" id="tab-judge" style="display:none;">
+    <div class="box-title">
+      <span>🏆 牌桌多名玩家攤牌判定</span>
+      <div style="display:flex; gap:6px;">
+        <button class="btn-slate" style="padding:4px 8px; font-size:11px;" onclick="addJudgeRow()">＋ 新增玩家</button>
+        <button class="btn-slate" style="padding:4px 8px; font-size:11px;" onclick="removeJudgeRow()">－ 減少</button>
+      </div>
+    </div>
+
+    <table class="judge-table">
+      <thead>
+        <tr>
+          <th>玩家</th>
+          <th>手牌 4 數字 (如 3,5,8,0)</th>
+          <th>最佳算式</th>
+          <th>最終數值</th>
+          <th>最短差距</th>
+        </tr>
+      </thead>
+      <tbody id="judge-tbody">
+        <tr>
+          <td><strong>玩家 1</strong></td>
+          <td><input type="text" class="judge-cards" placeholder="例如: 3, 5, 8, 1"></td>
+          <td class="judge-formula">-</td>
+          <td class="judge-val">-</td>
+          <td class="judge-diff">-</td>
+        </tr>
+        <tr>
+          <td><strong>玩家 2</strong></td>
+          <td><input type="text" class="judge-cards" placeholder="例如: 9, 2, 0, 4"></td>
+          <td class="judge-formula">-</td>
+          <td class="judge-val">-</td>
+          <td class="judge-diff">-</td>
+        </tr>
+        <tr>
+          <td><strong>玩家 3</strong></td>
+          <td><input type="text" class="judge-cards" placeholder="例如: 7, 7, 2, 0"></td>
+          <td class="judge-formula">-</td>
+          <td class="judge-val">-</td>
+          <td class="judge-diff">-</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <button class="btn-blue" style="width:100%;" onclick="runJudgeShowdown()">⚖️ 立即進行攤牌裁決，找出贏家</button>
+    <div id="judge-winner-banner" style="display:none; margin-top:12px; padding:12px; background:#0c281e; border:1px solid var(--green); border-radius:10px; color:#4ade80; font-weight:bold; text-align:center;"></div>
+  </div>
+
+  <!-- 分頁 3: 自訂算式步進驗算 -->
+  <div class="card-box" id="tab-verifier" style="display:none;">
+    <div class="box-title">
+      <span>🔍 玩家自組算式合法性與數值驗算</span>
+    </div>
+    <div style="font-size: 13px; color: var(--text-muted); margin-bottom: 8px;">
+      輸入玩家拼出的公式（例如：<code>8 * 2 + 5 - 0</code>），系統將驗證是否合法並分步計算：
+    </div>
+    <input type="text" class="eval-input" id="verifier-input" placeholder="輸入算式，如：9 × 2 + 3 - 1">
+    <button class="btn-purple" style="width:100%; margin-bottom:12px;" onclick="verifyCustomFormula()">開始逐步驗算</button>
+
+    <div class="step-box" id="verifier-steps">等待輸入算式...</div>
+  </div>
+</div>
+
+<script>
+// --- 基礎資料 ---
+const ALL_SYMS = ['+', '-', '×', '÷'];
+let currentSymbols = ['+', '-', '×'];
+let activeSlot = 0;
+
+// --- 公牌邏輯 ---
+function renderSymbols() {
+  const box = document.getElementById('board-symbols');
+  box.innerHTML = currentSymbols.map(s => `<div class="sym-card">${s}</div>`).join('');
+  
+  // 更新手動核取按鈕狀態
+  document.querySelectorAll('.sym-check-btn').forEach(btn => {
+    let sym = btn.innerText.trim();
+    if (currentSymbols.includes(sym)) {
+      btn.classList.add('selected');
+    } else {
+      btn.classList.remove('selected');
+    }
+  });
+}
+
+function rerollSymbols() {
+  currentSymbols = [...ALL_SYMS].sort(() => 0.5 - Math.random()).slice(0, 3);
+  renderSymbols();
+  // 若有手牌已輸入，自動同步求解
+  if (hasFullHand()) solveHand();
+}
+
+function toggleCustomSyms() {
+  const p = document.getElementById('custom-sym-panel');
+  p.classList.toggle('active');
+}
+
+function toggleSymChoice(sym) {
+  if (currentSymbols.includes(sym)) {
+    if (currentSymbols.length <= 3) {
+      alert("必須至少保留 3 個符號！");
+      return;
+    }
+    currentSymbols = currentSymbols.filter(s => s !== sym);
+  } else {
+    if (currentSymbols.length >= 3) {
+      // 若已有3個，替換掉最後一個
+      currentSymbols.shift();
+    }
+    currentSymbols.push(sym);
+  }
+  renderSymbols();
+  if (hasFullHand()) solveHand();
+}
+
+function copySymbolsText() {
+  navigator.clipboard.writeText(currentSymbols.join(' ')).then(() => {
+    alert("已複製公牌符號：" + currentSymbols.join(' '));
+  });
+}
+
+// --- 分頁切換 ---
+function switchMainTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-solver').style.display = 'none';
+  document.getElementById('tab-judge').style.display = 'none';
+  document.getElementById('tab-verifier').style.display = 'none';
+
+  if (tab === 'solver') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('tab-solver').style.display = 'block';
+  } else if (tab === 'judge') {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('tab-judge').style.display = 'block';
+  } else if (tab === 'verifier') {
+    document.querySelectorAll('.tab-btn')[2].classList.add('active');
+    document.getElementById('tab-verifier').style.display = 'block';
+  }
+}
+
+// --- 核心演算法：四則運算先乘除後加減 ---
+function evalTokens(nums, ops) {
+  let curNums = [nums[0]];
+  let curOps = [];
+
+  // 第 1 階段：處理 × 與 ÷
+  for (let i = 0; i < ops.length; i++) {
+    let op = ops[i];
+    let nextNum = nums[i + 1];
+    if (op === '×' || op === '÷') {
+      let prev = curNums.pop();
+      if (op === '÷') {
+        if (nextNum === 0) return null; // 除以 0 非法
+        curNums.push(prev / nextNum);
+      } else {
+        curNums.push(prev * nextNum);
+      }
+    } else {
+      curOps.push(op);
+      curNums.push(nextNum);
+    }
+  }
+
+  // 第 2 階段：處理 + 與 -
+  let res = curNums[0];
+  for (let i = 0; i < curOps.length; i++) {
+    if (curOps[i] === '+') res += curNums[i + 1];
+    else if (curOps[i] === '-') res -= curNums[i + 1];
+  }
+  return res;
+}
+
+// 窮舉 4 數字 (24種) x 3 符號 (6種) = 144 種算式
+function solveAllFormulas(cards, symbols) {
+  function perm(arr) {
+    if (arr.length === 0) return [[]];
+    let res = [];
+    for (let i = 0; i < arr.length; i++) {
+      let rest = perm(arr.slice(0, i).concat(arr.slice(i + 1)));
+      for (let r of rest) res.push([arr[i], ...r]);
+    }
+    return res;
+  }
+
+  let cardPerms = perm(cards);
+  let symPerms = perm(symbols);
+  let allValid = [];
+
+  for (let pNums of cardPerms) {
+    for (let pOps of symPerms) {
+      let val = evalTokens(pNums, pOps);
+      if (val !== null && !isNaN(val)) {
+        let rounded = Math.round(val * 100) / 100;
+        let diff1 = Math.round(Math.abs(rounded - 1) * 100) / 100;
+        let diff20 = Math.round(Math.abs(rounded - 20) * 100) / 100;
+        let minDiff = Math.min(diff1, diff20);
+
+        allValid.push({
+          nums: pNums,
+          ops: pOps,
+          val: rounded,
+          diff1: diff1,
+          diff20: diff20,
+          minDiff: minDiff,
+          formula: `${pNums[0]} ${pOps[0]} ${pNums[1]} ${pOps[1]} ${pNums[2]} ${pOps[2]} ${pNums[3]}`
+        });
+      }
+    }
+  }
+
+  return allValid;
+}
+
+// --- 手牌求解器互動 ---
+function quickFill(val) {
+  document.getElementById(`card-${activeSlot}`).value = val;
+  activeSlot = (activeSlot + 1) % 4;
+  document.getElementById(`card-${activeSlot}`).focus();
+  if (hasFullHand()) solveHand();
+}
+
+function hasFullHand() {
+  for (let i = 0; i < 4; i++) {
+    let v = document.getElementById(`card-${i}`).value;
+    if (v === "" || isNaN(parseInt(v))) return false;
+  }
+  return true;
+}
+
+function clearHandInputs() {
+  for (let i = 0; i < 4; i++) document.getElementById(`card-${i}`).value = "";
+  activeSlot = 0;
+  document.getElementById('card-0').focus();
+  document.getElementById('solver-result-deck').style.display = 'none';
+  document.getElementById('top-candidates-box').style.display = 'none';
+}
+
+function solveHand() {
+  let cards = [];
+  for (let i = 0; i < 4; i++) {
+    let v = parseInt(document.getElementById(`card-${i}`).value);
+    if (isNaN(v) || v < 0 || v > 9) {
+      alert("請確實填入 4 張 0~9 的手牌數字！");
+      return;
+    }
+    cards.push(v);
+  }
+
+  let solutions = solveAllFormulas(cards, currentSymbols);
+  if (solutions.length === 0) {
+    alert("所有排列皆導致除以 0，無有效算式！");
+    return;
+  }
+
+  // 尋找最接近 1
+  solutions.sort((a, b) => a.diff1 - b.diff1);
+  let best1 = solutions[0];
+
+  // 尋找最接近 20
+  solutions.sort((a, b) => a.diff20 - b.diff20);
+  let best20 = solutions[0];
+
+  // 全域總最佳解 (離 1 或 20 差距最小)
+  solutions.sort((a, b) => a.minDiff - b.minDiff);
+  let grandChamp = solutions[0];
+
+  // 渲染結果卡片
+  document.getElementById('solver-result-deck').style.display = 'grid';
+  document.getElementById('top-candidates-box').style.display = 'block';
+
+  document.getElementById('formula-1').innerText = best1.formula;
+  document.getElementById('val-1').innerText = best1.val;
+  document.getElementById('diff-1').innerText = best1.diff1;
+
+  document.getElementById('formula-20').innerText = best20.formula;
+  document.getElementById('val-20').innerText = best20.val;
+  document.getElementById('diff-20').innerText = best20.diff20;
+
+  // 標註冠軍卡片
+  const b1 = document.getElementById('box-target-1');
+  const b20 = document.getElementById('box-target-20');
+  b1.classList.remove('champ');
+  b20.classList.remove('champ');
+  const oldBadge = document.querySelectorAll('.champ-tag');
+  oldBadge.forEach(el => el.remove());
+
+  if (best1.diff1 <= best20.diff20) {
+    b1.classList.add('champ');
+    b1.insertAdjacentHTML('afterbegin', `<span class="champ-tag">★ 當前最佳選擇 (距 1 最近)</span>`);
+  } else {
+    b20.classList.add('champ');
+    b20.insertAdjacentHTML('afterbegin', `<span class="champ-tag">★ 當前最佳選擇 (距 20 最近)</span>`);
+  }
+
+  // 渲染前 5 備選算式
+  let subHtml = "";
+  let seen = new Set();
+  let count = 0;
+  for (let sol of solutions) {
+    if (!seen.has(sol.formula)) {
+      seen.add(sol.formula);
+      subHtml += `<div>[${sol.formula}] = <strong>${sol.val}</strong> (距目標差距: ${sol.minDiff})</div>`;
+      count++;
+      if (count >= 5) break;
+    }
+  }
+  document.getElementById('sub-candidate-list').innerHTML = subHtml;
+}
+
+// --- 牌桌裁判模式 ---
+function addJudgeRow() {
+  const tbody = document.getElementById('judge-tbody');
+  const rowCount = tbody.children.length + 1;
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td><strong>玩家 ${rowCount}</strong></td>
+    <td><input type="text" class="judge-cards" placeholder="例如: 1, 2, 3, 4"></td>
+    <td class="judge-formula">-</td>
+    <td class="judge-val">-</td>
+    <td class="judge-diff">-</td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeJudgeRow() {
+  const tbody = document.getElementById('judge-tbody');
+  if (tbody.children.length > 2) {
+    tbody.removeChild(tbody.lastChild);
+  }
+}
+
+function runJudgeShowdown() {
+  const rows = document.querySelectorAll('#judge-tbody tr');
+  let results = [];
+
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    const name = row.children[0].innerText.trim();
+    const inputVal = row.querySelector('.judge-cards').value;
+    const cards = inputVal.split(/[,，\s]+/).map(x => parseInt(x.trim())).filter(x => !isNaN(x) && x >= 0 && x <= 9);
+
+    if (cards.length !== 4) {
+      alert(`請確認【${name}】是否正確輸入了 4 個 0~9 的數字！`);
+      return;
+    }
+
+    let solutions = solveAllFormulas(cards, currentSymbols);
+    solutions.sort((a, b) => a.minDiff - b.minDiff);
+    let best = solutions[0];
+
+    row.querySelector('.judge-formula').innerText = best.formula;
+    row.querySelector('.judge-val').innerText = best.val;
+    row.querySelector('.judge-diff').innerText = best.minDiff;
+
+    results.push({ name, best, row });
+  }
+
+  // 判定贏家
+  results.sort((a, b) => a.best.minDiff - b.best.minDiff);
+  let minDiff = results[0].best.minDiff;
+  let winners = results.filter(r => r.best.minDiff === minDiff);
+
+  // 清除背景色
+  rows.forEach(r => r.style.background = 'transparent');
+  winners.forEach(w => w.row.style.background = 'rgba(16, 185, 129, 0.2)');
+
+  const banner = document.getElementById('judge-winner-banner');
+  banner.style.display = 'block';
+  banner.innerHTML = `🎉 裁決結果：【${winners.map(w => w.name).join('、')}】以最短差距 ${minDiff} 奪得勝者底池！`;
+}
+
+// --- 自訂算式驗算器 ---
+function verifyCustomFormula() {
+  let raw = document.getElementById('verifier-input').value.trim();
+  if (!raw) return;
+
+  let norm = raw.replace(/\*/g, '×').replace(/\//g, '÷');
+  let tokens = norm.match(/\d+|[+\-×÷]/g);
+
+  const out = document.getElementById('verifier-steps');
+
+  if (!tokens || tokens.length !== 7) {
+    out.innerHTML = `<span style="color:var(--red);">❌ 格式錯誤！算式必須為交錯的 4 數字 + 3 運算符號（如：3 × 4 + 5 - 0）。</span>`;
+    return;
+  }
+
+  let nums = [];
+  let ops = [];
+  for (let i = 0; i < 7; i++) {
+    if (i % 2 === 0) {
+      let n = parseInt(tokens[i]);
+      if (isNaN(n)) { out.innerHTML = `<span style="color:var(--red);">❌ 第 ${i+1} 個位置必須是數字！</span>`; return; }
+      nums.push(n);
+    } else {
+      let op = tokens[i];
+      if (!ALL_SYMS.includes(op)) { out.innerHTML = `<span style="color:var(--red);">❌ 未知運算符號: ${op}</span>`; return; }
+      ops.push(op);
+    }
+  }
+
+  // 驗證符號是否吻合桌面公牌
+  let sortedOps = [...ops].sort().join(' ');
+  let sortedBoard = [...currentSymbols].sort().join(' ');
+  let isOpValid = (sortedOps === sortedBoard);
+
+  // 逐步推導
+  let html = `<strong>公式解析：</strong> ${nums[0]} ${ops[0]} ${nums[1]} ${ops[1]} ${nums[2]} ${ops[2]} ${nums[3]}<br>`;
+  html += `公牌符號檢查：${isOpValid ? '✅ 吻合當前公牌' : '<span style="color:var(--red);">⚠️ 所用符號與當前公牌不一致！</span>'}<br><br>`;
+  html += `<strong>優先順序運算步驟：</strong><br>`;
+
+  // 乘除優先
+  let curNums = [nums[0]];
+  let curOps = [];
+  for (let i = 0; i < ops.length; i++) {
+    let op = ops[i];
+    let next = nums[i + 1];
+    if (op === '×' || op === '÷') {
+      let prev = curNums.pop();
+      if (op === '÷' && next === 0) {
+        html += `<span style="color:var(--red);">❌ 錯誤：算式包含除以 0（${prev} ÷ 0），直接判定爆牌出局！</span>`;
+        out.innerHTML = html;
+        return;
+      }
+      let stepVal = (op === '×') ? (prev * next) : (prev / next);
+      html += `• 優先乘除：${prev} ${op} ${next} = ${stepVal}<br>`;
+      curNums.push(stepVal);
+    } else {
+      curOps.push(op);
+      curNums.push(next);
+    }
+  }
+
+  // 加減
+  let res = curNums[0];
+  for (let i = 0; i < curOps.length; i++) {
+    let op = curOps[i];
+    let next = curNums[i + 1];
+    let before = res;
+    if (op === '+') res += next;
+    else if (op === '-') res -= next;
+    html += `• 依序加減：${before} ${op} ${next} = ${res}<br>`;
+  }
+
+  let finalVal = Math.round(res * 100) / 100;
+  let d1 = Math.round(Math.abs(finalVal - 1) * 100) / 100;
+  let d20 = Math.round(Math.abs(finalVal - 20) * 100) / 100;
+  let minD = Math.min(d1, d20);
+
+  html += `<br><strong>最終運算結果：<span style="color:var(--gold); font-size:18px;">${finalVal}</span></strong><br>`;
+  html += `距 1 差距：${d1} ｜ 距 20 差距：${d20} ｜ <strong>最短有效差距：<span style="color:var(--blue);">${minD}</span></strong>`;
+
+  out.innerHTML = html;
+}
+
+// 初始化
+renderSymbols();
+</script>
+</body>
+</html>

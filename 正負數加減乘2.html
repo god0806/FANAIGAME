@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數線動態魔法教室 - 修正括號與標籤渲染版</title>
+    <style>
+        :root {
+            --bg: #f8f3eb;
+            --card-bg: #fffdf9;
+            --card-border: #ebdcc9;
+            --text-main: #3d2b1f;
+            --text-muted: #826e5e;
+            --axis-color: #5c4333;
+            --axis-tick: #a89484;
+            --primary: #c26928;
+            --secondary: #d97706;
+
+            --color-nature: #dc2626;
+            --color-op: #2563eb;
+
+            --screen-bg: #2d1f17;
+            --screen-text: #fcd34d;
+            --key-bg: #f5ece1;
+            --key-border: #ddceba;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif, "Microsoft JhengHei";
+            background-color: var(--bg);
+            color: var(--text-main);
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .screen-container {
+            width: 100vw;
+            height: 100vh;
+            max-width: 177.78vh;
+            max-height: 56.25vw;
+            display: grid;
+            grid-template-columns: 410px 1fr;
+            grid-template-rows: 72px 1fr;
+            gap: 16px;
+            padding: 16px 20px;
+            background: #f3eae0;
+        }
+
+        header {
+            grid-column: span 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            padding: 0 22px;
+            border-radius: 14px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 4px 15px rgba(88, 59, 38, 0.05);
+        }
+        .header-title-box h1 {
+            font-size: 1.4rem;
+            color: var(--primary);
+        }
+
+        .core-rule-banner {
+            display: flex;
+            gap: 14px;
+            background: #faf4ea;
+            padding: 6px 14px;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            font-size: 0.92rem;
+            font-weight: bold;
+        }
+        .core-rule-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rule-tag-nature {
+            background: var(--color-nature);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+        }
+        .rule-tag-op {
+            background: var(--color-op);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+        }
+
+        .control-panel {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 14px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 6px 20px rgba(88, 59, 38, 0.06);
+        }
+        .display-screen {
+            background: var(--screen-bg);
+            color: var(--screen-text);
+            font-size: 1.75rem;
+            padding: 6px 14px;
+            border-radius: 10px;
+            text-align: right;
+            border: 2px solid #52392b;
+            min-height: 48px;
+            font-weight: bold;
+            box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            overflow-x: auto;
+        }
+
+        .txt-nature { color: #f87171 !important; font-weight: 900; }
+        .txt-op { color: #60a5fa !important; font-weight: 900; }
+
+        .preset-section {
+            background: #faf4ea;
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .tab-btn-group {
+            display: flex;
+            gap: 6px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 5px 0;
+            font-size: 0.82rem;
+            font-weight: bold;
+            border-radius: 6px;
+            border: 1px solid var(--card-border);
+            background: var(--key-bg);
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+        .example-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .ex-pill {
+            padding: 3px 8px;
+            font-size: 0.82rem;
+            font-weight: 700;
+            border-radius: 6px;
+            border: 1px solid #ddceba;
+            background: #ffffff;
+            color: var(--text-main);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .ex-pill:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: #fff8f0;
+        }
+
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 7px;
+            flex-grow: 1;
+        }
+        .key-btn {
+            background-color: var(--key-bg);
+            color: var(--text-main);
+            border: 1px solid var(--key-border);
+            font-size: 1.12rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(88, 59, 38, 0.08);
+            transition: all 0.1s;
+        }
+        .key-btn:active {
+            transform: scale(0.95);
+            background-color: #e5d7c5;
+        }
+
+        .key-op-blue {
+            background-color: #eff6ff;
+            color: var(--color-op);
+            border: 2px solid #bfdbfe;
+            font-size: 1.25rem;
+        }
+        .key-nature-red {
+            background-color: #fef2f2;
+            color: var(--color-nature);
+            border: 2px solid #fecaca;
+            font-size: 1.1rem;
+        }
+        .key-clear {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border-color: #fca5a5;
+        }
+        .key-run {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            grid-column: span 2;
+            font-size: 1.05rem;
+            box-shadow: 0 4px 12px rgba(194, 105, 40, 0.25);
+        }
+        .key-run:active {
+            background-color: #aa581d;
+        }
+
+        .stage-panel {
+            background: var(--card-bg);
+            border-radius: 14px;
+            padding: 18px 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 6px 20px rgba(88, 59, 38, 0.06);
+            position: relative;
+        }
+
+        .status-tracker {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 6px;
+        }
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 8px;
+            background: #faf4ea;
+            border: 1px solid var(--card-border);
+            font-weight: bold;
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .axis-wrapper {
+            position: relative;
+            margin: 40px 40px 20px 40px;
+            height: 140px;
+        }
+        .axis-bar {
+            position: absolute;
+            top: 75px;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background: var(--axis-color);
+            border-radius: 3px;
+        }
+        .axis-tick-mark {
+            position: absolute;
+            top: 65px;
+            width: 3px;
+            height: 25px;
+            background: var(--axis-tick);
+            transform: translateX(-50%);
+            border-radius: 2px;
+        }
+        .axis-tick-mark.zero {
+            background: var(--secondary);
+            width: 4px;
+            height: 33px;
+            top: 61px;
+        }
+        .axis-label {
+            position: absolute;
+            top: 100px;
+            transform: translateX(-50%);
+            font-size: 1.12rem;
+            font-weight: bold;
+            color: var(--text-muted);
+            user-select: none;
+        }
+        .axis-label.zero {
+            color: var(--secondary);
+            font-size: 1.32rem;
+            font-weight: 900;
+        }
+
+        .character-box {
+            position: absolute;
+            top: -45px;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: left 0.45s ease-in-out;
+            z-index: 30;
+            pointer-events: none;
+        }
+
+        .sight-indicator {
+            background: #fef2f2;
+            color: var(--color-nature);
+            border: 1px solid #fecaca;
+            font-size: 0.85rem;
+            font-weight: 900;
+            padding: 2px 8px;
+            border-radius: 12px;
+            margin-bottom: 3px;
+            box-shadow: 0 2px 6px rgba(88, 59, 38, 0.1);
+            white-space: nowrap;
+        }
+
+        .character-img {
+            width: 78px;
+            height: 78px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(88, 59, 38, 0.3));
+            transition: opacity 0.15s ease-in-out;
+        }
+
+        .trail-dot {
+            position: absolute;
+            top: 77.5px;
+            width: 16px;
+            height: 16px;
+            background: var(--secondary);
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(88, 59, 38, 0.25);
+        }
+
+        .instruction-box {
+            background: #faf4ea;
+            border-left: 6px solid var(--primary);
+            border-top: 1px solid #f0e2d3;
+            border-bottom: 1px solid #f0e2d3;
+            border-right: 1px solid #f0e2d3;
+            padding: 12px 18px;
+            border-radius: 0 10px 10px 0;
+            font-size: 1.12rem;
+            min-height: 80px;
+            color: var(--text-main);
+        }
+        .step-badge {
+            font-weight: bold;
+            color: var(--primary);
+            font-size: 1.22rem;
+            margin-bottom: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="screen-container">
+    <header>
+        <div class="header-title-box">
+            <h1>✨ 數線魔法大教室 ✨</h1>
+        </div>
+        <div class="core-rule-banner">
+            <div class="core-rule-item">
+                <span class="rule-tag-nature">紅色 性質符號</span>
+                <span>代表【方向】（正右 ➔ / 負左 ⬅）</span>
+            </div>
+            <div class="core-rule-item">
+                <span class="rule-tag-op">藍色 加減法</span>
+                <span>代表【動作】（加法前進 👟 / 減法後退 🔙）</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="control-panel">
+        <div class="display-screen" id="screen">0</div>
+
+        <div class="preset-section">
+            <div class="tab-btn-group">
+                <button class="tab-btn active" onclick="switchCategory('mul')">✖ 乘法範例</button>
+                <button class="tab-btn" onclick="switchCategory('add')">➕ 加法範例</button>
+                <button class="tab-btn" onclick="switchCategory('sub')">➖ 減法範例</button>
+            </div>
+            <div class="example-pills" id="pills-container"></div>
+        </div>
+        
+        <div class="keypad">
+            <button class="key-btn key-clear" onclick="clearScreen()">清除</button>
+            <button class="key-btn" onclick="appendVal('(')">(</button>
+            <button class="key-btn" onclick="appendVal(')')">)</button>
+            <button class="key-btn" style="background:#fff7ed; color:#c2410c;" onclick="appendVal('*')">×</button>
+
+            <button class="key-btn" onclick="appendVal('7')">7</button>
+            <button class="key-btn" onclick="appendVal('8')">8</button>
+            <button class="key-btn" onclick="appendVal('9')">9</button>
+            <button class="key-btn key-op-blue" onclick="appendOp('-')">- 減</button>
+
+            <button class="key-btn" onclick="appendVal('4')">4</button>
+            <button class="key-btn" onclick="appendVal('5')">5</button>
+            <button class="key-btn" onclick="appendVal('6')">6</button>
+            <button class="key-btn key-op-blue" onclick="appendOp('+')">+ 加</button>
+
+            <button class="key-btn" onclick="appendVal('1')">1</button>
+            <button class="key-btn" onclick="appendVal('2')">2</button>
+            <button class="key-btn" onclick="appendVal('3')">3</button>
+            <button class="key-btn key-nature-red" onclick="appendNature('-')">(-)負</button>
+
+            <button class="key-btn key-run" onclick="runSimulation()">🚀 演示轉向與移動</button>
+            <button class="key-btn" onclick="appendVal('0')">0</button>
+        </div>
+    </div>
+
+    <div class="stage-panel">
+        <div class="status-tracker">
+            <div class="status-badge" id="badge-face">🧭 面向：正向 (右)</div>
+            <div class="status-badge" id="badge-walk">👟 動作：待命中</div>
+        </div>
+
+        <div class="axis-wrapper" id="axis-wrapper">
+            <div class="axis-bar"></div>
+
+            <div id="character" class="character-box" style="left: 50%;">
+                <div id="sight-tag" class="sight-indicator">正向 ▶</div>
+                <img id="char-img" class="character-img" src="https://duk.tw/LosHyT.png" alt="數線角色">
+            </div>
+            
+            <div id="ticks-mount"></div>
+        </div>
+
+        <div class="instruction-box">
+            <div class="step-badge" id="step-badge">準備就緒</div>
+            <div id="step-desc">請點擊上方範例標籤或使用鍵盤自行輸入算式，負數將自動套用完整括號！</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const MIN = -10;
+    const MAX = 10;
+    const ticksMount = document.getElementById('ticks-mount');
+    const axisWrapper = document.getElementById('axis-wrapper');
+
+    const IMG_RIGHT = 'https://duk.tw/LosHyT.png';
+    const IMG_LEFT = 'https://duk.tw/m9ZqrN.png';
+    new Image().src = IMG_RIGHT;
+    new Image().src = IMG_LEFT;
+
+    const PRESETS = {
+        mul: [
+            { label: "2 × 3 (正正)", formula: "2*3" },
+            { label: "(-2) × 3 (負正)", formula: "-2*3" },
+            { label: "2 × (-3) (正負)", formula: "2*-3" },
+            { label: "(-2) × (-3) (負負)", formula: "-2*-3" }
+        ],
+        add: [
+            { label: "5 + 3 (加正數)", formula: "5+3" },
+            { label: "5 + (-3) (加負數)", formula: "5+-3" },
+            { label: "(-2) + (-4) (負加負)", formula: "-2+-4" }
+        ],
+        sub: [
+            { label: "5 - 3 (減正數)", formula: "5-3" },
+            { label: "3 - 3 (歸零)", formula: "3-3" },
+            { label: "3 - 5 (減過頭)", formula: "3-5" },
+            { label: "5 - (-3) (減負數)", formula: "5--3" }
+        ]
+    };
+
+    function switchCategory(cat) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        const container = document.getElementById('pills-container');
+        container.innerHTML = "";
+
+        PRESETS[cat].forEach(item => {
+            const btn = document.createElement('button');
+            btn.className = 'ex-pill';
+            btn.innerText = item.label;
+            btn.onclick = () => {
+                inputStr = item.formula;
+                updateScreen();
+                runSimulation();
+            };
+            container.appendChild(btn);
+        });
+    }
+
+    function getPercent(val) {
+        let clamped = Math.max(MIN, Math.min(MAX, val));
+        return ((clamped - MIN) / (MAX - MIN)) * 100;
+    }
+
+    for (let i = MIN; i <= MAX; i++) {
+        let pct = getPercent(i);
+
+        const tickMark = document.createElement('div');
+        tickMark.className = i === 0 ? 'axis-tick-mark zero' : 'axis-tick-mark';
+        tickMark.style.left = pct + '%';
+        ticksMount.appendChild(tickMark);
+
+        const label = document.createElement('div');
+        label.className = i === 0 ? 'axis-label zero' : 'axis-label';
+        label.style.left = pct + '%';
+        label.innerText = i;
+        ticksMount.appendChild(label);
+    }
+
+    function setCharacter(pos, direction = 'right') {
+        const char = document.getElementById('character');
+        const charImg = document.getElementById('char-img');
+        const sightTag = document.getElementById('sight-tag');
+        const faceBadge = document.getElementById('badge-face');
+
+        char.style.left = getPercent(pos) + '%';
+
+        if (direction === 'left') {
+            charImg.src = IMG_LEFT;
+            sightTag.innerText = "◀ 負向 (左)";
+            sightTag.style.background = "#fee2e2";
+            sightTag.style.color = "#dc2626";
+            sightTag.style.borderColor = "#fca5a5";
+            faceBadge.innerHTML = '🧭 面向：<span style="color:#dc2626; font-weight:bold;">負向 (左)</span>';
+        } else {
+            charImg.src = IMG_RIGHT;
+            sightTag.innerText = "正向 (右) ▶";
+            sightTag.style.background = "#e0f2fe";
+            sightTag.style.color = "#0284c7";
+            sightTag.style.borderColor = "#bae6fd";
+            faceBadge.innerHTML = '🧭 面向：<span style="color:#0284c7; font-weight:bold;">正向 (右)</span>';
+        }
+    }
+
+    function addTrailDot(pos) {
+        const dot = document.createElement('div');
+        dot.className = 'trail-dot';
+        dot.style.left = getPercent(pos) + '%';
+        axisWrapper.appendChild(dot);
+    }
+
+    function clearTrails() {
+        document.querySelectorAll('.trail-dot').forEach(d => d.remove());
+    }
+
+    let inputStr = "";
+
+    // 格式化單一數值：負數強制加上完整的左右括號與紅色性質符號
+    function colorizeNature(val) {
+        if (val < 0) {
+            return `(<span class="txt-nature">-</span>${Math.abs(val)})`;
+        }
+        return `${val}`;
+    }
+
+    // 格式化輸入欄位切片，保證括號成對
+    function formatPart(token) {
+        if (!token) return "";
+        let clean = token.replace(/[()]/g, '');
+        if (!clean) return "";
+        if (clean.startsWith('-')) {
+            let num = clean.slice(1);
+            return num ? `(<span class="txt-nature">-</span>${num})` : `(<span class="txt-nature">-</span>`;
+        }
+        return clean;
+    }
+
+    function formatColoredDisplay(raw) {
+        if (!raw) return "0";
+        let s = raw.replace(/\s+/g, '');
+
+        if (s.includes('*')) {
+            let parts = s.split('*');
+            let left = formatPart(parts[0]);
+            let right = parts.length > 1 ? formatPart(parts.slice(1).join('*')) : "";
+            return `${left} <span style="color:#f59e0b; margin:0 4px;">×</span> ${right}`;
+        }
+
+        let opMatch = s.match(/^(-?\d*\.?\d*|\(-?\d*\.?\d*\)?)([\+\-])(.*)$/);
+        if (opMatch) {
+            let left = formatPart(opMatch[1]);
+            let op = opMatch[2] === '+' ? '<span class="txt-op" style="margin:0 4px;">+</span>' : '<span class="txt-op" style="margin:0 4px;">-</span>';
+            let right = opMatch[3] ? formatPart(opMatch[3]) : "";
+            return `${left} ${op} ${right}`;
+        }
+
+        return formatPart(s);
+    }
+
+    function updateScreen() {
+        document.getElementById('screen').innerHTML = formatColoredDisplay(inputStr);
+    }
+
+    function appendVal(v) {
+        inputStr += v;
+        updateScreen();
+    }
+
+    function appendOp(op) {
+        inputStr += op;
+        updateScreen();
+    }
+
+    function appendNature(sign) {
+        inputStr += sign;
+        updateScreen();
+    }
+
+    function clearScreen() {
+        inputStr = "";
+        document.getElementById('screen').innerHTML = "0";
+        clearTrails();
+        setCharacter(0, 'right');
+        document.getElementById('badge-walk').innerText = "👟 動作：待命中";
+        document.getElementById('step-badge').innerHTML = "已重置";
+        document.getElementById('step-desc').innerHTML = "請輸入算式開始新演算。";
+    }
+
+    let running = false;
+
+    async function runSimulation() {
+        if (running || !inputStr) return;
+        running = true;
+        clearTrails();
+
+        let clean = inputStr.replace(/\s+/g, '').replace(/[()]/g, '');
+        const badgeEl = document.getElementById('step-badge');
+        const descEl = document.getElementById('step-desc');
+        const walkBadge = document.getElementById('badge-walk');
+
+        let mulMatch = clean.match(/^(-?\d+)\*(-?\d+)$/);
+        let addMatch = clean.match(/^(-?\d+)\+(-?\d+)$/);
+        let subMatch = clean.match(/^(-?\d+)-(-?\d+)$/);
+
+        // 乘法運算
+        if (mulMatch) {
+            let a = parseInt(mulMatch[1]);
+            let b = parseInt(mulMatch[2]);
+            let formulaHtml = `${colorizeNature(a)} <span style="color:#f59e0b;">×</span> ${colorizeNature(b)}`;
+
+            setCharacter(0, 'right');
+            badgeEl.innerHTML = "【步驟一：第一個數決定面向】";
+            descEl.innerHTML = `算式 <strong>${formulaHtml}</strong>：第一個數為 <strong>${colorizeNature(a)}</strong> ➔ <strong style="color:var(--color-nature);">性質符號決定面向</strong>！${a >= 0 ? '正數面向正向（右）' : '負數轉身面向負向（左）'}。`;
+            await wait(1400);
+
+            let faceDir = a >= 0 ? 'right' : 'left';
+            setCharacter(0, faceDir);
+            await wait(1800);
+
+            badgeEl.innerHTML = "【步驟二：第二個數決定走法】";
+            let isForward = b >= 0;
+            walkBadge.innerHTML = isForward ? '👟 動作：<span style="color:var(--color-op); font-weight:bold;">往前走 (前進)</span>' : '👟 動作：<span style="color:var(--color-op); font-weight:bold;">向後倒退走 (後退)</span>';
+            descEl.innerHTML = `第二個數為 <strong>${colorizeNature(b)}</strong> ➔ 代表<strong>${isForward ? '往前走' : '向後倒退走'}</strong> ${Math.abs(b)} 步（每步大小 ${Math.abs(a)}）！`;
+            await wait(2000);
+
+            badgeEl.innerHTML = "【步驟三：動態軌跡行走】";
+            let currentPos = 0;
+            let stepSize = Math.abs(a);
+            addTrailDot(0);
+
+            for (let i = 0; i < Math.abs(b); i++) {
+                if (faceDir === 'left') {
+                    currentPos += isForward ? -stepSize : stepSize;
+                } else {
+                    currentPos += isForward ? stepSize : -stepSize;
+                }
+                setCharacter(currentPos, faceDir);
+                addTrailDot(currentPos);
+                await wait(700);
+            }
+
+            let result = a * b;
+            badgeEl.innerHTML = `【完成計算】 ${formulaHtml} = ${result > 0 ? '+' + result : result}`;
+            if (a < 0 && b < 0) {
+                descEl.innerHTML = `<strong>負負得正：</strong> <span style="color:var(--color-nature);">面向負向（左）</span>卻<span style="color:var(--color-op);">向後倒退走（後退）</span>，實際移動到了右邊的 <strong>+${result}</strong>！`;
+            } else {
+                descEl.innerHTML = `運算結束！人物停在刻度 <strong>${result}</strong>。`;
+            }
+        }
+        // 加減法運算
+        else if (addMatch || subMatch) {
+            let isAdd = !!addMatch;
+            let match = isAdd ? addMatch : subMatch;
+            let a = parseInt(match[1]);
+            let b = parseInt(match[2]);
+            let result = isAdd ? (a + b) : (a - b);
+            let opHtml = isAdd ? '<span class="txt-op">+</span>' : '<span class="txt-op">-</span>';
+            let formulaHtml = `${colorizeNature(a)} ${opHtml} ${colorizeNature(b)}`;
+
+            setCharacter(a, 'right');
+            addTrailDot(a);
+            badgeEl.innerHTML = "【步驟一：起點站位】";
+            descEl.innerHTML = `人物先站到位移起點 <strong>${colorizeNature(a)}</strong>。`;
+            await wait(1200);
+
+            let faceDir = b >= 0 ? 'right' : 'left';
+            badgeEl.innerHTML = "【步驟二：紅色性質符號決定「方向」】";
+            if (b < 0) {
+                descEl.innerHTML = `運算的數字是負數 <strong>${colorizeNature(b)}</strong> ➔ <strong style="color:var(--color-nature);">負號轉向負向（換左圖）</strong>！`;
+            } else {
+                descEl.innerHTML = `運算的數字是正數 <strong>${b}</strong> ➔ <strong style="color:var(--color-nature);">正數保持面向正向（右圖）</strong>！`;
+            }
+            setCharacter(a, faceDir);
+            await wait(2000);
+
+            let isForward = isAdd;
+            walkBadge.innerHTML = isForward ? '👟 動作：<span style="color:var(--color-op); font-weight:bold;">加法前進 (往前走)</span>' : '👟 動作：<span style="color:var(--color-op); font-weight:bold;">減法後退 (倒退走)</span>';
+            badgeEl.innerHTML = "【步驟三：藍色加減法決定「動作」】";
+            descEl.innerHTML = `運算符號是<strong>${opHtml}</strong> ➔ <strong style="color:var(--color-op);">${isForward ? '加法代表往前走（前進）' : '減法代表向後倒退走（後退）'}</strong> ${Math.abs(b)} 步！`;
+            await wait(2000);
+
+            badgeEl.innerHTML = "【步驟四：執行步態與軌跡】";
+            let currentPos = a;
+            let steps = Math.abs(b);
+
+            for (let i = 0; i < steps; i++) {
+                if (faceDir === 'right') {
+                    currentPos += isForward ? 1 : -1;
+                } else {
+                    currentPos += isForward ? -1 : 1;
+                }
+                setCharacter(currentPos, faceDir);
+                addTrailDot(currentPos);
+                await wait(600);
+            }
+
+            badgeEl.innerHTML = `【完成計算】 ${formulaHtml} = ${result}`;
+            if (!isAdd && b >= 0) {
+                descEl.innerHTML = `<strong>減正數：</strong> 面向正向（右），因為<span style="color:var(--color-op);">減法而倒退走</span> ${steps} 步，退到 <strong>${result}</strong>！`;
+            } else if (!isAdd && b < 0) {
+                descEl.innerHTML = `<strong>減負數（負負得正）：</strong> <span style="color:var(--color-nature);">負號轉向左（負向）</span>，<span style="color:var(--color-op);">減法倒退走（後退）</span>，面向左向後退，實際向右移動停在 <strong>+${result}</strong>！`;
+            } else if (isAdd && b < 0) {
+                descEl.innerHTML = `<strong>加負數：</strong> <span style="color:var(--color-nature);">負號轉向左（負向）</span>，<span style="color:var(--color-op);">加法往前走（前進）</span>，向左前進停在 <strong>${result}</strong>！`;
+            } else {
+                descEl.innerHTML = `<strong>加正數：</strong> 面向正向（右），<span style="color:var(--color-op);">加法往前走（前進）</span> ${steps} 步，停在 <strong>${result}</strong>！`;
+            }
+        }
+        else {
+            badgeEl.innerHTML = "⚠️ 格式提醒";
+            descEl.innerHTML = "請輸入如 5 - 3、5 - -3、5 + -3 或 -2 * -3 等二元算式。";
+        }
+        running = false;
+    }
+
+    function wait(ms) {
+        return new Promise(res => setTimeout(res, ms));
+    }
+
+    switchCategory('mul');
+    setCharacter(0, 'right');
+</script>
+
+</body>
+</html>

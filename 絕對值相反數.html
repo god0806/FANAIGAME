@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>星空下的幾何之距・絕對值互動探索館（大屏與平板教學強化版）</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts: Inter & Noto Sans TC -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- MathJax 數學公式渲染引擎設定 -->
+  <script>
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      options: {
+        skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+      }
+    };
+  </script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
+
+  <style>
+    body {
+      font-family: 'Noto Sans TC', 'Inter', sans-serif;
+      background: linear-gradient(180deg, #0b1329 0%, #1a2c56 30%, #3a506b 60%, #fd9a63 88%, #fed1b2 100%);
+      min-height: 100vh;
+      color: #1e293b;
+      touch-action: pan-y;
+      -webkit-tap-highlight-color: transparent;
+    }
+    /* 新海誠風光暈毛玻璃（減縮邊距版） */
+    .shinkai-glass {
+      background: rgba(255, 255, 255, 0.92);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.85);
+      box-shadow: 0 10px 28px -6px rgba(15, 23, 42, 0.3);
+    }
+    .glow-cyan {
+      filter: drop-shadow(0 0 8px rgba(56, 189, 248, 0.9));
+    }
+    .glow-rose {
+      filter: drop-shadow(0 0 8px rgba(244, 63, 94, 0.9));
+    }
+
+    /* 緊湊精緻型超大好觸控滑桿 */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+      touch-action: none;
+      height: 32px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 26px;
+      width: 26px;
+      border-radius: 50%;
+      background: #0284c7;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.9), inset 0 0 4px #ffffff;
+      cursor: pointer;
+      margin-top: -9px;
+      border: 2.5px solid #ffffff;
+      transition: transform 0.15s ease, background-color 0.15s;
+    }
+    input[type=range]::-webkit-slider-thumb:hover,
+    input[type=range]::-webkit-slider-thumb:active {
+      transform: scale(1.2);
+      background: #0ea5e9;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      cursor: pointer;
+      background: #cbd5e1;
+      border-radius: 9999px;
+      border: 1px solid #94a3b8;
+    }
+
+    /* 頁籤激活 */
+    .tab-active {
+      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
+      color: white !important;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+    }
+
+    /* 數線觸控防滾動專用 */
+    .touch-interactive {
+      touch-action: none;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 課堂大字模式 */
+    body.presentation-mode {
+      font-size: 1.05rem;
+    }
+    body.presentation-mode .shinkai-glass {
+      padding: 1.25rem !important;
+    }
+  </style>
+</head>
+<body class="p-1.5 sm:p-3 flex flex-col items-center select-none">
+
+  <!-- 緊湊型頂部工具列與主標題整合區 -->
+  <header class="w-full max-w-5xl mx-auto mb-2 text-white">
+    <div class="flex items-center justify-between gap-2 px-1">
+      <!-- 標題與核心概念小徽章 -->
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="text-lg sm:text-2xl font-black tracking-tight drop-shadow-md flex items-center gap-1.5">
+          <i class="fa-solid fa-compass-drafting text-cyan-300"></i>
+          <span>星空下的幾何之距：<span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-amber-200">絕對值探究館</span></span>
+        </h1>
+        <span class="hidden md:inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-white/20 text-xs font-bold text-sky-100 border border-white/20">
+          國中數學第一冊
+        </span>
+      </div>
+
+      <!-- 課堂大屏工具按鈕 (緊湊版) -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="btn-toggle-large" onclick="togglePresentationMode()" class="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-xs font-bold text-sky-100 transition flex items-center gap-1">
+          <i class="fa-solid fa-text-height text-cyan-300"></i> <span id="large-mode-label">課堂大字</span>
+        </button>
+        <button onclick="toggleFullScreen()" class="px-2.5 py-1 rounded-xl bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-xs font-bold text-sky-100 transition flex items-center gap-1">
+          <i class="fa-solid fa-expand text-amber-300"></i> <span class="hidden sm:inline">全螢幕</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 緊湊型選單頁籤列 -->
+    <div class="flex justify-center gap-2 mt-2">
+      <button id="btn-tab-explorer" onclick="switchTab('explorer')" class="tab-active px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-ruler-combined"></i> 1. 數線幾何探究儀
+      </button>
+      <button id="btn-tab-lab" onclick="switchTab('lab')" class="bg-white/80 hover:bg-white text-slate-800 px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-scale-balanced"></i> 2. 負數與相反數實驗室
+      </button>
+      <button id="btn-tab-quiz" onclick="switchTab('quiz')" class="bg-white/80 hover:bg-white text-slate-800 px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 shadow">
+        <i class="fa-solid fa-clipboard-check"></i> 3. 實戰診斷測驗 (5題)
+      </button>
+    </div>
+  </header>
+
+  <!-- 主容器 (緊湊間距) -->
+  <main class="w-full max-w-5xl mx-auto space-y-2.5">
+
+    <!-- TAB 1: 數線幾何探究儀 (高密度緊湊版) -->
+    <section id="panel-explorer" class="shinkai-glass rounded-2xl p-3 sm:p-4 shadow-xl transition-all">
+      
+      <!-- 緊湊型三核心導航條 (從原本三大格卡片改為單行徽章條) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mb-2 text-xs font-bold text-slate-800">
+        <div class="bg-sky-100/80 border border-sky-300/80 rounded-xl px-2.5 py-1 flex items-center gap-2">
+          <span class="w-5 h-5 rounded-md bg-sky-600 text-white flex items-center justify-center text-[11px] font-black shrink-0">1</span>
+          <span class="truncate">點到原點距離：$|a|$</span>
+        </div>
+        <div class="bg-indigo-100/80 border border-indigo-300/80 rounded-xl px-2.5 py-1 flex items-center gap-2">
+          <span class="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center text-[11px] font-black shrink-0">2</span>
+          <span class="truncate">非負性：$|a| \ge 0$ 無負距離</span>
+        </div>
+        <div class="bg-amber-100/80 border border-amber-300/80 rounded-xl px-2.5 py-1 flex items-center gap-2">
+          <span class="w-5 h-5 rounded-md bg-amber-600 text-white flex items-center justify-center text-[11px] font-black shrink-0">3</span>
+          <span class="truncate">相反數等距：$|a| = |-a|$</span>
+        </div>
+      </div>
+
+      <!-- 數線畫布區 (高度自適應壓縮：viewBox 840x140，高度壓縮至 h-28 sm:h-36) -->
+      <div class="relative bg-slate-900/95 rounded-xl p-2 sm:p-3 overflow-hidden border border-slate-700 shadow-inner">
+        <!-- 頂部微提示 -->
+        <div class="flex items-center justify-between text-[11px] sm:text-xs text-slate-300 mb-1 px-1 font-semibold">
+          <span class="flex items-center gap-1">
+            <span class="px-1.5 py-0.2 rounded bg-sky-500/30 text-sky-300 border border-sky-400/40 font-bold">觸控 / 白板</span>
+            點擊數線可直接<span class="text-amber-300 font-bold">瞬移</span>，亦可按住<span class="text-cyan-300 font-bold">點 A</span> 自由拖曳
+          </span>
+          <span class="font-mono text-sky-400/70 hidden sm:inline">Interactive Line</span>
+        </div>
+
+        <!-- 數線 SVG 繪圖區 -->
+        <div class="w-full touch-interactive">
+          <svg id="numberLineSvg" class="w-full h-28 sm:h-36 select-none touch-interactive" viewBox="0 0 840 140" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="distGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.85"/>
+                <stop offset="100%" stop-color="#fbbf24" stop-opacity="0.85"/>
+              </linearGradient>
+              <filter id="glowEffect" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="4" result="blur"/>
+                <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+              </filter>
+            </defs>
+
+            <!-- 數線全區域點擊瞬移感應底層 -->
+            <rect id="axisClickArea" x="20" y="30" width="800" height="90" fill="transparent" class="cursor-pointer"/>
+
+            <!-- 數線主軸 (中心基準線 y = 80) -->
+            <line x1="40" y1="80" x2="800" y2="80" stroke="#94a3b8" stroke-width="3.5" stroke-linecap="round"/>
+            <polygon points="806,80 792,74 792,86" fill="#94a3b8"/>
+            <polygon points="34,80 48,74 48,86" fill="#94a3b8"/>
+
+            <!-- 動態距離光帶 -->
+            <rect id="distanceBand" x="420" y="73" width="0" height="14" fill="url(#distGradient)" opacity="0.65" rx="7"/>
+            
+            <!-- 幾何距離拱弧與數值 -->
+            <path id="distanceArc" d="M 420 70 Q 420 35 420 70" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-dasharray="6,4"/>
+            <text id="distanceText" x="420" y="32" fill="#fef08a" font-size="14" font-weight="900" text-anchor="middle" filter="url(#glowEffect)">距離 |a| = 0</text>
+
+            <!-- 刻度與標號 -->
+            <g id="ticksGroup"></g>
+
+            <!-- 原點 0 -->
+            <circle cx="420" cy="80" r="5.5" fill="#ef4444" stroke="#ffffff" stroke-width="2"/>
+            <text x="420" y="104" fill="#fca5a5" font-size="12" font-weight="900" text-anchor="middle">原點 0</text>
+
+            <!-- 相反數鏡像點 -a -->
+            <g id="mirrorGroup" opacity="0" class="transition-opacity duration-300 pointer-events-none">
+              <circle id="mirrorPoint" cx="420" cy="80" r="11" fill="#ec4899" stroke="#ffffff" stroke-width="2.5" class="glow-rose"/>
+              <text id="mirrorLabel" x="420" y="58" fill="#f472b6" font-size="12" font-weight="bold" text-anchor="middle">相反點</text>
+            </g>
+
+            <!-- 目標點 A(a) -->
+            <g id="pointAContainer" class="cursor-grab active:cursor-grabbing touch-interactive" transform="translate(420, 80)">
+              <circle r="30" fill="#38bdf8" opacity="0.15"/>
+              <circle r="13" fill="#0284c7" stroke="#ffffff" stroke-width="3" filter="url(#glowEffect)"/>
+              <circle r="4.5" fill="#ffffff"/>
+              <text id="pointALabel" x="0" y="-20" fill="#38bdf8" font-size="14" font-weight="900" text-anchor="middle" filter="url(#glowEffect)">A(0)</text>
+            </g>
+          </svg>
+        </div>
+
+        <!-- 緊湊數值看板 (高度大幅降低) -->
+        <div class="mt-1.5 grid grid-cols-4 gap-1.5 text-center">
+          <div class="bg-slate-800/90 rounded-lg p-1.5 border border-slate-700">
+            <span class="text-[10px] sm:text-xs text-slate-400 font-bold block">點 A (a)</span>
+            <span id="disp-val-a" class="text-base sm:text-xl font-black text-cyan-300">0</span>
+          </div>
+          <div class="bg-slate-800/90 rounded-lg p-1.5 border border-slate-700">
+            <span class="text-[10px] sm:text-xs text-slate-400 font-bold block">絕對值 |a|</span>
+            <span id="disp-abs-a" class="text-base sm:text-xl font-black text-amber-300">0</span>
+          </div>
+          <div class="bg-slate-800/90 rounded-lg p-1.5 border border-slate-700">
+            <span class="text-[10px] sm:text-xs text-slate-400 font-bold block">相反數 (-a)</span>
+            <span id="disp-neg-a" class="text-base sm:text-xl font-black text-pink-400">0</span>
+          </div>
+          <div class="bg-slate-800/90 rounded-lg p-1.5 border border-slate-700">
+            <span class="text-[10px] sm:text-xs text-slate-400 font-bold block">相反數絕對值 |-a|</span>
+            <span id="disp-abs-neg" class="text-base sm:text-xl font-black text-emerald-300">0</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 控制列：單行整合式滑桿 + 微調鍵 + 範例按鈕 -->
+      <div class="mt-2 bg-white/95 rounded-xl p-2.5 border border-sky-200 shadow-sm space-y-2">
+        <!-- 調整座標主列 -->
+        <div class="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+          <div class="flex items-center gap-1.5 w-full sm:w-auto flex-1">
+            <span class="text-xs font-black text-slate-700 whitespace-nowrap">座標 a：</span>
+            <button onclick="adjustValue(-1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-sky-100 active:bg-sky-200 border border-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center transition" title="減 1">-1</button>
+            <button onclick="adjustValue(-0.5)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-sky-100 active:bg-sky-200 border border-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center transition" title="減 0.5">-0.5</button>
+            
+            <input type="range" id="posSlider" min="-15" max="15" step="0.5" value="0" class="w-full flex-1">
+            <span id="sliderValueText" class="text-sm font-mono font-black text-sky-900 w-11 text-center bg-sky-50 py-0.5 px-1 rounded border border-sky-200">0</span>
+
+            <button onclick="adjustValue(0.5)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-sky-100 active:bg-sky-200 border border-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center transition" title="加 0.5">+0.5</button>
+            <button onclick="adjustValue(1)" class="w-8 h-8 rounded-lg bg-slate-100 hover:bg-sky-100 active:bg-sky-200 border border-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center transition" title="加 1">+1</button>
+          </div>
+
+          <!-- 工具鍵 -->
+          <div class="flex items-center gap-1.5 shrink-0 ml-auto">
+            <button id="btn-toggle-mirror" onclick="toggleMirror()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-pink-100 hover:bg-pink-200 text-pink-700 transition flex items-center gap-1 border border-pink-300">
+              <i class="fa-solid fa-arrows-split-up-and-left"></i> 相反數鏡像
+            </button>
+            <button onclick="resetPosition()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-200 hover:bg-slate-300 text-slate-800 transition flex items-center gap-1">
+              <i class="fa-solid fa-rotate-left"></i> 歸零
+            </button>
+          </div>
+        </div>
+
+        <!-- 課本核心題目快捷列 + 一行引導提問 (水平整合) -->
+        <div class="pt-1.5 border-t border-slate-200 flex items-center justify-between gap-2 flex-wrap text-xs">
+          <div class="flex items-center gap-1.5 flex-wrap">
+            <span class="font-bold text-slate-600 mr-0.5"><i class="fa-solid fa-bookmark text-amber-500"></i> 例題：</span>
+            <button onclick="setPointValue(-5)" class="px-2 py-0.5 font-bold rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200 transition">
+              $a = -5$
+            </button>
+            <button onclick="setPointValue(0.4)" class="px-2 py-0.5 font-bold rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200 transition">
+              $a = 0.4$
+            </button>
+            <button onclick="setPointValue(-1.3)" class="px-2 py-0.5 font-bold rounded-lg bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-200 transition">
+              $a \approx -1.3$
+            </button>
+            <button onclick="setPointValue(-13)" class="px-2 py-0.5 font-bold rounded-lg bg-indigo-100 hover:bg-indigo-200 text-indigo-900 border border-indigo-200 transition">
+              $a = -13$
+            </button>
+          </div>
+
+          <div class="text-[11px] text-amber-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200 flex items-center gap-1">
+            <i class="fa-solid fa-lightbulb text-amber-600"></i>
+            <span><strong>課堂引導：</strong>觀察向左走（負數愈小），代表距離的光帶長度為何反而更長？</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: 負數與相反數實驗室 (緊湊雙欄) -->
+    <section id="panel-lab" class="shinkai-glass rounded-2xl p-3 sm:p-4 shadow-xl hidden transition-all">
+      <div class="mb-3 flex items-center justify-between">
+        <div>
+          <h2 class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-flask-vial text-sky-600"></i> 負數比較與性質探究實驗室
+          </h2>
+          <p class="text-xs text-slate-600">
+            直觀體會「負數的絕對值愈大，其值愈小」與「尋找絕對值範圍內的負整數」。
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <!-- 實驗 A: 負數大小比較 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="px-2 py-0.5 rounded bg-blue-100 text-blue-900 text-xs font-black">焦點 1</span>
+              <span class="text-[11px] text-slate-500 font-bold">練習 10：雙數對比</span>
+            </div>
+            <h3 class="font-black text-slate-800 text-sm mb-1">比較兩個負數：$|-13|$ 與 $|-18|$</h3>
+
+            <div class="space-y-2 mb-2">
+              <div class="p-2 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                  <span>負數 A：<strong id="lab-val-a" class="text-blue-600 font-black">-13</strong></span>
+                  <span>距離 |A| = <strong id="lab-abs-a" class="text-amber-600 font-black">13</strong></span>
+                </div>
+                <input type="range" id="lab-slider-a" min="-25" max="-1" step="1" value="-13" class="w-full">
+              </div>
+              <div class="p-2 bg-slate-50 rounded-lg border border-slate-200">
+                <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                  <span>負數 B：<strong id="lab-val-b" class="text-purple-600 font-black">-18</strong></span>
+                  <span>距離 |B| = <strong id="lab-abs-b" class="text-amber-600 font-black">18</strong></span>
+                </div>
+                <input type="range" id="lab-slider-b" min="-25" max="-1" step="1" value="-18" class="w-full">
+              </div>
+            </div>
+
+            <!-- 動態視覺比較 -->
+            <div class="p-2.5 bg-slate-100 rounded-xl space-y-1.5 text-xs border border-slate-200">
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-600">絕對值比較（距離長短）：</span>
+                <span id="lab-comp-abs" class="font-black text-indigo-700">13 < 18</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="font-bold text-slate-600">數值本身比較（數線左右）：</span>
+                <span id="lab-comp-val" class="font-black text-emerald-700">-13 > -18</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-2 p-2 bg-indigo-50 border border-indigo-200 rounded-lg text-xs text-indigo-950 font-medium">
+            <i class="fa-solid fa-circle-check text-indigo-600 mr-1"></i>
+            <strong>結論：</strong>負數離原點越遠（絕對值越大），位置越偏左，數值反而<strong>越小</strong>！
+          </div>
+        </div>
+
+        <!-- 實驗 B: 絕對值小於某數的負整數 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-sm flex flex-col justify-between">
+          <div>
+            <div class="flex items-center justify-between mb-1.5">
+              <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-900 text-xs font-black">焦點 2</span>
+              <span class="text-[11px] text-slate-500 font-bold">練習 11 & 12 專題</span>
+            </div>
+            <h3 class="font-black text-slate-800 text-sm mb-1">條件篩選：若已知 $|b| < k$</h3>
+
+            <div class="p-2 bg-slate-50 rounded-lg border border-slate-200 mb-2">
+              <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+                <span>設定半徑上限 k：<span id="lab-k-val" class="text-rose-600 font-black text-base">7</span></span>
+                <span class="text-slate-500">限定條件：b 為負整數</span>
+              </div>
+              <input type="range" id="lab-slider-k" min="2" max="10" step="1" value="7" class="w-full">
+            </div>
+
+            <div>
+              <span class="text-xs font-bold text-slate-700 block mb-1">符合條件的負整數解集合：</span>
+              <div id="negative-chips-container" class="flex flex-wrap gap-1.5 min-h-[42px] p-2 bg-slate-100 rounded-xl border border-slate-200 items-center">
+                <!-- JS 生成晶片 -->
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-950 font-medium">
+            <i class="fa-solid fa-compass text-amber-600 mr-1"></i>
+            <strong>幾何意涵：</strong>原點左側且距離在 $k$ 以內的整數點集合。
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: 歷程性隨堂評量 (緊湊版) -->
+    <section id="panel-quiz" class="shinkai-glass rounded-2xl p-3 sm:p-4 shadow-xl hidden transition-all">
+      <div class="flex items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-200">
+        <div>
+          <h2 class="text-base sm:text-lg font-black text-slate-800 flex items-center gap-1.5">
+            <i class="fa-solid fa-list-check text-sky-600"></i> 課堂歷程性自我診斷
+          </h2>
+          <p class="text-xs text-slate-600">5 題教材核心題，大觸控按鍵，即時解析回饋。</p>
+        </div>
+        <div class="bg-sky-100/90 px-3 py-1.5 rounded-xl text-right border border-sky-200">
+          <span id="quiz-score-badge" class="text-xs sm:text-sm font-black text-sky-950">0 / 5 題完成</span>
+        </div>
+      </div>
+
+      <!-- 題目清單 -->
+      <div class="space-y-3" id="quiz-container">
+        <!-- 第 1 題 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-xs" id="quiz-card-1">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-black flex items-center justify-center shrink-0">1</span>
+            <h3 class="font-black text-slate-800 text-xs sm:text-sm">求各數絕對值：求 $|-5|$ 的值為何？</h3>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 ml-0 sm:ml-7">
+            <button onclick="checkAnswer(1, 0)" class="quiz-btn-1 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">A. -5</button>
+            <button onclick="checkAnswer(1, 1)" class="quiz-btn-1 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">B. 5</button>
+            <button onclick="checkAnswer(1, 2)" class="quiz-btn-1 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">C. ±5</button>
+            <button onclick="checkAnswer(1, 3)" class="quiz-btn-1 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">D. 0</button>
+          </div>
+          <div id="feedback-1" class="hidden mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium"></div>
+        </div>
+
+        <!-- 第 2 題 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-xs" id="quiz-card-2">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-black flex items-center justify-center shrink-0">2</span>
+            <h3 class="font-black text-slate-800 text-xs sm:text-sm">由 $|a|$ 求 $a$：若 $|a| = 3$，則 $a$ 可能的值為何？</h3>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 ml-0 sm:ml-7">
+            <button onclick="checkAnswer(2, 0)" class="quiz-btn-2 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">A. 只有 3</button>
+            <button onclick="checkAnswer(2, 1)" class="quiz-btn-2 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">B. 只有 -3</button>
+            <button onclick="checkAnswer(2, 2)" class="quiz-btn-2 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">C. 3 或 -3 (±3)</button>
+            <button onclick="checkAnswer(2, 3)" class="quiz-btn-2 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">D. 無法確定</button>
+          </div>
+          <div id="feedback-2" class="hidden mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium"></div>
+        </div>
+
+        <!-- 第 3 題 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-xs" id="quiz-card-3">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-black flex items-center justify-center shrink-0">3</span>
+            <h3 class="font-black text-slate-800 text-xs sm:text-sm">負數與絕對值比較：關於「-13」與「-18」的大小關係，何者正確？</h3>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-0 sm:ml-7">
+            <button onclick="checkAnswer(3, 0)" class="quiz-btn-3 border border-slate-200 hover:border-sky-400 py-2 px-3 rounded-xl font-bold text-xs transition text-left shadow-xs">A. |-13| > |-18|，且 -13 > -18</button>
+            <button onclick="checkAnswer(3, 1)" class="quiz-btn-3 border border-slate-200 hover:border-sky-400 py-2 px-3 rounded-xl font-bold text-xs transition text-left shadow-xs">B. |-13| < |-18|，但 -13 > -18</button>
+            <button onclick="checkAnswer(3, 2)" class="quiz-btn-3 border border-slate-200 hover:border-sky-400 py-2 px-3 rounded-xl font-bold text-xs transition text-left shadow-xs">C. |-13| < |-18|，且 -13 < -18</button>
+            <button onclick="checkAnswer(3, 3)" class="quiz-btn-3 border border-slate-200 hover:border-sky-400 py-2 px-3 rounded-xl font-bold text-xs transition text-left shadow-xs">D. 兩者絕對值相等</button>
+          </div>
+          <div id="feedback-3" class="hidden mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium"></div>
+        </div>
+
+        <!-- 第 4 題 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-xs" id="quiz-card-4">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-black flex items-center justify-center shrink-0">4</span>
+            <h3 class="font-black text-slate-800 text-xs sm:text-sm">觀念是非題：「任何一個數的絕對值，一定都是正數」，此話是否正確？</h3>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 ml-0 sm:ml-7">
+            <button onclick="checkAnswer(4, 0)" class="quiz-btn-4 border border-slate-200 hover:border-sky-400 py-2 px-3 rounded-xl font-bold text-xs transition text-center shadow-xs">A. 正確，因為幾何距離不能是負的</button>
+            <button onclick="checkAnswer(4, 1)" class="quiz-btn-4 border border-slate-200 hover:border-sky-400 py-2 px-3 rounded-xl font-bold text-xs transition text-center shadow-xs">B. 不正確，因為 0 的絕對值是 0，而 0 不是正數</button>
+          </div>
+          <div id="feedback-4" class="hidden mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium"></div>
+        </div>
+
+        <!-- 第 5 題 -->
+        <div class="bg-white/95 rounded-xl p-3 border border-sky-100 shadow-xs" id="quiz-card-5">
+          <div class="flex items-center gap-2 mb-1.5">
+            <span class="w-5 h-5 rounded-full bg-sky-600 text-white text-xs font-black flex items-center justify-center shrink-0">5</span>
+            <h3 class="font-black text-slate-800 text-xs sm:text-sm">集合計數：已知 $b$ 為負整數，且 $|b| < 7$，則符合條件的 $b$ 共有幾個？</h3>
+          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 ml-0 sm:ml-7">
+            <button onclick="checkAnswer(5, 0)" class="quiz-btn-5 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">A. 5 個</button>
+            <button onclick="checkAnswer(5, 1)" class="quiz-btn-5 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">B. 6 個</button>
+            <button onclick="checkAnswer(5, 2)" class="quiz-btn-5 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">C. 7 個</button>
+            <button onclick="checkAnswer(5, 3)" class="quiz-btn-5 border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-xs sm:text-sm transition text-center shadow-xs">D. 13 個</button>
+          </div>
+          <div id="feedback-5" class="hidden mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 底部精簡說明 -->
+  <footer class="mt-3 text-center text-[11px] text-slate-200/80 pb-2">
+    <span>108 課綱國中數學第一冊・絕對值互動探究教具（大屏與平板專用低高度自適應版）</span>
+  </footer>
+
+  <!-- 提示浮動框 -->
+  <div id="toast-modal" class="fixed bottom-4 right-4 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+    <div class="bg-slate-900/95 text-white px-4 py-2 rounded-xl shadow-xl border border-sky-400/50 flex items-center gap-2">
+      <i id="toast-icon" class="fa-solid fa-circle-info text-sky-400 text-sm"></i>
+      <span id="toast-text" class="text-xs font-bold">提示訊息</span>
+    </div>
+  </div>
+
+  <script>
+    // 狀態變數
+    let currentA = 0;
+    let showMirror = false;
+    let isDragging = false;
+    let isPresentation = false;
+
+    // SVG 幾何映射：總寬 840，中心基準線 y = 80，每單位刻度 24px (範圍 -15 ~ +15)
+    const ORIGIN_X = 420;
+    const ORIGIN_Y = 80;
+    const PIXELS_PER_UNIT = 24;
+    const MIN_UNIT = -15;
+    const MAX_UNIT = 15;
+
+    // DOM 元素引用
+    const svg = document.getElementById('numberLineSvg');
+    const ticksGroup = document.getElementById('ticksGroup');
+    const pointAGroup = document.getElementById('pointAContainer');
+    const pointALabel = document.getElementById('pointALabel');
+    const distanceBand = document.getElementById('distanceBand');
+    const distanceArc = document.getElementById('distanceArc');
+    const distanceText = document.getElementById('distanceText');
+    const mirrorGroup = document.getElementById('mirrorGroup');
+    const mirrorPoint = document.getElementById('mirrorPoint');
+    const mirrorLabel = document.getElementById('mirrorLabel');
+    const posSlider = document.getElementById('posSlider');
+    const sliderValueText = document.getElementById('sliderValueText');
+    const axisClickArea = document.getElementById('axisClickArea');
+
+    // 看板元素
+    const dispValA = document.getElementById('disp-val-a');
+    const dispAbsA = document.getElementById('disp-abs-a');
+    const dispNegA = document.getElementById('disp-neg-a');
+    const dispAbsNeg = document.getElementById('disp-abs-neg');
+
+    function valToSvgX(val) {
+      return ORIGIN_X + val * PIXELS_PER_UNIT;
+    }
+
+    function svgXToVal(x) {
+      let v = (x - ORIGIN_X) / PIXELS_PER_UNIT;
+      return Math.max(MIN_UNIT, Math.min(MAX_UNIT, v));
+    }
+
+    // 建立數線刻度 (高密度緊湊)
+    function buildTicks() {
+      ticksGroup.innerHTML = '';
+      for (let i = MIN_UNIT; i <= MAX_UNIT; i++) {
+        let x = valToSvgX(i);
+        let isMajor = (i % 5 === 0);
+        let tickHeight = isMajor ? 14 : 7;
+
+        let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+        line.setAttribute("x1", x);
+        line.setAttribute("y1", ORIGIN_Y - tickHeight / 2);
+        line.setAttribute("x2", x);
+        line.setAttribute("y2", ORIGIN_Y + tickHeight / 2);
+        line.setAttribute("stroke", isMajor ? "#cbd5e1" : "#64748b");
+        line.setAttribute("stroke-width", isMajor ? "2" : "1.2");
+        ticksGroup.appendChild(line);
+
+        if (isMajor && i !== 0) {
+          let text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+          text.setAttribute("x", x);
+          text.setAttribute("y", ORIGIN_Y + 20);
+          text.setAttribute("fill", "#e2e8f0");
+          text.setAttribute("font-size", "12");
+          text.setAttribute("font-family", "monospace");
+          text.setAttribute("font-weight", "bold");
+          text.setAttribute("text-anchor", "middle");
+          text.textContent = i;
+          ticksGroup.appendChild(text);
+        }
+      }
+    }
+
+    // 更新點 A 與動態距離光帶
+    function updatePointA(val, updateControls = true) {
+      currentA = Math.round(val * 10) / 10;
+      let targetX = valToSvgX(currentA);
+
+      pointAGroup.setAttribute("transform", `translate(${targetX}, ${ORIGIN_Y})`);
+      pointALabel.textContent = `A(${currentA})`;
+
+      let absVal = Math.abs(currentA);
+      let leftX = Math.min(ORIGIN_X, targetX);
+      let bandWidth = Math.abs(targetX - ORIGIN_X);
+
+      distanceBand.setAttribute("x", leftX);
+      distanceBand.setAttribute("width", bandWidth);
+
+      let midX = (ORIGIN_X + targetX) / 2;
+      let archHeight = Math.min(48, 16 + absVal * 2.2);
+      let peakY = ORIGIN_Y - archHeight;
+
+      if (bandWidth > 4) {
+        distanceArc.setAttribute("d", `M ${ORIGIN_X} ${ORIGIN_Y - 10} Q ${midX} ${peakY} ${targetX} ${ORIGIN_Y - 10}`);
+        distanceArc.setAttribute("opacity", "1");
+        distanceText.setAttribute("x", midX);
+        distanceText.setAttribute("y", peakY - 6);
+        distanceText.textContent = `距離 |${currentA}| = ${absVal}`;
+        distanceText.setAttribute("opacity", "1");
+      } else {
+        distanceArc.setAttribute("opacity", "0");
+        distanceText.setAttribute("opacity", "0");
+      }
+
+      let mirrorX = valToSvgX(-currentA);
+      mirrorPoint.setAttribute("cx", mirrorX);
+      mirrorLabel.setAttribute("x", mirrorX);
+      mirrorLabel.textContent = `相反點 (${-currentA === 0 ? 0 : -currentA})`;
+
+      dispValA.textContent = currentA;
+      dispAbsA.textContent = absVal;
+      let negA = (-currentA === 0) ? 0 : (Math.round(-currentA * 10) / 10);
+      dispNegA.textContent = negA;
+      dispAbsNeg.textContent = Math.abs(negA);
+
+      if (updateControls) {
+        posSlider.value = currentA;
+        sliderValueText.textContent = currentA;
+      }
+    }
+
+    // 取得精確坐標
+    function getSvgCoordinates(evt) {
+      let pt = svg.createSVGPoint();
+      if (evt.touches && evt.touches.length > 0) {
+        pt.x = evt.touches[0].clientX;
+        pt.y = evt.touches[0].clientY;
+      } else {
+        pt.x = evt.clientX;
+        pt.y = evt.clientY;
+      }
+      return pt.matrixTransform(svg.getScreenCTM().inverse());
+    }
+
+    axisClickArea.addEventListener('pointerdown', (e) => {
+      let coords = getSvgCoordinates(e);
+      let newVal = svgXToVal(coords.x);
+      let snappedVal = Math.round(newVal * 2) / 2;
+      updatePointA(snappedVal);
+    });
+
+    function startDrag(e) {
+      isDragging = true;
+      e.currentTarget.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    }
+
+    function doDrag(e) {
+      if (!isDragging) return;
+      let coords = getSvgCoordinates(e);
+      let newVal = svgXToVal(coords.x);
+      let snappedVal = Math.round(newVal * 2) / 2;
+      updatePointA(snappedVal);
+      e.preventDefault();
+    }
+
+    function endDrag(e) {
+      if (isDragging) {
+        isDragging = false;
+        try {
+          e.currentTarget.releasePointerCapture(e.pointerId);
+        } catch(err){}
+      }
+    }
+
+    pointAGroup.addEventListener('pointerdown', startDrag);
+    pointAGroup.addEventListener('pointermove', doDrag);
+    pointAGroup.addEventListener('pointerup', endDrag);
+    pointAGroup.addEventListener('pointercancel', endDrag);
+
+    posSlider.addEventListener('input', (e) => {
+      updatePointA(parseFloat(e.target.value));
+    });
+
+    function adjustValue(delta) {
+      let nextVal = Math.round((currentA + delta) * 10) / 10;
+      if (nextVal < MIN_UNIT) nextVal = MIN_UNIT;
+      if (nextVal > MAX_UNIT) nextVal = MAX_UNIT;
+      updatePointA(nextVal);
+    }
+
+    function toggleMirror() {
+      showMirror = !showMirror;
+      mirrorGroup.setAttribute("opacity", showMirror ? "1" : "0");
+      let btn = document.getElementById('btn-toggle-mirror');
+      if (showMirror) {
+        btn.classList.replace('bg-pink-100', 'bg-pink-500');
+        btn.classList.replace('text-pink-700', 'text-white');
+        btn.innerHTML = `<i class="fa-solid fa-check"></i> 相反數開`;
+        showToast("已顯示相反數鏡像點！");
+      } else {
+        btn.classList.replace('bg-pink-500', 'bg-pink-100');
+        btn.classList.replace('text-white', 'text-pink-700');
+        btn.innerHTML = `<i class="fa-solid fa-arrows-split-up-and-left"></i> 相反數鏡像`;
+      }
+    }
+
+    function resetPosition() {
+      updatePointA(0);
+      showToast("點 A 已歸零至原點。");
+    }
+
+    function setPointValue(val) {
+      updatePointA(val);
+      showToast(`已設 a = ${val}`);
+    }
+
+    function togglePresentationMode() {
+      isPresentation = !isPresentation;
+      document.body.classList.toggle('presentation-mode', isPresentation);
+      const label = document.getElementById('large-mode-label');
+      label.textContent = isPresentation ? "標準字體" : "課堂大字";
+      showToast(isPresentation ? "已切換大字模式" : "已切換標準視圖");
+    }
+
+    function toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+          showToast("瀏覽器限制全螢幕，可手動按 F11");
+        });
+      } else {
+        if (document.exitFullscreen) {
+          document.exitFullscreen();
+        }
+      }
+    }
+
+    function switchTab(tabKey) {
+      const tabs = ['explorer', 'lab', 'quiz'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`btn-tab-${t}`);
+        const panel = document.getElementById(`panel-${t}`);
+        if (t === tabKey) {
+          btn.className = "tab-active px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 shadow";
+          panel.classList.remove('hidden');
+        } else {
+          btn.className = "bg-white/80 hover:bg-white text-slate-800 px-3.5 py-1.5 rounded-xl font-bold text-xs sm:text-sm transition-all flex items-center gap-1.5 shadow";
+          panel.classList.add('hidden');
+        }
+      });
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    }
+
+    // 實驗室 A
+    const labSliderA = document.getElementById('lab-slider-a');
+    const labSliderB = document.getElementById('lab-slider-b');
+    const labValA = document.getElementById('lab-val-a');
+    const labValB = document.getElementById('lab-val-b');
+    const labAbsA = document.getElementById('lab-abs-a');
+    const labAbsB = document.getElementById('lab-abs-b');
+    const labCompAbs = document.getElementById('lab-comp-abs');
+    const labCompVal = document.getElementById('lab-comp-val');
+
+    function updateLabComparison() {
+      let va = parseInt(labSliderA.value);
+      let vb = parseInt(labSliderB.value);
+      let absA = Math.abs(va);
+      let absB = Math.abs(vb);
+
+      labValA.textContent = va;
+      labValB.textContent = vb;
+      labAbsA.textContent = absA;
+      labAbsB.textContent = absB;
+
+      if (absA < absB) {
+        labCompAbs.textContent = `${absA} < ${absB} （A 離原點較近）`;
+      } else if (absA > absB) {
+        labCompAbs.textContent = `${absA} > ${absB} （A 離原點較遠）`;
+      } else {
+        labCompAbs.textContent = `${absA} = ${absB} （等距）`;
+      }
+
+      if (va > vb) {
+        labCompVal.textContent = `${va} > ${vb} （A 在右側，值較大）`;
+      } else if (va < vb) {
+        labCompVal.textContent = `${va} < ${vb} （A 在左側，值較小）`;
+      } else {
+        labCompVal.textContent = `${va} = ${vb} （相等）`;
+      }
+    }
+
+    labSliderA.addEventListener('input', updateLabComparison);
+    labSliderB.addEventListener('input', updateLabComparison);
+
+    // 實驗室 B
+    const labSliderK = document.getElementById('lab-slider-k');
+    const labKVal = document.getElementById('lab-k-val');
+    const chipsContainer = document.getElementById('negative-chips-container');
+
+    function updateKSet() {
+      let k = parseInt(labSliderK.value);
+      labKVal.textContent = k;
+      chipsContainer.innerHTML = '';
+
+      let elements = [];
+      for (let i = -1; i > -k; i--) {
+        elements.push(i);
+      }
+
+      if (elements.length === 0) {
+        chipsContainer.innerHTML = `<span class="text-xs text-slate-400 p-1">無符合條件的負整數</span>`;
+        return;
+      }
+
+      elements.forEach(val => {
+        let chip = document.createElement('span');
+        chip.className = "inline-flex items-center px-2 py-1 rounded-lg text-xs font-black bg-sky-100 text-sky-900 border border-sky-300";
+        chip.textContent = `b = ${val}`;
+        chipsContainer.appendChild(chip);
+      });
+
+      let countBadge = document.createElement('span');
+      countBadge.className = "inline-flex items-center px-2 py-1 rounded-lg text-xs font-black bg-rose-500 text-white ml-auto";
+      countBadge.textContent = `共 ${elements.length} 個解`;
+      chipsContainer.appendChild(countBadge);
+    }
+
+    labSliderK.addEventListener('input', updateKSet);
+
+    // 測驗題庫
+    const quizData = [
+      {
+        correctIndex: 1,
+        explanation: "【解析】：-5 與原點的幾何距離為 5，故 |-5| = 5。"
+      },
+      {
+        correctIndex: 2,
+        explanation: "【解析】：與原點距離為 3 的點有向右的 3 與向左的 -3，因此 a = 3 或 -3 (±3)。"
+      },
+      {
+        correctIndex: 1,
+        explanation: "【解析】：|-13|=13，|-18|=18，故 13 < 18；負數離原點越遠其值越小，因此 -13 > -18。"
+      },
+      {
+        correctIndex: 1,
+        explanation: "【解析】：0 的絕對值是 0，而 0 既非正數亦非負數，因此絕對值必為「0 或正數（非負數）」。"
+      },
+      {
+        correctIndex: 1,
+        explanation: "【解析】：由 |b| < 7 且 b 為負整數，解為 -1, -2, -3, -4, -5, -6，共 6 個。"
+      }
+    ];
+
+    let userAnswers = {};
+
+    function checkAnswer(questionNum, chosenIndex) {
+      userAnswers[questionNum] = chosenIndex;
+      const q = quizData[questionNum - 1];
+      const feedbackEl = document.getElementById(`feedback-${questionNum}`);
+      const buttons = document.querySelectorAll(`.quiz-btn-${questionNum}`);
+
+      buttons.forEach((btn, idx) => {
+        btn.disabled = true;
+        btn.classList.remove('hover:border-sky-400');
+        if (idx === q.correctIndex) {
+          btn.className = "py-2 px-2 rounded-xl font-bold text-xs sm:text-sm bg-emerald-100 border border-emerald-500 text-emerald-950 text-center";
+        } else if (idx === chosenIndex) {
+          btn.className = "py-2 px-2 rounded-xl font-bold text-xs sm:text-sm bg-rose-100 border border-rose-400 text-rose-950 text-center";
+        } else {
+          btn.className = "py-2 px-2 rounded-xl font-medium text-xs sm:text-sm bg-slate-100 border border-slate-200 text-slate-400 opacity-60 text-center";
+        }
+      });
+
+      feedbackEl.classList.remove('hidden');
+      if (chosenIndex === q.correctIndex) {
+        feedbackEl.className = "mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium bg-emerald-50 border border-emerald-200 text-emerald-950";
+        feedbackEl.innerHTML = `<span class="font-bold text-emerald-700">✓ 答對了！</span> ${q.explanation}`;
+      } else {
+        feedbackEl.className = "mt-2 ml-0 sm:ml-7 p-2.5 rounded-xl text-xs font-medium bg-rose-50 border border-rose-200 text-rose-950";
+        feedbackEl.innerHTML = `<span class="font-bold text-rose-700">✗ 再想想看：</span> ${q.explanation}`;
+      }
+
+      if (window.MathJax && window.MathJax.typesetPromise) {
+        window.MathJax.typesetPromise([feedbackEl]);
+      }
+
+      let answeredCount = Object.keys(userAnswers).length;
+      let correctCount = Object.keys(userAnswers).filter(k => userAnswers[k] === quizData[k-1].correctIndex).length;
+      document.getElementById('quiz-score-badge').textContent = `${answeredCount} / 5 題（${correctCount * 20} 分）`;
+
+      if (answeredCount === 5) {
+        showToast(`🎉 評量完成！得分：${correctCount * 20} 分！`);
+      }
+    }
+
+    function resetQuiz() {
+      userAnswers = {};
+      for (let i = 1; i <= 5; i++) {
+        const feedbackEl = document.getElementById(`feedback-${i}`);
+        feedbackEl.classList.add('hidden');
+        feedbackEl.innerHTML = '';
+        const buttons = document.querySelectorAll(`.quiz-btn-${i}`);
+        buttons.forEach((btn) => {
+          btn.disabled = false;
+          btn.className = "quiz-btn-" + i + " border border-slate-200 hover:border-sky-400 py-2 px-2 rounded-xl font-bold text-slate-750 text-xs sm:text-sm transition text-center shadow-xs";
+        });
+      }
+      document.getElementById('quiz-score-badge').textContent = `0 / 5 題完成`;
+      showToast("已重置評量題！");
+    }
+
+    let toastTimeout;
+    function showToast(msg) {
+      const toast = document.getElementById('toast-modal');
+      const text = document.getElementById('toast-text');
+      text.textContent = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+
+      clearTimeout(toastTimeout);
+      toastTimeout = setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    window.addEventListener('resize', () => {
+      buildTicks();
+      updatePointA(currentA, false);
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      buildTicks();
+      updatePointA(0);
+      updateLabComparison();
+      updateKSet();
+    });
+  </script>
+</body>
+</html>

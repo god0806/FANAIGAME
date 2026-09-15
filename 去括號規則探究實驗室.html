@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>探索晴空下的數學：去括號規則探究實驗室</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Noto Sans TC & Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+      background: linear-gradient(180deg, #101432 0%, #24295d 30%, #5d4e7b 65%, #c8768e 90%, #f7b293 100%);
+      min-height: 100vh;
+      color: #1e293b;
+      overflow-x: hidden;
+    }
+
+    /* 新海誠風格星光畫布底層 */
+    #skyCanvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 毛玻璃卡片質感 */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 12px 36px 0 rgba(22, 28, 66, 0.22);
+    }
+
+    .glass-card-dark {
+      background: rgba(24, 29, 64, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 12px 36px 0 rgba(0, 0, 0, 0.35);
+    }
+
+    /* 漸層光暈字體 */
+    .shinkai-text-glow {
+      text-shadow: 0 0 20px rgba(255, 225, 178, 0.6), 0 0 35px rgba(244, 114, 182, 0.4);
+    }
+
+    /* 變號閃爍特效 */
+    @keyframes signPulse {
+      0%, 100% { transform: scale(1); filter: brightness(1); }
+      50% { transform: scale(1.15); filter: brightness(1.3); }
+    }
+    .animate-sign-pulse {
+      animation: signPulse 0.8s ease-in-out;
+    }
+
+    /* 自訂拉桿樣式 */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #e2e8f0;
+      height: 8px;
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      cursor: pointer;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.5);
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.18);
+    }
+  </style>
+</head>
+<body class="relative min-h-screen text-slate-800 antialiased selection:bg-indigo-300 selection:text-indigo-900">
+
+  <!-- 背景動態夜空與流星粒子畫布 -->
+  <canvas id="skyCanvas"></canvas>
+
+  <div class="relative z-10 max-w-5xl mx-auto px-4 py-8 sm:px-6 lg:px-8">
+
+    <!-- 頁頭標題區塊 -->
+    <header class="text-center mb-8 text-white">
+      <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-xs sm:text-sm font-semibold tracking-wider text-pink-200 mb-3 shadow-sm">
+        <i class="fa-solid fa-cloud-sun text-yellow-300"></i> 新海誠天空美學 × 國中數學探究學習
+      </div>
+      <h1 class="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight shinkai-text-glow drop-shadow-md">
+        去括號規則探究實驗室
+      </h1>
+      <p class="mt-3 text-sm sm:text-base text-blue-100 max-w-2xl mx-auto font-light leading-relaxed">
+        當括號遇上正負號，數字的世界會發生什麼奇妙的轉變？透過滑桿即時探究「括號內先算」與「去括號展開」的等價之美。
+      </p>
+
+      <!-- 功能分頁切換 -->
+      <nav class="mt-7 flex flex-wrap justify-center gap-2 sm:gap-4">
+        <button id="tabBtn0" onclick="switchTab('life')" class="px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-md bg-white text-indigo-900 ring-2 ring-indigo-400">
+          <i class="fa-solid fa-store mr-2 text-pink-500"></i>生活實例：直覺情境館
+        </button>
+        <button id="tabBtn1" onclick="switchTab('lab1')" class="px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-md bg-white/30 text-white hover:bg-white/40 backdrop-blur-md">
+          <i class="fa-solid fa-wand-magic-sparkles mr-2 text-indigo-300"></i>例 9：符號對照實驗
+        </button>
+        <button id="tabBtn2" onclick="switchTab('lab2')" class="px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-md bg-white/30 text-white hover:bg-white/40 backdrop-blur-md">
+          <i class="fa-solid fa-bolt mr-2 text-yellow-300"></i>例 10：三數速算奇蹟
+        </button>
+        <button id="tabBtn3" onclick="switchTab('quiz')" class="px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-md bg-white/30 text-white hover:bg-white/40 backdrop-blur-md">
+          <i class="fa-solid fa-circle-check mr-2 text-emerald-300"></i>星空挑戰：自我檢測 (5題)
+        </button>
+      </nav>
+    </header>
+
+    <!-- ==================== 分頁 0：生活實例 直覺情境館 ==================== -->
+    <section id="tab-life" class="space-y-6">
+      <!-- 核心概念大看板：一起算 vs 分開算 -->
+      <div class="glass-card rounded-2xl p-6 sm:p-7 border-2 border-indigo-300 shadow-xl">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-xl shadow-md">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div>
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-black bg-indigo-100 text-indigo-800 tracking-wider">
+              數學核心思維
+            </span>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-800">
+              去括號的本質：「一起算」與「分開算」的殊途同歸
+            </h2>
+          </div>
+        </div>
+
+        <p class="text-sm text-slate-600 leading-relaxed mb-6">
+          在國中數學裡，「括號」就像是一個<strong>包裹或購物袋</strong>。面對含有括號的算式，我們永遠有兩種處理方式，而且兩者的<strong>最終結果必定完全相等</strong>：
+        </p>
+
+        <!-- 兩大思維雙欄視覺對照 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <!-- 概念一：一起算 -->
+          <div class="p-5 rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 relative overflow-hidden">
+            <div class="absolute top-2 right-3 text-4xl text-blue-200/50 select-none">
+              <i class="fa-solid fa-box-archive"></i>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-600 text-white text-xs font-extrabold mb-3">
+              <i class="fa-solid fa-box"></i> 方法 1：一起算（打包算）
+            </div>
+            <h3 class="text-base font-black text-blue-950 mb-1">先算括號內，整包當作一個整體</h3>
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+              就像買東西先把物品裝入同一個禮物盒，<strong>先算出盒子裡合起來是多少</strong>，再根據外面的符號統一處理。
+            </p>
+            <div class="bg-white/90 p-3 rounded-xl border border-blue-100 font-mono text-sm space-y-1.5">
+              <div class="text-slate-500 text-xs font-bold">範例：10 − ( 4 + 3 )</div>
+              <div class="text-blue-700 font-bold">① 先算括號內：4 + 3 = 7（包裹總額）</div>
+              <div class="text-slate-800 font-black">② 再算整體：10 − 7 = 3</div>
+            </div>
+            <div class="mt-3 text-xs text-blue-800 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-circle-info text-blue-500"></i> 優點：順序單純、符合小學「括號先算」直覺。
+            </div>
+          </div>
+
+          <!-- 概念二：分開算 -->
+          <div class="p-5 rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 border-2 border-purple-200 relative overflow-hidden">
+            <div class="absolute top-2 right-3 text-4xl text-purple-200/50 select-none">
+              <i class="fa-solid fa-scissors"></i>
+            </div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-600 text-white text-xs font-extrabold mb-3">
+              <i class="fa-solid fa-scissors"></i> 方法 2：分開算（拆包算）
+            </div>
+            <h3 class="text-base font-black text-purple-950 mb-1">去括號展開，拆開一項一項算</h3>
+            <p class="text-xs text-slate-600 leading-relaxed mb-3">
+              把包裝袋的提繩剪開（去括號），<strong>讓袋子裡的每一項商品直接單獨結算</strong>，括號前的符號會分配給每一個人。
+            </p>
+            <div class="bg-white/90 p-3 rounded-xl border border-purple-100 font-mono text-sm space-y-1.5">
+              <div class="text-slate-500 text-xs font-bold">範例：10 − ( 4 + 3 )</div>
+              <div class="text-purple-700 font-bold">① 負號分開扣：10 − 4 − 3</div>
+              <div class="text-slate-800 font-black">② 逐項分開扣：6 − 3 = 3</div>
+            </div>
+            <div class="mt-3 text-xs text-purple-800 font-semibold flex items-center gap-1">
+              <i class="fa-solid fa-wand-magic-sparkles text-purple-500"></i> 優點：能靈活調換順序，大數運算時能直接對消！
+            </div>
+          </div>
+        </div>
+
+        <!-- 什麼時候分開算比較快？ -->
+        <div class="mt-5 p-4 rounded-xl bg-amber-50 border border-amber-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="flex items-center gap-2.5">
+            <i class="fa-solid fa-lightbulb text-amber-500 text-2xl shrink-0"></i>
+            <div class="text-xs sm:text-sm text-amber-950 font-medium leading-relaxed">
+              <strong>思考靈魂問題：</strong>既然「一起算」很直觀，為什麼國中一定要學「分開算」？<br class="hidden sm:inline">
+              👉 當括號裡面的數字很大、但剛好能跟外面抵消時，<strong>「分開算」能省去 90% 的計算時間！</strong>
+            </div>
+          </div>
+          <button onclick="switchTab('lab2')" class="shrink-0 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs rounded-lg transition shadow">
+            看速算奇蹟 <i class="fa-solid fa-arrow-right ml-1"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 實例一：買文具與折價券（解釋 −(a − b) = −a + b） -->
+      <div class="glass-card rounded-2xl p-6 sm:p-7">
+        <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-3 mb-5 gap-2">
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded bg-rose-500 text-white text-xs font-black">情境拆解</span>
+            <h3 class="text-base sm:text-lg font-black text-slate-800">
+              實例 1：買文具與折價券（「一起算」與「分開算」的生活演繹）
+            </h3>
+          </div>
+          <span class="text-xs font-mono font-bold text-rose-600 bg-rose-50 px-3 py-1 rounded-full border border-rose-200">
+            −( a − b ) = −a + b
+          </span>
+        </div>
+
+        <!-- 互動生活模擬拉桿 -->
+        <div class="bg-gradient-to-r from-rose-50 to-pink-50 p-4 rounded-xl border border-rose-100 mb-5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                <span>文具原價 ( a )</span>
+                <span id="lifeValA_Badge" class="font-black text-rose-600 text-sm">50 元</span>
+              </div>
+              <input id="sliderLifeA" type="range" min="30" max="100" value="50" step="5" oninput="updateLifeScenario()" class="w-full">
+            </div>
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-600 mb-1">
+                <span>折價券金額 ( b )</span>
+                <span id="lifeValB_Badge" class="font-black text-emerald-600 text-sm">15 元</span>
+              </div>
+              <input id="sliderLifeB" type="range" min="5" max="30" value="15" step="5" oninput="updateLifeScenario()" class="w-full">
+            </div>
+          </div>
+        </div>
+
+        <!-- 兩種思考角度對照 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- 思考角度 A：一起算 -->
+          <div class="p-4 rounded-xl bg-white/90 border border-slate-200 shadow-sm">
+            <div class="text-xs font-bold text-indigo-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <i class="fa-solid fa-box"></i> 【一起算】先算折價後的特價
+            </div>
+            <div class="text-xs text-slate-500 mb-2">算好優惠價，再一口氣從錢包拿出</div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 font-mono text-sm space-y-1">
+              <div>特價包裹：<span id="lifeStepA1" class="font-bold text-slate-800">50 − 15 = 35 元</span></div>
+              <div class="text-rose-600 font-bold">錢包支出：<span id="lifeStepA2">−( 50 − 15 ) = −35 元</span></div>
+            </div>
+            <div class="mt-3 text-xs text-slate-600 leading-relaxed">
+              👉 這是「括號內打包一起算」：先在括號內相減，再施加括號外的負號。
+            </div>
+          </div>
+
+          <!-- 思考角度 B：分開算 -->
+          <div class="p-4 rounded-xl bg-white/90 border border-slate-200 shadow-sm">
+            <div class="text-xs font-bold text-rose-600 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <i class="fa-solid fa-scissors"></i> 【分開算】先付原價，店員退回折扣
+            </div>
+            <div class="text-xs text-slate-500 mb-2">拆開項目：付原價後，折價券把錢找回來</div>
+            <div class="bg-slate-50 p-3 rounded-lg border border-slate-100 font-mono text-sm space-y-1">
+              <div>先付原價：<span id="lifeStepB1" class="font-bold text-slate-800">−50 元 (支出)</span></div>
+              <div id="lifeStepB2" class="text-emerald-600 font-bold">退還折價：+15 元 (現金找回)</div>
+              <div id="lifeStepB3" class="font-bold text-indigo-700">總計：−50 + 15 = −35 元</div>
+            </div>
+            <div class="mt-3 text-xs text-slate-600 leading-relaxed">
+              👉 這是「去括號分開算」：<strong>「扣除折價」等同於「錢包收回現金（+15）」</strong>！
+            </div>
+          </div>
+        </div>
+
+        <!-- 直觀總結 -->
+        <div class="mt-4 p-3.5 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-3">
+          <div class="text-2xl text-rose-500"><i class="fa-solid fa-circle-check"></i></div>
+          <p class="text-xs sm:text-sm text-rose-900 font-semibold leading-relaxed">
+            生活金律：扣掉「減少的支出」，就等於「皮夾裡的錢增加」！所以 <span class="font-mono bg-white px-2 py-0.5 rounded border border-rose-300 font-bold">−( a − b ) = −a + b</span>，括號內的「減號」分開算時自然變成了「加號」！
+          </p>
+        </div>
+      </div>
+
+      <!-- 實例二：記帳連續支出（解釋 −(a + b) = −a − b） -->
+      <div class="glass-card rounded-2xl p-6 sm:p-7">
+        <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+          <div class="flex items-center gap-2.5">
+            <span class="px-2.5 py-1 rounded bg-indigo-600 text-white text-xs font-black">日常記帳</span>
+            <h3 class="text-base sm:text-lg font-black text-slate-800">
+              實例 2：連續消費記帳（「整包扣」與「分筆扣」）
+            </h3>
+          </div>
+          <span class="text-xs font-mono font-bold text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">
+            −( a + b ) = −a − b
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div class="space-y-2 text-xs sm:text-sm text-slate-700 leading-relaxed">
+            <p>
+              放學時買了一杯 <span class="font-bold text-indigo-700">30 元飲料</span>，又買了一塊 <span class="font-bold text-indigo-700">45 元蛋糕</span>：
+            </p>
+            <div class="bg-indigo-50/70 p-3 rounded-lg border border-indigo-100 space-y-1.5">
+              <div><strong>📦 一起算（整包算）：</strong> 總共花了 30 + 45 = 75 元，記帳為 <strong>−( 30 + 45 ) = −75 元</strong>。</div>
+              <div><strong>✂️ 分開算（個別算）：</strong> 飲料扣 30 元，蛋糕再扣 45 元，記帳為 <strong>−30 − 45 = −75 元</strong>。</div>
+            </div>
+          </div>
+          <div class="p-4 rounded-xl bg-slate-800 text-white shadow-inner">
+            <div class="text-xs font-bold text-pink-400 mb-2">算式等價結論</div>
+            <div class="text-xl font-mono font-black text-yellow-300 mb-1">−( 30 + 45 ) = −30 − 45</div>
+            <p class="text-xs text-slate-300 leading-relaxed">
+              括號前是負號時，分開算意味著「裡面的每一筆花費都必須各自記為扣款（變負號）」！
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 分頁 1：例 9 基礎探究實驗室 ==================== -->
+    <section id="tab-lab1" class="hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 sm:p-7">
+        <div class="flex flex-wrap items-center justify-between border-b border-slate-200 pb-4 mb-6 gap-3">
+          <div>
+            <span class="bg-indigo-600 text-white text-xs font-bold px-2.5 py-1 rounded-md">課本例 9 核心</span>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">符號對照實驗室：一起算 vs 分開算</h2>
+          </div>
+          <!-- 課本例題快選按鈕 -->
+          <div class="flex flex-wrap gap-2 text-xs">
+            <button onclick="applyPreset('-', 6, '+', 3)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold rounded-lg border border-slate-300 transition">
+              例9(1): −(6+3)
+            </button>
+            <button onclick="applyPreset('-', 4, '-', 6)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold rounded-lg border border-slate-300 transition">
+              例9(2): −(4−6)
+            </button>
+            <button onclick="applyPreset('-', -2, '+', 5)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold rounded-lg border border-slate-300 transition">
+              隨堂(1): −(−2+5)
+            </button>
+            <button onclick="applyPreset('-', -2, '-', 4)" class="px-2.5 py-1.5 bg-slate-100 hover:bg-indigo-50 text-slate-700 font-bold rounded-lg border border-slate-300 transition">
+              隨堂(2): −(−2−4)
+            </button>
+          </div>
+        </div>
+
+        <!-- 互動控制面板 -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 p-4 rounded-xl bg-slate-50 border border-slate-200">
+          <!-- 括號外符號切換 -->
+          <div class="text-center md:text-left">
+            <label class="block text-xs font-extrabold text-slate-600 mb-1.5">1. 括號前方的符號</label>
+            <div class="inline-flex rounded-lg shadow-sm bg-white p-1 border border-slate-200">
+              <button id="btnOuterPlus" onclick="setOuterSign('+')" class="px-5 py-2 rounded-md font-extrabold text-lg transition-all text-slate-500">＋</button>
+              <button id="btnOuterMinus" onclick="setOuterSign('-')" class="px-5 py-2 rounded-md font-extrabold text-lg transition-all bg-rose-500 text-white shadow">－</button>
+            </div>
+            <div id="ruleHintText" class="mt-2 text-xs font-medium text-rose-600">
+              ⚡ 括號前是「－」：分開算時內部項項皆需「相反變號」！
+            </div>
+          </div>
+
+          <!-- 內部數值 A 滑桿 -->
+          <div>
+            <div class="flex justify-between text-xs font-bold text-slate-700 mb-1">
+              <span>數值 a：<span id="valA_Badge" class="text-indigo-600 font-black text-sm">4</span></span>
+              <span class="text-slate-400">範圍: −10 ~ 10</span>
+            </div>
+            <input id="sliderA" type="range" min="-10" max="10" value="4" step="1" oninput="updateLab1()" class="w-full">
+          </div>
+
+          <!-- 內部運算與數值 B 滑桿 -->
+          <div>
+            <div class="flex justify-between items-center text-xs font-bold text-slate-700 mb-1">
+              <span>數值 b：<span id="valB_Badge" class="text-indigo-600 font-black text-sm">6</span></span>
+              <button onclick="toggleInnerOp()" class="px-2 py-0.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-800 rounded font-mono font-bold transition">
+                括號內符號：<span id="innerOpDisplay">−</span> (點擊切換)
+              </button>
+            </div>
+            <input id="sliderB" type="range" min="1" max="10" value="6" step="1" oninput="updateLab1()" class="w-full">
+          </div>
+        </div>
+
+        <!-- 雙欄動態對照卡：一起算 vs 分開算 -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-6">
+          <!-- 左欄：一起算 -->
+          <div class="p-5 rounded-2xl bg-white border-2 border-indigo-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <span class="font-extrabold text-sm text-indigo-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-box text-indigo-500"></i> 方法 A：【一起算】
+                </span>
+                <span class="text-xs bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded">括號內先算</span>
+              </div>
+              <div class="text-center py-2 bg-slate-50 rounded-xl mb-3">
+                <div class="text-xs text-slate-400 font-mono mb-1">完整算式</div>
+                <div id="method1_Raw" class="text-xl sm:text-2xl font-black font-mono text-slate-800">−(4 − 6)</div>
+              </div>
+              <div class="space-y-2 text-xs sm:text-sm text-slate-700 font-mono">
+                <div id="method1_Step1" class="p-2.5 bg-indigo-50/50 rounded-lg">先算括號內：4 − 6 = <strong>−2</strong></div>
+                <div id="method1_Step2" class="p-2.5 bg-indigo-50/50 rounded-lg">外層負號求相反數：−(−2)</div>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500">一起算的最終結果</span>
+              <span id="method1_Result" class="text-2xl font-black font-mono text-indigo-600">2</span>
+            </div>
+          </div>
+
+          <!-- 右欄：分開算 -->
+          <div class="p-5 rounded-2xl bg-white border-2 border-rose-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <div class="flex items-center justify-between mb-3 border-b border-slate-100 pb-2">
+                <span class="font-extrabold text-sm text-rose-900 flex items-center gap-1.5">
+                  <i class="fa-solid fa-scissors text-rose-500"></i> 方法 B：【分開算】
+                </span>
+                <span class="text-xs bg-rose-50 text-rose-700 font-bold px-2 py-0.5 rounded">去括號展開</span>
+              </div>
+              <div class="text-center py-2 bg-slate-50 rounded-xl mb-3">
+                <div class="text-xs text-slate-400 font-mono mb-1">展開算式</div>
+                <div id="method2_Expanded" class="text-xl sm:text-2xl font-black font-mono text-rose-600">−4 + 6</div>
+              </div>
+              <div class="space-y-2 text-xs sm:text-sm text-slate-700 font-mono">
+                <div id="method2_Explain" class="p-2.5 bg-rose-50/50 rounded-lg text-rose-800 font-sans">
+                  遇到外層「−」：4 變 −4，− 變 +
+                </div>
+                <div id="method2_DirectCalc" class="p-2.5 bg-rose-50/50 rounded-lg">運算結果：−4 + 6 = <strong>2</strong></div>
+              </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-500">分開算的最終結果</span>
+              <span id="method2_Result" class="text-2xl font-black font-mono text-rose-600">2</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 等價性總結條 -->
+        <div class="p-4 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center gap-3">
+          <i class="fa-solid fa-circle-check text-emerald-600 text-2xl shrink-0"></i>
+          <div id="ruleSummarySentence" class="text-xs sm:text-sm text-emerald-950 font-medium leading-relaxed">
+            當括號前是「<strong>－</strong>」，去括號分開算時內部運算符號必須「<strong>正變負、負變正</strong>」。兩者算出的結果完全相等！
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 分頁 2：例 10 三數速算奇蹟 ==================== -->
+    <section id="tab-lab2" class="hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 sm:p-7">
+        <div class="border-b border-slate-200 pb-4 mb-6">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded bg-amber-500 text-white text-xs font-black">課本例 10 巧算</span>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800">
+              為什麼一定要學「分開算」？大數對消奇蹟
+            </h2>
+          </div>
+          <p class="text-xs sm:text-sm text-slate-600 mt-2 leading-relaxed">
+            如果遇到超大數字，若堅持「一起算（括號內先算）」只會耗時且極易粗心！看看「分開算（去括號）」如何化繁為簡：
+          </p>
+        </div>
+
+        <!-- 題目選擇籤 -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+          <button onclick="selectSmartExample(1)" id="smartTab1" class="p-4 rounded-xl border-2 border-indigo-500 bg-indigo-50/70 text-left transition shadow-sm">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-indigo-900 text-sm">課本例 10 隨堂(1)</span>
+              <span class="text-xs bg-indigo-200 text-indigo-800 font-bold px-2 py-0.5 rounded">對消魔法</span>
+            </div>
+            <div class="text-xl font-black text-slate-800 font-mono">299 − ( 396 + 299 )</div>
+          </button>
+
+          <button onclick="selectSmartExample(2)" id="smartTab2" class="p-4 rounded-xl border-2 border-slate-200 bg-white/60 text-left transition hover:border-slate-300">
+            <div class="flex justify-between items-center mb-1">
+              <span class="font-bold text-slate-700 text-sm">課本例 10 隨堂(2)</span>
+              <span class="text-xs bg-slate-200 text-slate-700 font-bold px-2 py-0.5 rounded">鄰數化簡</span>
+            </div>
+            <div class="text-xl font-black text-slate-800 font-mono">(−1653) − ( 26 − 1654 )</div>
+          </button>
+        </div>
+
+        <!-- 巧算分步解說卡 -->
+        <div class="bg-gradient-to-br from-indigo-950 to-slate-900 text-white rounded-2xl p-6 shadow-xl border border-indigo-500/30">
+          <div class="flex items-center gap-2 text-pink-400 font-bold text-xs uppercase tracking-widest mb-4">
+            <i class="fa-solid fa-sparkles"></i> 逐步拆解演示：「一起算」vs「分開算」
+          </div>
+
+          <div id="smartDemoArea" class="space-y-4">
+            <!-- 動態注入內容 -->
+          </div>
+        </div>
+
+        <!-- 去括號金律總結卡 -->
+        <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="p-4 rounded-xl bg-blue-50 border border-blue-200 text-blue-950">
+            <h4 class="font-bold text-sm mb-1 flex items-center gap-1.5 text-blue-800">
+              <i class="fa-solid fa-plus-circle"></i> 括號前是「＋」號（分開算）
+            </h4>
+            <p class="text-xs leading-relaxed text-blue-900/80">
+              拆包分開算時，原來括號內的符號<strong>一律不變</strong>。<br>
+              <code class="bg-blue-100/80 px-2 py-0.5 rounded text-blue-900 font-mono text-xs font-bold tracking-wide">a + (b − c) = a + b − c</code>
+            </p>
+          </div>
+          <div class="p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-950">
+            <h4 class="font-bold text-sm mb-1 flex items-center gap-1.5 text-rose-800">
+              <i class="fa-solid fa-minus-circle"></i> 括號前是「－」號（分開算）
+            </h4>
+            <p class="text-xs leading-relaxed text-rose-900/80">
+              拆包分開算時，原來括號內的「＋變－」、「－變＋」<strong>全部相反</strong>。<br>
+              <code class="bg-rose-100/80 px-2 py-0.5 rounded text-rose-900 font-mono text-xs font-bold tracking-wide">a − (b − c) = a − b + c</code>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 分頁 3：星空自我評量 (5題) ==================== -->
+    <section id="tab-quiz" class="hidden space-y-6">
+      <div class="glass-card rounded-2xl p-6 sm:p-7">
+        <!-- 評量計分看板 -->
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-6">
+          <div>
+            <span class="bg-purple-600 text-white text-xs font-bold px-2.5 py-1 rounded-md uppercase">歷程性評量</span>
+            <h2 class="text-xl sm:text-2xl font-extrabold text-slate-800 mt-1">去括號規則實戰檢測</h2>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="text-right">
+              <div class="text-xs text-slate-500 font-medium">當前得分</div>
+              <div id="quizScoreText" class="text-2xl font-black text-indigo-600 font-mono">0 / 5</div>
+            </div>
+            <button onclick="resetQuiz()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition">
+              <i class="fa-solid fa-rotate-right mr-1"></i> 重測
+            </button>
+          </div>
+        </div>
+
+        <!-- 5 題測驗題目容器 -->
+        <div id="quizContainer" class="space-y-6">
+          <!-- 題目卡片由 JS 動態生成並渲染 -->
+        </div>
+
+        <!-- 總結回饋框 -->
+        <div id="quizSummaryBox" class="mt-8 hidden p-6 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white text-center shadow-lg">
+          <div class="text-3xl mb-2"><i class="fa-solid fa-trophy text-yellow-300"></i></div>
+          <h3 id="quizSummaryTitle" class="text-xl font-black mb-1">太厲害了！星空探究完成！</h3>
+          <p id="quizSummaryDesc" class="text-sm text-pink-100 max-w-md mx-auto">
+            你已經精熟掌握去括號規則的正負號變換與巧算技巧！
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 頁面頁尾 -->
+    <footer class="mt-12 text-center text-xs text-blue-200/80 font-medium pb-6">
+      <p class="flex items-center justify-center gap-1.5">
+        <span>AI 教育網頁開發專家 設計</span>
+        <span>•</span>
+        <span>適合嵌入 Google 協作平台、自主學習專區</span>
+      </p>
+      <p class="mt-1 text-[11px] text-blue-200/60">
+        以動態探究與概念臆測深化數學直覺
+      </p>
+    </footer>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // 1. 新海誠風格動態夜空背景 (Canvas 星光與流星)
+    // ==========================================
+    const canvas = document.getElementById('skyCanvas');
+    const ctx = canvas.getContext('2d');
+    let width, height;
+    let stars = [];
+    let meteors = [];
+
+    function resizeCanvas() {
+      width = canvas.width = window.innerWidth;
+      height = canvas.height = window.innerHeight;
+      initStars();
+    }
+
+    function initStars() {
+      stars = [];
+      const starCount = Math.floor((width * height) / 4500);
+      for (let i = 0; i < starCount; i++) {
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          radius: Math.random() * 1.5 + 0.5,
+          alpha: Math.random() * 0.8 + 0.2,
+          speed: Math.random() * 0.02 + 0.005,
+          phase: Math.random() * Math.PI * 2
+        });
+      }
+    }
+
+    function spawnMeteor() {
+      if (meteors.length < 2 && Math.random() < 0.015) {
+        meteors.push({
+          x: Math.random() * width,
+          y: Math.random() * (height * 0.4),
+          length: Math.random() * 80 + 40,
+          speed: Math.random() * 6 + 7,
+          angle: Math.PI / 4 + (Math.random() * 0.2 - 0.1),
+          alpha: 1
+        });
+      }
+    }
+
+    function drawSky() {
+      ctx.clearRect(0, 0, width, height);
+
+      // 繪製微光恆星
+      for (let star of stars) {
+        star.phase += star.speed;
+        const currentAlpha = star.alpha + Math.sin(star.phase) * 0.25;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${Math.max(0.1, Math.min(1, currentAlpha))})`;
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = '#fff';
+        ctx.fill();
+      }
+
+      // 繪製劃過天際的流星
+      spawnMeteor();
+      for (let i = meteors.length - 1; i >= 0; i--) {
+        let m = meteors[i];
+        m.x += Math.cos(m.angle) * m.speed;
+        m.y += Math.sin(m.angle) * m.speed;
+        m.alpha -= 0.012;
+
+        if (m.alpha <= 0) {
+          meteors.splice(i, 1);
+          continue;
+        }
+
+        const tailX = m.x - Math.cos(m.angle) * m.length;
+        const tailY = m.y - Math.sin(m.angle) * m.length;
+
+        const grad = ctx.createLinearGradient(m.x, m.y, tailX, tailY);
+        grad.addColorStop(0, `rgba(255, 255, 255, ${m.alpha})`);
+        grad.addColorStop(0.5, `rgba(255, 180, 220, ${m.alpha * 0.6})`);
+        grad.addColorStop(1, `rgba(130, 200, 255, 0)`);
+
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 1.8;
+        ctx.stroke();
+      }
+
+      requestAnimationFrame(drawSky);
+    }
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+    drawSky();
+
+    // ==========================================
+    // 2. 分頁切換邏輯 (含分頁載入防護)
+    // ==========================================
+    function switchTab(tabId) {
+      ['life', 'lab1', 'lab2', 'quiz'].forEach(id => {
+        const sec = document.getElementById(`tab-${id}`);
+        const btn = document.getElementById(`tabBtn${id === 'life' ? '0' : id === 'lab1' ? '1' : id === 'lab2' ? '2' : '3'}`);
+        if (sec && btn) {
+          if (id === tabId) {
+            sec.classList.remove('hidden');
+            btn.className = 'px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-md bg-white text-indigo-900 ring-2 ring-indigo-400';
+          } else {
+            sec.classList.add('hidden');
+            btn.className = 'px-5 py-2.5 rounded-xl font-bold text-sm sm:text-base transition-all duration-300 shadow-md bg-white/30 text-white hover:bg-white/40 backdrop-blur-md';
+          }
+        }
+      });
+
+      // 當切換到特定分頁時，安全刷新對應數值
+      if (tabId === 'life') updateLifeScenario();
+      if (tabId === 'lab1') updateLab1();
+      if (tabId === 'lab2') selectSmartExample(1);
+      if (tabId === 'quiz') renderQuiz();
+    }
+
+    // ==========================================
+    // 2.5 生活實例直覺館：動態計算 (空值保護)
+    // ==========================================
+    function updateLifeScenario() {
+      const sliderA = document.getElementById('sliderLifeA');
+      const sliderB = document.getElementById('sliderLifeB');
+      if (!sliderA || !sliderB) return;
+
+      const a = parseInt(sliderA.value, 10) || 50;
+      const b = parseInt(sliderB.value, 10) || 15;
+
+      const badgeA = document.getElementById('lifeValA_Badge');
+      const badgeB = document.getElementById('lifeValB_Badge');
+      if (badgeA) badgeA.innerText = `${a} 元`;
+      if (badgeB) badgeB.innerText = `${b} 元`;
+
+      const discountPrice = a - b;
+      const stepA1 = document.getElementById('lifeStepA1');
+      const stepA2 = document.getElementById('lifeStepA2');
+      const stepB1 = document.getElementById('lifeStepB1');
+      const stepB2 = document.getElementById('lifeStepB2');
+      const stepB3 = document.getElementById('lifeStepB3');
+
+      // 更新【一起算】步驟
+      if (stepA1) stepA1.innerText = `${a} − ${b} = ${discountPrice} 元`;
+      if (stepA2) stepA2.innerText = `−( ${a} − ${b} ) = −${discountPrice} 元`;
+
+      // 更新【分開算】步驟
+      if (stepB1) stepB1.innerText = `−${a} 元 (支出)`;
+      if (stepB2) stepB2.innerText = `退還折價：+${b} 元 (現金找回)`;
+      if (stepB3) stepB3.innerText = `總計：−${a} + ${b} = −${discountPrice} 元`;
+    }
+
+    // ==========================================
+    // 3. 實驗室 1：狀態管理與防禦型即時運算
+    // ==========================================
+    let state = {
+      outerSign: '-', // '+' 或 '-'
+      valA: 4,
+      innerOp: '-',   // '+' 或 '-'
+      valB: 6
+    };
+
+    function setOuterSign(sign) {
+      state.outerSign = sign;
+      const btnPlus = document.getElementById('btnOuterPlus');
+      const btnMinus = document.getElementById('btnOuterMinus');
+      const ruleHint = document.getElementById('ruleHintText');
+
+      if (btnPlus && btnMinus && ruleHint) {
+        if (sign === '+') {
+          btnPlus.className = 'px-5 py-2 rounded-md font-extrabold text-lg transition-all bg-indigo-600 text-white shadow';
+          btnMinus.className = 'px-5 py-2 rounded-md font-extrabold text-lg transition-all text-slate-500';
+          ruleHint.innerHTML = '✨ 括號前是「＋」：去括號時內部項項符號「保持原樣、不變」！';
+          ruleHint.className = 'mt-2 text-xs font-medium text-indigo-600';
+        } else {
+          btnMinus.className = 'px-5 py-2 rounded-md font-extrabold text-lg transition-all bg-rose-500 text-white shadow';
+          btnPlus.className = 'px-5 py-2 rounded-md font-extrabold text-lg transition-all text-slate-500';
+          ruleHint.innerHTML = '⚡ 括號前是「－」：去括號時內部項項皆需「相反變號」！';
+          ruleHint.className = 'mt-2 text-xs font-medium text-rose-600';
+        }
+      }
+      updateLab1();
+    }
+
+    function toggleInnerOp() {
+      state.innerOp = state.innerOp === '+' ? '-' : '+';
+      const opDisplay = document.getElementById('innerOpDisplay');
+      if (opDisplay) opDisplay.innerText = state.innerOp;
+      updateLab1();
+    }
+
+    function applyPreset(outer, a, op, b) {
+      state.outerSign = outer;
+      state.valA = a;
+      state.innerOp = op;
+      state.valB = b;
+
+      const sliderA = document.getElementById('sliderA');
+      const sliderB = document.getElementById('sliderB');
+      const opDisplay = document.getElementById('innerOpDisplay');
+
+      if (sliderA) sliderA.value = a;
+      if (sliderB) sliderB.value = b;
+      if (opDisplay) opDisplay.innerText = op;
+
+      setOuterSign(outer);
+    }
+
+    function formatNumber(num) {
+      return num < 0 ? `(${num})` : `${num}`;
+    }
+
+    function updateLab1() {
+      const sliderA = document.getElementById('sliderA');
+      const sliderB = document.getElementById('sliderB');
+
+      // 安全檢查：若元素尚未完成 DOM 渲染，使用既有 state 不拋出例外
+      if (sliderA) state.valA = parseInt(sliderA.value, 10);
+      if (sliderB) state.valB = parseInt(sliderB.value, 10);
+
+      const badgeA = document.getElementById('valA_Badge');
+      const badgeB = document.getElementById('valB_Badge');
+      if (badgeA) badgeA.innerText = state.valA;
+      if (badgeB) badgeB.innerText = state.valB;
+
+      const outer = state.outerSign;
+      const a = state.valA;
+      const op = state.innerOp;
+      const b = state.valB;
+
+      // --- 方法一：括號內先算 ---
+      const innerVal = op === '+' ? (a + b) : (a - b);
+      const finalVal1 = outer === '+' ? innerVal : (-innerVal);
+
+      const rawFormula = `${outer === '-' ? '−' : ''}(${a} ${op} ${b})`;
+      const elRaw = document.getElementById('method1_Raw');
+      const elStep1 = document.getElementById('method1_Step1');
+      const elStep2 = document.getElementById('method1_Step2');
+      const elRes1 = document.getElementById('method1_Result');
+
+      if (elRaw) elRaw.innerText = rawFormula;
+      if (elStep1) elStep1.innerHTML = `先算括號內：${formatNumber(a)} ${op} ${b} = <strong>${innerVal}</strong>`;
+      if (elStep2) {
+        elStep2.innerHTML = outer === '-'
+          ? `外層負號求相反數：−(${formatNumber(innerVal)})`
+          : `外層正號保持不變：+(${formatNumber(innerVal)})`;
+      }
+      if (elRes1) elRes1.innerText = finalVal1;
+
+      // --- 方法二：去括號展開 ---
+      let term1Text = '';
+      let term1Val = 0;
+      let term2Text = '';
+      let term2Val = 0;
+
+      if (outer === '+') {
+        term1Text = `${a}`;
+        term1Val = a;
+        term2Text = op === '+' ? `+ ${b}` : `− ${b}`;
+        term2Val = op === '+' ? b : -b;
+      } else {
+        term1Text = a >= 0 ? `− ${a}` : `+ ${Math.abs(a)}`;
+        term1Val = -a;
+        const newOp = op === '+' ? '−' : '+';
+        term2Text = `${newOp} ${b}`;
+        term2Val = newOp === '+' ? b : -b;
+      }
+
+      const expandedText = `${term1Text} ${term2Text}`;
+      const finalVal2 = term1Val + term2Val;
+
+      const elExpanded = document.getElementById('method2_Expanded');
+      const elExplain = document.getElementById('method2_Explain');
+      const elCalc = document.getElementById('method2_DirectCalc');
+      const elRes2 = document.getElementById('method2_Result');
+
+      if (elExpanded) elExpanded.innerText = expandedText;
+      if (elExplain) {
+        if (outer === '-') {
+          elExplain.innerHTML = `<span class="text-rose-600 font-bold">遇到外層「−」</span>：${formatNumber(a)} 變 ${term1Text}，${op} 變 ${op === '+' ? '−' : '+'}`;
+        } else {
+          elExplain.innerHTML = `<span class="text-indigo-600 font-bold">遇到外層「＋」</span>：內部符號完全原封不動展開`;
+        }
+      }
+      if (elCalc) elCalc.innerHTML = `運算結果：${expandedText} = <strong>${finalVal2}</strong>`;
+      if (elRes2) elRes2.innerText = finalVal2;
+
+      // 總結文字
+      const summaryElem = document.getElementById('ruleSummarySentence');
+      if (summaryElem) {
+        if (outer === '-') {
+          summaryElem.innerHTML = `當括號前是「<strong>－</strong>」，去括號後原本的運算符號必須「<strong>正變負、負變正</strong>」。結果兩者皆為 <strong>${finalVal1}</strong>！`;
+        } else {
+          summaryElem.innerHTML = `當括號前是「<strong>＋</strong>」，去括號後原本的運算符號<strong>保持不變</strong>。結果兩者皆為 <strong>${finalVal1}</strong>！`;
+        }
+      }
+    }
+
+    // ==========================================
+    // 4. 實驗室 2：三數巧算展示 (含元素存在檢查)
+    // ==========================================
+    function selectSmartExample(index) {
+      const tab1 = document.getElementById('smartTab1');
+      const tab2 = document.getElementById('smartTab2');
+      const area = document.getElementById('smartDemoArea');
+
+      if (!area) return;
+
+      if (index === 1) {
+        if (tab1) tab1.className = 'p-4 rounded-xl border-2 border-indigo-500 bg-indigo-50/70 text-left transition shadow-sm';
+        if (tab2) tab2.className = 'p-4 rounded-xl border-2 border-slate-200 bg-white/60 text-left transition hover:border-slate-300';
+
+        area.innerHTML = `
+          <div class="p-3 bg-white/10 rounded-xl border border-white/10 flex items-center justify-between">
+            <span class="text-slate-300 text-xs font-mono">題目</span>
+            <span class="text-lg sm:text-xl font-black font-mono text-yellow-300">299 − ( 396 + 299 )</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div class="p-3 rounded-lg bg-rose-950/40 border border-rose-500/30">
+              <div class="text-rose-300 text-xs font-bold mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> 方法 1：一起算（辛苦硬算）
+              </div>
+              <div class="font-mono text-xs text-slate-300 space-y-1">
+                <div>= 299 − 695 (需計算 396+299)</div>
+                <div class="text-rose-400 font-bold">= −396 (容易借位算錯)</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30">
+              <div class="text-emerald-300 text-xs font-bold mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 方法 2：分開算（去括號對消）
+              </div>
+              <div class="font-mono text-xs text-slate-300 space-y-1">
+                <div>= 299 − 396 <span class="text-rose-400 font-bold">− 299</span></div>
+                <div class="text-emerald-300 font-bold">= (299 − 299) − 396 = −396 (秒殺!)</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-emerald-500/20 border border-emerald-400/40 rounded-xl flex items-center justify-between">
+            <span class="text-emerald-300 font-bold text-sm">速算秒答結果</span>
+            <span class="text-2xl font-black font-mono text-emerald-300">−396</span>
+          </div>
+        `;
+      } else {
+        if (tab2) tab2.className = 'p-4 rounded-xl border-2 border-indigo-500 bg-indigo-50/70 text-left transition shadow-sm';
+        if (tab1) tab1.className = 'p-4 rounded-xl border-2 border-slate-200 bg-white/60 text-left transition hover:border-slate-300';
+
+        area.innerHTML = `
+          <div class="p-3 bg-white/10 rounded-xl border border-white/10 flex items-center justify-between">
+            <span class="text-slate-300 text-xs font-mono">題目</span>
+            <span class="text-lg sm:text-xl font-black font-mono text-yellow-300">(−1653) − ( 26 − 1654 )</span>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+            <div class="p-3 rounded-lg bg-rose-950/40 border border-rose-500/30">
+              <div class="text-rose-300 text-xs font-bold mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-triangle-exclamation"></i> 方法 1：一起算（辛苦硬算）
+              </div>
+              <div class="font-mono text-xs text-slate-300 space-y-1">
+                <div>= −1653 − (−1628) (括號內難算)</div>
+                <div class="text-rose-400 font-bold">= −1653 + 1628 = −25 (耗時)</div>
+              </div>
+            </div>
+
+            <div class="p-3 rounded-lg bg-emerald-950/40 border border-emerald-500/30">
+              <div class="text-emerald-300 text-xs font-bold mb-1 flex items-center gap-1">
+                <i class="fa-solid fa-wand-magic-sparkles"></i> 方法 2：分開算（去括號湊整）
+              </div>
+              <div class="font-mono text-xs text-slate-300 space-y-1">
+                <div>= −1653 − 26 <span class="text-emerald-400 font-bold">+ 1654</span></div>
+                <div class="text-emerald-300 font-bold">= (1654 − 1653) − 26 = 1 − 26 = −25</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-emerald-500/20 border border-emerald-400/40 rounded-xl flex items-center justify-between">
+            <span class="text-emerald-300 font-bold text-sm">速算秒答結果</span>
+            <span class="text-2xl font-black font-mono text-emerald-300">−25</span>
+          </div>
+        `;
+      }
+    }
+
+    // ==========================================
+    // 5. 歷程性評量 (5 題實戰自我檢測)
+    // ==========================================
+    const quizData = [
+      {
+        id: 1,
+        question: "小明想把「一起算」的式子 −(15 + 8) 改成「分開算（去括號）」，請問正確寫法是哪一個？",
+        options: [
+          "−15 + 8",
+          "−15 − 8",
+          "15 − 8",
+          "15 + 8"
+        ],
+        answer: 1,
+        explanation: "「一起算」是把 (15 + 8) 當成一個包裹；改成「分開算（去括號）」時，因為括號前是負號，裡面的每一項都要分配到負號（變號），所以正 15 變 −15，+8 變 −8，結果為 −15 − 8。"
+      },
+      {
+        id: 2,
+        question: "下列關於「一起算」與「分開算」的等價轉換，哪一個是「完全正確」的？",
+        options: [
+          "−(a − b) = −a − b",
+          "+(a − b) = a + b",
+          "−(−3 + 7) = 3 − 7",
+          "10 − (4 + 6) = 10 − 4 + 6"
+        ],
+        answer: 2,
+        explanation: "括號前為負號時，分開算必須項項變號：−(−3) 變成正 3，+7 變成 −7，所以 −(−3 + 7) = 3 − 7。"
+      },
+      {
+        id: 3,
+        question: "計算 12 − (5 − 8)，若選擇「分開算（去括號展開）」來計算，正確的過程與答案是？",
+        options: [
+          "12 − 5 − 8 = −1",
+          "12 − 5 + 8 = 15",
+          "12 + 5 − 8 = 9",
+          "12 + 5 + 8 = 25"
+        ],
+        answer: 1,
+        explanation: "分開算時：−(5 − 8) = −5 + 8（扣除減少的，等於增加）。因此算式為 12 − 5 + 8 = 7 + 8 = 15。"
+      },
+      {
+        id: 4,
+        question: "面對算式 524 − (324 + 99)，為什麼老師通常建議學生用「分開算」而不是「一起算」？",
+        options: [
+          "因為分開算展開為 524 − 324 − 99，可以先算 524 − 324 = 200，避開大數相加",
+          "因為一起算算出來的答案跟分開算不同",
+          "因為分開算展開後可以變成加法 524 + 324 + 99",
+          "因為課本規定只能用分開算"
+        ],
+        answer: 0,
+        explanation: "若「一起算」得先算 324 + 99 = 423，再用 524 − 423，容易借位算錯；若「分開算」拆成 524 − 324 − 99，前兩數直接相減得 200，再減 99 只要心算即可得 101！"
+      },
+      {
+        id: 5,
+        question: "若括號前為負號，且內部有三項：x − (y − z + w)，改為「分開算」後的展開式應為？",
+        options: [
+          "x − y − z + w",
+          "x − y + z − w",
+          "x + y − z + w",
+          "x − y − z − w"
+        ],
+        answer: 1,
+        explanation: "分開算時負號會分配給包裹內的每一項：+y 變 −y，−z 變 +z，+w 變 −w，化簡結果為 x − y + z − w。"
+      }
+    ];
+
+    let userAnswers = {};
+
+    function renderQuiz() {
+      const container = document.getElementById('quizContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      quizData.forEach((q, idx) => {
+        const answered = userAnswers[q.id] !== undefined;
+        const isCorrect = answered && userAnswers[q.id] === q.answer;
+
+        let statusBadge = '';
+        if (answered) {
+          statusBadge = isCorrect
+            ? `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700 flex items-center gap-1"><i class="fa-solid fa-check"></i> 答對</span>`
+            : `<span class="px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-700 flex items-center gap-1"><i class="fa-solid fa-xmark"></i> 答錯</span>`;
+        }
+
+        const card = document.createElement('div');
+        card.className = `p-5 rounded-xl border transition-all ${
+          answered
+            ? isCorrect ? 'bg-emerald-50/40 border-emerald-300' : 'bg-rose-50/40 border-rose-300'
+            : 'bg-white/90 border-slate-200 shadow-sm'
+        }`;
+
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-xs font-extrabold text-indigo-700 uppercase tracking-wide">第 ${idx + 1} 題</span>
+            ${statusBadge}
+          </div>
+          <p class="font-bold text-slate-800 text-sm sm:text-base mb-3 leading-relaxed">${q.question}</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+            ${q.options.map((opt, oIdx) => {
+              let btnClass = 'p-3 rounded-lg border text-left font-medium transition ';
+              if (!answered) {
+                btnClass += 'bg-slate-50 hover:bg-indigo-50/70 border-slate-200 text-slate-700';
+              } else {
+                if (oIdx === q.answer) {
+                  btnClass += 'bg-emerald-500 text-white font-bold border-emerald-600';
+                } else if (oIdx === userAnswers[q.id]) {
+                  btnClass += 'bg-rose-500 text-white font-bold border-rose-600';
+                } else {
+                  btnClass += 'bg-slate-100 text-slate-400 border-slate-200 opacity-60';
+                }
+              }
+              return `
+                <button ${answered ? 'disabled' : ''} onclick="submitAnswer(${q.id}, ${oIdx})" class="${btnClass}">
+                  <span class="inline-block w-5 font-bold mr-1">${String.fromCharCode(65 + oIdx)}.</span>
+                  ${opt}
+                </button>
+              `;
+            }).join('')}
+          </div>
+          ${answered ? `
+            <div class="mt-3.5 p-3 rounded-lg bg-slate-100/90 text-xs text-slate-700 border-l-4 ${isCorrect ? 'border-emerald-500' : 'border-rose-500'}">
+              <strong class="font-bold">【詳解】</strong> ${q.explanation}
+            </div>
+          ` : ''}
+        `;
+        container.appendChild(card);
+      });
+
+      updateScoreDisplay();
+    }
+
+    function submitAnswer(questionId, selectedOption) {
+      userAnswers[questionId] = selectedOption;
+      renderQuiz();
+    }
+
+    function updateScoreDisplay() {
+      let score = 0;
+      let answeredCount = 0;
+      quizData.forEach(q => {
+        if (userAnswers[q.id] !== undefined) {
+          answeredCount++;
+          if (userAnswers[q.id] === q.answer) score++;
+        }
+      });
+
+      const scoreText = document.getElementById('quizScoreText');
+      if (scoreText) scoreText.innerText = `${score} / 5`;
+
+      const summaryBox = document.getElementById('quizSummaryBox');
+      if (!summaryBox) return;
+
+      if (answeredCount === quizData.length) {
+        summaryBox.classList.remove('hidden');
+        const title = document.getElementById('quizSummaryTitle');
+        const desc = document.getElementById('quizSummaryDesc');
+        if (score === 5) {
+          if (title) title.innerText = '🌟 滿分通關！星空數學大師！';
+          if (desc) desc.innerText = '完美掌握「去括號前後的符號變化與巧算精髓」，太優秀了！';
+        } else if (score >= 3) {
+          if (title) title.innerText = '✨ 挑戰成功！概念清晰！';
+          if (desc) desc.innerText = `答對了 ${score} 題！請仔細閱讀答錯題目的詳解，鞏固正負號的分配法則！`;
+        } else {
+          if (title) title.innerText = '💪 持續加油！重溫探究實驗室！';
+          if (desc) desc.innerText = '可以回到「例9 符號對照實驗」，多拉動幾次滑桿觀察括號前負號的變號威力喔！';
+        }
+      } else {
+        summaryBox.classList.add('hidden');
+      }
+    }
+
+    function resetQuiz() {
+      userAnswers = {};
+      renderQuiz();
+    }
+
+    // ==========================================
+    // 6. 安全初始化載入 (相容 DOMContentLoaded 與 load)
+    // ==========================================
+    function safeInitApp() {
+      try {
+        updateLifeScenario();
+        updateLab1();
+        selectSmartExample(1);
+        renderQuiz();
+      } catch (e) {
+        console.warn('Init deferred until elements are ready:', e);
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', safeInitApp);
+    } else {
+      safeInitApp();
+    }
+    window.addEventListener('load', safeInitApp);
+  </script>
+</body>
+</html>

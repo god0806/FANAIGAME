@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE DEVIL'S PLAN: 極限運算梭哈</title>
+<style>
+  :root {
+    --bg-dark: #07090e;
+    --table-bg: #0e1420;
+    --card-surface: #141c2c;
+    --gold: #d4af37;
+    --gold-glow: #f59e0b;
+    --gold-dim: #785a1a;
+    --gold-gradient: linear-gradient(135deg, #f6d365 0%, #d4af37 50%, #996515 100%);
+    --cyan: #38bdf8;
+    --red: #f43f5e;
+    --green: #10b981;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-line: #1e293b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Cinzel", "PingFang TC", "Heiti TC", "Microsoft JhengHei", -apple-system, sans-serif; }
+  body {
+    background: radial-gradient(circle at center, #111827 0%, var(--bg-dark) 100%);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 12px;
+  }
+
+  /* 主牌桌容器 */
+  .arena-wrapper {
+    width: 100%;
+    max-width: 660px;
+    background: linear-gradient(165deg, rgba(28, 37, 56, 0.7) 0%, rgba(11, 15, 25, 0.95) 100%);
+    border: 1.5px solid var(--gold-dim);
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.85), inset 0 0 40px rgba(0,0,0,0.6);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* 幾何背景暗紋裝飾 */
+  .arena-wrapper::before {
+    content: "";
+    position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background-image: 
+      radial-gradient(var(--gold-dim) 1px, transparent 1px),
+      radial-gradient(var(--border-line) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: 0 0, 20px 20px;
+    opacity: 0.12;
+    pointer-events: none;
+  }
+
+  /* 頂部賽事標頭 */
+  .arena-header {
+    text-align: center;
+    margin-bottom: 14px;
+    position: relative;
+  }
+  .arena-title {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+  .arena-sub {
+    font-size: 19px;
+    letter-spacing: 2px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 12px rgba(212, 175, 55, 0.4);
+    margin-top: 2px;
+  }
+
+  /* 符號公牌區域 */
+  .board-section {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 12px;
+    padding: 12px;
+    text-align: center;
+    margin-bottom: 12px;
+    position: relative;
+  }
+  .board-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  .board-label::before, .board-label::after {
+    content: "◆";
+    font-size: 9px;
+    color: var(--gold-dim);
+  }
+  .symbol-board {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 4px 0 10px;
+  }
+  .card-symbol {
+    width: 52px;
+    height: 72px;
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    font-size: 32px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.5), inset 0 0 10px rgba(212, 175, 55, 0.2);
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.6);
+  }
+
+  /* 底池與皮斯資訊欄 */
+  .pot-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 16px;
+    background: #00000080;
+    border: 1px solid var(--border-line);
+    border-radius: 30px;
+    padding: 6px 18px;
+    font-size: 12px;
+  }
+  .pot-banner .val {
+    color: var(--gold);
+    font-size: 16px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+
+  /* 玩家與 AI 區域 */
+  .player-zone {
+    background: rgba(15, 23, 42, 0.65);
+    border: 1px solid var(--border-line);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    position: relative;
+    transition: 0.2s;
+  }
+  .player-zone.player-active {
+    border-color: rgba(56, 189, 248, 0.4);
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.1);
+  }
+  .zone-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 13px;
+  }
+  .zone-title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 700;
+    letter-spacing: 1px;
+  }
+  .pieces-badge {
+    background: rgba(212, 175, 55, 0.12);
+    border: 1px solid var(--gold-dim);
+    border-radius: 20px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--gold);
+  }
+  .pieces-badge strong { font-size: 14px; color: #fff; margin-left: 2px; }
+
+  /* 卡牌樣式 */
+  .cards-row { display: flex; gap: 8px; }
+  .card {
+    width: 52px;
+    height: 74px;
+    background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    color: #fff;
+    font-size: 26px;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    position: relative;
+  }
+  .card-tag {
+    font-size: 9px;
+    position: absolute;
+    top: 3px;
+    color: var(--text-secondary);
+    font-weight: normal;
+    letter-spacing: 0.5px;
+  }
+  .card.back {
+    background: repeating-linear-gradient(
+      45deg,
+      #131a28,
+      #131a28 6px,
+      #1c2538 6px,
+      #1c2538 12px
+    );
+    border: 1px dashed var(--gold-dim);
+    color: var(--gold-dim);
+  }
+
+  /* 下注控制按鈕組 */
+  .action-panel {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+  button {
+    padding: 9px 15px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #fff;
+    transition: 0.2s;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  button:hover:not(:disabled) {
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  }
+  button:disabled {
+    background: #1e293b !important;
+    border-color: #334155 !important;
+    color: #64748b !important;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+  .btn-start {
+    background: linear-gradient(135deg, #10b981, #047857);
+    border-color: #34d399;
+  }
+  .btn-call {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-color: #60a5fa;
+  }
+  .btn-raise {
+    background: var(--gold-gradient);
+    color: #000;
+    border-color: #fde68a;
+  }
+  .btn-fold {
+    background: linear-gradient(135deg, #dc2626, #991b1b);
+    border-color: #f87171;
+  }
+  input[type="number"], input[type="text"] {
+    background: #0b111e;
+    border: 1px solid #334155;
+    color: #fff;
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+  input:focus { border-color: var(--gold); }
+
+  /* 玩家輸入算式專區 */
+  .formula-box {
+    display: none;
+    background: #080d1a;
+    border: 1.5px solid var(--gold);
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 14px;
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.2);
+    animation: fadeIn 0.3s ease;
+  }
+  .formula-box.active { display: block; }
+  .formula-input-row { display: flex; gap: 8px; margin: 10px 0; }
+  .quick-tokens { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .q-btn {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #fff;
+    padding: 7px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .q-btn.sym { background: #332408; border-color: var(--gold); color: var(--gold); }
+  .q-btn.ctrl { background: #3b1119; border-color: var(--red); color: #fca5a5; }
+
+  /* 終局審判與戰術覆盤面板 (MODAL) */
+  .verdict-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.88);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .verdict-overlay.active { display: flex; animation: fadeIn 0.25s ease-out; }
+  .verdict-modal {
+    background: linear-gradient(170deg, #151d30, #0a0f1d);
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 540px;
+    padding: 24px;
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.3);
+    position: relative;
+  }
+  .verdict-header {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--gold);
+    margin-bottom: 4px;
+  }
+  .verdict-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: 900;
+    margin-bottom: 18px;
+    letter-spacing: 2px;
+  }
+  .vs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .vs-card {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid var(--border-line);
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .vs-card.winner {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.08);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+  }
+  .vs-name { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+  .vs-formula { font-size: 13px; font-weight: bold; color: #fff; word-break: break-all; min-height: 36px; }
+  .vs-val { font-size: 18px; font-weight: 900; color: var(--gold); margin-top: 6px; }
+  .vs-diff { font-size: 11px; color: var(--text-secondary); }
+
+  /* 覆盤訂正區塊 (Tactical Analysis) */
+  .analysis-card {
+    background: #0b111e;
+    border-left: 3px solid var(--cyan);
+    border-radius: 6px;
+    padding: 12px;
+    margin: 14px 0;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .analysis-card.suboptimal {
+    border-left-color: var(--gold-glow);
+    background: rgba(245, 158, 11, 0.08);
+  }
+  .analysis-tag {
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    text-transform: uppercase;
+  }
+
+  /* 戰況紀錄歷程 */
+  .history-box {
+    background: #050810;
+    border: 1px solid var(--border-line);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    max-height: 100px;
+    overflow-y: auto;
+    margin-top: 12px;
+    color: var(--text-secondary);
+  }
+  .history-box div { margin-bottom: 2px; }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+
+<div class="arena-wrapper">
+  <div class="arena-header">
+    <div class="arena-title">The Devil's Plan · Arena 04</div>
+    <div class="arena-sub">極限運算梭哈 · 終極淘汰賽</div>
+  </div>
+
+  <!-- 公牌主審區域 -->
+  <div class="board-section">
+    <div class="board-label">運算公牌 (OPERATION BOARD)</div>
+    <div class="symbol-board" id="sym-box">
+      <div class="card-symbol">?</div>
+      <div class="card-symbol">?</div>
+      <div class="card-symbol">?</div>
+    </div>
+    <div class="pot-banner">
+      <div>底池 PIECES：<span class="val" id="pot-display">0</span></div>
+      <div style="color: var(--border-line);">|</div>
+      <div>加注上限：<span class="val" id="cap-display">0</span></div>
+    </div>
+  </div>
+
+  <!-- 電腦 AI 區 -->
+  <div class="player-zone" id="ai-zone">
+    <div class="zone-header">
+      <div class="zone-title">
+        <span>🤖</span>
+        <span style="color: #cbd5e1;">對手 AI (THE SYSTEM)</span>
+      </div>
+      <div class="pieces-badge">皮斯：<strong id="ai-chips">100</strong></div>
+    </div>
+    <div class="cards-row" id="ai-cards">
+      <div class="card back"><span class="card-tag">底牌</span>?</div>
+      <div class="card back"><span class="card-tag">明1</span>?</div>
+    </div>
+  </div>
+
+  <!-- 玩家區 -->
+  <div class="player-zone player-active" id="player-zone">
+    <div class="zone-header">
+      <div class="zone-title">
+        <span>👤</span>
+        <span style="color: var(--cyan);">參賽者（您）</span>
+      </div>
+      <div class="pieces-badge">皮斯：<strong id="player-chips">100</strong></div>
+    </div>
+    <div class="cards-row" id="player-cards">
+      <div class="card back"><span class="card-tag">底牌</span>?</div>
+      <div class="card back"><span class="card-tag">明1</span>?</div>
+    </div>
+  </div>
+
+  <!-- 賭局操作介面 -->
+  <div class="action-panel" id="betting-panel">
+    <button class="btn-start" id="btn-start" onclick="startRound()">◆ 新回合 (底注10)</button>
+    <button class="btn-call" id="btn-call" onclick="handleAction('call')" disabled>過牌 / 跟注</button>
+    <input type="number" id="raise-input" placeholder="加注額" style="width: 75px;" disabled>
+    <button class="btn-raise" id="btn-raise" onclick="handleAction('raise')" disabled>加注 PIECES</button>
+    <button class="btn-fold" id="btn-fold" onclick="handleAction('fold')" disabled>棄牌 FOLD</button>
+  </div>
+
+  <!-- 算式拼裝輸入區 (終局攤牌開啟) -->
+  <div class="formula-box" id="formula-box">
+    <div style="font-size: 12px; font-weight: bold; color: var(--gold); letter-spacing: 1px;">
+      ◆ 終局組算式（完整使用 4 個數字與 3 個公牌符號，先乘除後加減，逼近 1 或 20）：
+    </div>
+    <div class="formula-input-row">
+      <input type="text" id="player-formula-input" placeholder="例如: 8 * 2 + 5 - 1" style="flex: 1;">
+      <button class="btn-raise" onclick="submitPlayerFormula()">提交算式對決</button>
+    </div>
+    <div style="font-size: 11px; color: var(--text-secondary);">點擊牌面快捷填入（自動附帶空格）：</div>
+    <div class="quick-tokens" id="quick-input-buttons"></div>
+  </div>
+
+  <div class="history-box" id="game-log">準備就緒，點擊「新回合」投入底注。</div>
+</div>
+
+<!-- 終局審判與覆盤面板 (MODAL) -->
+<div class="verdict-overlay" id="verdict-modal">
+  <div class="verdict-modal">
+    <div class="verdict-header">JUDGEMENT OF THE DEVIL</div>
+    <div class="verdict-title" id="verdict-status">審判結果</div>
+
+    <div class="vs-grid">
+      <div class="vs-card" id="player-vs-card">
+        <div class="vs-name">🧑 玩家算式</div>
+        <div class="vs-formula" id="v-p-formula">-</div>
+        <div class="vs-val" id="v-p-val">= 0</div>
+        <div class="vs-diff" id="v-p-diff">距目標差: 0</div>
+      </div>
+      <div class="vs-card" id="ai-vs-card">
+        <div class="vs-name">💻 AI 最優算式</div>
+        <div class="vs-formula" id="v-ai-formula">-</div>
+        <div class="vs-val" id="v-ai-val">= 0</div>
+        <div class="vs-diff" id="v-ai-diff">距目標差: 0</div>
+      </div>
+    </div>
+
+    <!-- 最佳解訂正覆盤 -->
+    <div class="analysis-card" id="analysis-box">
+      <!-- JS 動態填入分析結果與最佳解 -->
+    </div>
+
+    <div style="text-align: center; margin-top: 18px;">
+      <button class="btn-start" onclick="closeVerdict()" style="width: 100%;">確認審判，返回賽場</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 音效合成器 (Web Audio API 營造心理戰張力) */
+let audioCtx;
+function playSound(type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+
+    if (type === 'deal') {
+      osc.frequency.setValueAtTime(440, now);
+      osc.frequency.exponentialRampToValueAtTime(880, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.start(now); osc.stop(now + 0.08);
+    } else if (type === 'chip') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(900, now);
+      osc.frequency.setValueAtTime(1200, now + 0.04);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+      osc.start(now); osc.stop(now + 0.12);
+    } else if (type === 'verdict') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(140, now);
+      osc.frequency.linearRampToValueAtTime(70, now + 0.4);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+      osc.start(now); osc.stop(now + 0.45);
+    } else if (type === 'win') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.1);
+      osc.frequency.setValueAtTime(783.99, now + 0.2);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    }
+  } catch(e){}
+}
+
+const SYMBOLS = ['+', '-', '×', '÷'];
+let pChips = 100, aiChips = 100, pot = 0;
+let stage = 0; // 0: 未開始, 1: 1底1明, 2: 1底2明, 3: 1底3明, 4: 算式對決
+let pHand = [], aiHand = [], currentSymbols = [];
+
+function log(msg) {
+  const box = document.getElementById('game-log');
+  box.innerHTML += `<div>> ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+// 嚴格先乘除後加減 (小數點支援)
+function evalTokens(nums, ops) {
+  let curNums = [nums[0]];
+  let curOps = [];
+
+  for (let i = 0; i < ops.length; i++) {
+    let op = ops[i];
+    let nextNum = nums[i + 1];
+    if (op === '×' || op === '÷') {
+      let prevNum = curNums.pop();
+      if (op === '÷') {
+        if (nextNum === 0) return null; // 除以 0 無效
+        curNums.push(prevNum / nextNum);
+      } else {
+        curNums.push(prevNum * nextNum);
+      }
+    } else {
+      curOps.push(op);
+      curNums.push(nextNum);
+    }
+  }
+
+  let res = curNums[0];
+  for (let i = 0; i < curOps.length; i++) {
+    let op = curOps[i];
+    let next = curNums[i + 1];
+    if (op === '+') res += next;
+    else if (op === '-') res -= next;
+  }
+  return res;
+}
+
+// 窮舉算法：尋找一組牌與符號的「理論極限解」
+function solveBest(cards, symbols) {
+  function perm(arr) {
+    if (arr.length === 0) return [[]];
+    let res = [];
+    for (let i = 0; i < arr.length; i++) {
+      let rest = perm(arr.slice(0, i).concat(arr.slice(i + 1)));
+      for (let r of rest) res.push([arr[i], ...r]);
+    }
+    return res;
+  }
+
+  let cardPerms = perm(cards);
+  let symPerms = perm(symbols);
+  let best = { diff: Infinity, val: null, formula: "", target: null };
+
+  for (let pNums of cardPerms) {
+    for (let pOps of symPerms) {
+      let val = evalTokens(pNums, pOps);
+      if (val !== null && !isNaN(val)) {
+        let rounded = Math.round(val * 100) / 100;
+        let diffTo1 = Math.abs(rounded - 1);
+        let diffTo20 = Math.abs(rounded - 20);
+        let diff = Math.min(diffTo1, diffTo20);
+        diff = Math.round(diff * 100) / 100;
+        
+        if (diff < best.diff) {
+          best = {
+            diff: diff,
+            val: rounded,
+            target: diffTo1 < diffTo20 ? 1 : 20,
+            formula: `${pNums[0]} ${pOps[0]} ${pNums[1]} ${pOps[1]} ${pNums[2]} ${pOps[2]} ${pNums[3]}`
+          };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+// 驗證並解析玩家自訂輸入
+function validateAndParsePlayerFormula(str) {
+  let normalized = str.replace(/\*/g, '×').replace(/\//g, '÷').trim();
+  let tokens = normalized.match(/\d+|[+\-×÷]/g);
+  if (!tokens || tokens.length !== 7) {
+    return { error: "格式錯誤！必須為：[數字] [符號] [數字] [符號] [數字] [符號] [數字]" };
+  }
+
+  let nums = [];
+  let ops = [];
+  for (let i = 0; i < 7; i++) {
+    if (i % 2 === 0) {
+      let n = parseInt(tokens[i]);
+      if (isNaN(n)) return { error: `第 ${i + 1} 個位置必須是數字！` };
+      nums.push(n);
+    } else {
+      let op = tokens[i];
+      if (!SYMBOLS.includes(op)) return { error: `第 ${i + 1} 個位置必須是有效運算符號！` };
+      ops.push(op);
+    }
+  }
+
+  // 檢查數字與玩家手牌是否精確匹配
+  let userNumsSorted = [...nums].sort().join(',');
+  let handNumsSorted = [...pHand].sort().join(',');
+  if (userNumsSorted !== handNumsSorted) {
+    return { error: `數字不符！手牌為 [${pHand.join(', ')}]，您使用了 [${nums.join(', ')}]` };
+  }
+
+  // 檢查符號是否與公牌一致
+  let userOpsSorted = [...ops].sort().join(',');
+  let boardOpsSorted = [...currentSymbols].sort().join(',');
+  if (userOpsSorted !== boardOpsSorted) {
+    return { error: `符號不符！公牌為 [${currentSymbols.join(' ')}]，您使用了 [${ops.join(' ')}]` };
+  }
+
+  let val = evalTokens(nums, ops);
+  if (val === null) {
+    return { error: "違規運算：算式中出現「除以 0」無效操作！" };
+  }
+
+  let rounded = Math.round(val * 100) / 100;
+  let diff = Math.min(Math.abs(rounded - 1), Math.abs(rounded - 20));
+  diff = Math.round(diff * 100) / 100;
+
+  return {
+    val: rounded,
+    diff: diff,
+    formula: `${nums[0]} ${ops[0]} ${nums[1]} ${ops[1]} ${nums[2]} ${ops[2]} ${nums[3]}`
+  };
+}
+
+function startRound() {
+  if (pChips < 10 || aiChips < 10) {
+    alert("其中一方皮斯不足，遊戲結束！");
+    return;
+  }
+  playSound('chip');
+  pChips -= 10;
+  aiChips -= 10;
+  pot = 20;
+  stage = 1;
+
+  document.getElementById('formula-box').classList.remove('active');
+  document.getElementById('player-formula-input').value = "";
+
+  currentSymbols = [...SYMBOLS].sort(() => 0.5 - Math.random()).slice(0, 3);
+  document.getElementById('sym-box').innerHTML = 
+    currentSymbols.map(s => `<div class="card-symbol">${s}</div>`).join('');
+
+  const draw = () => Math.floor(Math.random() * 10);
+  pHand = [draw(), draw()];
+  aiHand = [draw(), draw()];
+
+  updateUI(false);
+  playSound('deal');
+  log("【回合開始】雙方投入底注 10 皮斯。主審符號已定，發放 1 底牌 + 1 明牌。");
+  toggleButtons(true);
+}
+
+function updateUI(showdown) {
+  document.getElementById('player-chips').innerText = pChips;
+  document.getElementById('ai-chips').innerText = aiChips;
+  document.getElementById('pot-display').innerText = pot;
+  document.getElementById('cap-display').innerText = Math.min(pChips, aiChips);
+
+  const tags = ["底牌", "明1", "明2", "明3"];
+
+  let pHtml = "";
+  pHand.forEach((c, idx) => {
+    let style = idx === 0 ? "border: 1.5px solid var(--cyan);" : "";
+    pHtml += `<div class="card" style="${style}"><span class="card-tag">${tags[idx]}</span>${c}</div>`;
+  });
+  document.getElementById('player-cards').innerHTML = pHtml;
+
+  let aiHtml = "";
+  aiHand.forEach((c, idx) => {
+    if (idx === 0 && !showdown) {
+      aiHtml += `<div class="card back"><span class="card-tag">底牌</span>?</div>`;
+    } else {
+      let style = idx === 0 ? "border: 1.5px solid var(--red);" : "";
+      aiHtml += `<div class="card" style="${style}"><span class="card-tag">${tags[idx]}</span>${c}</div>`;
+    }
+  });
+  document.getElementById('ai-cards').innerHTML = aiHtml;
+}
+
+function toggleButtons(active) {
+  document.getElementById('btn-start').disabled = active;
+  document.getElementById('btn-call').disabled = !active;
+  document.getElementById('btn-raise').disabled = !active;
+  document.getElementById('raise-input').disabled = !active;
+  document.getElementById('btn-fold').disabled = !active;
+}
+
+function handleAction(action) {
+  let cap = Math.min(pChips, aiChips);
+
+  if (action === 'fold') {
+    playSound('chip');
+    log("參賽者棄牌！AI 拿走底池 " + pot + " 皮斯。");
+    aiChips += pot;
+    finishRound();
+    return;
+  }
+
+  if (action === 'raise') {
+    let amt = parseInt(document.getElementById('raise-input').value) || 0;
+    if (amt <= 0 || amt > cap) {
+      alert(`加注額無效！必須介於 1 到 ${cap} 之間。`);
+      return;
+    }
+    playSound('chip');
+    pChips -= amt;
+    aiChips -= amt;
+    pot += (amt * 2);
+    log(`參賽者加注 ${amt}，AI 接受跟注！底池累積：${pot}`);
+  } else {
+    log("參賽者選擇 過牌 / 跟注。");
+  }
+
+  const draw = () => Math.floor(Math.random() * 10);
+
+  if (stage === 1) {
+    stage = 2;
+    pHand.push(draw());
+    aiHand.push(draw());
+    updateUI(false);
+    playSound('deal');
+    log("發放明牌 2，開啟第二輪交鋒。");
+  } else if (stage === 2) {
+    stage = 3;
+    pHand.push(draw());
+    aiHand.push(draw());
+    updateUI(false);
+    playSound('deal');
+    log("發放明牌 3，雙方牌型完備，進入終局下注。");
+  } else if (stage === 3) {
+    stage = 4;
+    toggleButtons(false);
+    document.getElementById('btn-start').disabled = true;
+    document.getElementById('formula-box').classList.add('active');
+    setupQuickButtons();
+    log("【終局攤牌】四張數字與三個符號全部就位，請組裝出你的極限算式！");
+  }
+}
+
+function setupQuickButtons() {
+  const container = document.getElementById('quick-input-buttons');
+  container.innerHTML = "";
+
+  pHand.forEach(num => {
+    container.innerHTML += `<button type="button" class="q-btn" onclick="appendFormula('${num} ')">${num}</button>`;
+  });
+  currentSymbols.forEach(sym => {
+    container.innerHTML += `<button type="button" class="q-btn sym" onclick="appendFormula('${sym} ')">${sym}</button>`;
+  });
+  container.innerHTML += `<button type="button" class="q-btn ctrl" onclick="clearFormula()">重填</button>`;
+}
+
+function appendFormula(val) {
+  document.getElementById('player-formula-input').value += val;
+}
+
+function clearFormula() {
+  document.getElementById('player-formula-input').value = "";
+}
+
+function submitPlayerFormula() {
+  let inputStr = document.getElementById('player-formula-input').value;
+  let pRes = validateAndParsePlayerFormula(inputStr);
+
+  if (pRes.error) {
+    alert(pRes.error);
+    return;
+  }
+
+  document.getElementById('formula-box').classList.remove('active');
+  updateUI(true); // 翻開對手底牌
+  playSound('verdict');
+
+  // 計算 AI 最優解與玩家手牌的「理論最佳解」
+  let aiRes = solveBest(aiHand, currentSymbols);
+  let pOptimal = solveBest(pHand, currentSymbols);
+
+  // 顯示審判視窗
+  showVerdictModal(pRes, aiRes, pOptimal);
+}
+
+function showVerdictModal(pRes, aiRes, pOptimal) {
+  const modal = document.getElementById('verdict-modal');
+  const statusEl = document.getElementById('verdict-status');
+  const pCard = document.getElementById('player-vs-card');
+  const aiCard = document.getElementById('ai-vs-card');
+  const analysisBox = document.getElementById('analysis-box');
+
+  document.getElementById('v-p-formula').innerText = pRes.formula;
+  document.getElementById('v-p-val').innerText = `= ${pRes.val}`;
+  document.getElementById('v-p-diff').innerText = `離目標差距: ${pRes.diff}`;
+
+  document.getElementById('v-ai-formula').innerText = aiRes.formula;
+  document.getElementById('v-ai-val').innerText = `= ${aiRes.val}`;
+  document.getElementById('v-ai-diff').innerText = `離目標差距: ${aiRes.diff}`;
+
+  pCard.classList.remove('winner');
+  aiCard.classList.remove('winner');
+
+  let winnerText = "";
+  if (pRes.diff < aiRes.diff) {
+    winnerText = "🏆 參賽者 獲勝！獨得底池";
+    statusEl.style.color = "var(--cyan)";
+    pCard.classList.add('winner');
+    pChips += pot;
+    playSound('win');
+  } else if (aiRes.diff < pRes.diff) {
+    winnerText = "💀 AI 獲勝！掠奪所有皮斯";
+    statusEl.style.color = "var(--red)";
+    aiCard.classList.add('winner');
+    aiChips += pot;
+  } else {
+    winnerText = "🤝 算力勢均力敵 · 平分底池";
+    statusEl.style.color = "var(--gold)";
+    let half = Math.floor(pot / 2);
+    pChips += half;
+    aiChips += half;
+  }
+  statusEl.innerText = winnerText;
+
+  // 最佳解訂正與覆盤機制
+  let isOptimal = Math.abs(pRes.diff - pOptimal.diff) < 0.001;
+  let analysisHtml = "";
+
+  if (isOptimal) {
+    analysisBox.className = "analysis-card";
+    analysisHtml = `
+      <div class="analysis-tag" style="color: var(--green);">★ 魔鬼覆盤：算力巔峰</div>
+      <div><strong>完美發揮！</strong> 您的算式已精確達到該手牌與公牌下的<b>最高理論極限</b>（差值 ${pOptimal.diff}）。</div>
+    `;
+  } else {
+    analysisBox.className = "analysis-card suboptimal";
+    analysisHtml = `
+      <div class="analysis-tag" style="color: var(--gold-glow);">⚠ 魔鬼覆盤：錯失更優解訂正</div>
+      <div>您組出的差值為 <b>${pRes.diff}</b>，但這組手牌其實隱藏著更強的解法：</div>
+      <div style="margin-top: 5px; color: #fff;">
+        👉 最佳算式：<span style="color: var(--gold); font-weight: bold;">${pOptimal.formula}</span> = <b>${pOptimal.val}</b>
+      </div>
+      <div style="font-size: 11px; color: var(--text-secondary); margin-top: 3px;">
+        (此算式距目標 ${pOptimal.target} 的極限差距僅有 <b style="color: var(--cyan);">${pOptimal.diff}</b>)
+      </div>
+    `;
+  }
+
+  analysisBox.innerHTML = analysisHtml;
+  modal.classList.add('active');
+
+  log(`【終局結算】${winnerText} (${pot} 皮斯)`);
+  log(`參賽者解：${pRes.formula} = ${pRes.val} (差 ${pRes.diff})`);
+  log(`AI 最優解：${aiRes.formula} = ${aiRes.val} (差 ${aiRes.diff})`);
+}
+
+function closeVerdict() {
+  document.getElementById('verdict-modal').classList.remove('active');
+  finishRound();
+}
+
+function finishRound() {
+  pot = 0;
+  stage = 0;
+  updateUI(false);
+  toggleButtons(false);
+  document.getElementById('raise-input').value = '';
+
+  if (pChips <= 0) {
+    log("❌ 你的皮斯已全部耗盡，遭到《魔鬼的計謀》無情淘汰！");
+    document.getElementById('btn-start').disabled = true;
+  } else if (aiChips <= 0) {
+    log("👑 恭喜！對手 AI 皮斯歸零，你成為了統御算力的終極獲勝者！");
+    document.getElementById('btn-start').disabled = true;
+  }
+}
+</script>
+</body>
+</html>

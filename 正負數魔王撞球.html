@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>正負數・魔王決戰</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;font-family:"Microsoft JhengHei","Noto Sans TC",sans-serif;background:radial-gradient(circle at 50% 15%,#35104f,#10091d 45%,#05040a);color:#fff;text-align:center;padding:18px;overflow-x:hidden}
+body.shake{animation:shake .12s linear 2}
+@keyframes shake{25%{transform:translate(5px,-3px)}50%{transform:translate(-5px,3px)}75%{transform:translate(3px,4px)}}
+h1{margin:4px 0 2px;font-size:clamp(28px,5.5vw,52px);letter-spacing:3px;text-shadow:0 0 8px #fff,0 0 20px #d000ff,0 0 40px #701cff}
+.author{font-size:14px;color:#ffe66d;letter-spacing:2px;margin:2px 0 6px;text-shadow:0 0 8px #ffb30099;font-weight:bold}
+.subtitle{color:#d9a8ff;margin-bottom:12px;font-size:14px}
+.boss{width:min(850px,94vw);margin:auto}
+.boss-name{font-size:20px;font-weight:bold;color:#ff79e8;text-shadow:0 0 10px #f0c}
+.boss-title{font-size:13px;color:#aaa0bd;margin:3px 0 7px}
+.hp-frame{height:25px;border:2px solid #d32cff;border-radius:20px;background:#180b20;overflow:hidden;box-shadow:0 0 12px #a000ff}
+.hp-bar{height:100%;width:100%;background:linear-gradient(90deg,#ff1744,#ff00c8,#7b00ff);transition:width .35s}
+.hp-text{position:relative;top:-23px;line-height:21px;font-weight:bold;font-size:13px;text-shadow:0 2px 4px #000}
+.stats{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:14px auto}
+.stat{min-width:120px;padding:8px 14px;border-radius:14px;background:rgba(50,20,70,.75);border:1px solid #75408f;box-shadow:0 5px 18px #0008}
+.label{display:block;color:#a99bb9;font-size:12px}.value{font-size:24px;font-weight:900}
+#score{color:#ffe66d}#target{color:#62e9ff}#shots{color:#ff7d9b}#combo{color:#ff76ff}
+.table{width:min(930px,96vw);margin:auto;padding:26px;border-radius:32px;position:relative;background:linear-gradient(135deg,#521b71,#260c38);border:2px solid #8f39b7;box-shadow:0 0 30px #b000ff55,0 25px 70px #000b}
+canvas{display:block;width:100%;height:auto;border-radius:18px;background:#075c38;cursor:crosshair;touch-action:none;box-shadow:inset 0 0 30px #000,0 0 20px #000}
+.message{min-height:45px;margin:12px auto 2px;font-size:18px;font-weight:900;text-shadow:0 0 9px #a400ff}.message.win{color:#ffe66d;text-shadow:0 0 10px #fff,0 0 25px #ff8c00}.message.danger{color:#ff7070;text-shadow:0 0 15px red}
+button{border:1px solid #d46bff;padding:12px 28px;border-radius:999px;color:#fff;font-size:16px;font-weight:bold;cursor:pointer;background:linear-gradient(135deg,#8c22d4,#3b16a3);box-shadow:0 0 18px #b500ff66}
+button:hover{transform:translateY(-2px);box-shadow:0 0 28px #d232ff}
+.help,.formula{color:#aaa2bc;font-size:13px;margin-top:7px}
+.stage-select{display:flex;justify-content:center;gap:6px;flex-wrap:wrap;margin:10px auto 14px;max-width:860px}
+.stage-btn{padding:7px 12px;font-size:12px;background:#1b1026;border:1px solid #663b7d;box-shadow:none;border-radius:8px}
+.stage-btn.active{background:linear-gradient(135deg,#8c22d4,#3b16a3);border-color:#d46bff;box-shadow:0 0 15px #b500ff66}
+.final-cinematic{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;background:#000;overflow:hidden}
+.final-cinematic.show{display:flex;animation:cinemaIn .35s ease}
+.final-cinematic .stars{position:absolute;inset:0;background-image:radial-gradient(circle,#fff 0 1px,transparent 2px);background-size:45px 45px;opacity:.45;animation:starsMove 2s linear infinite}
+.final-core{position:relative;text-align:center;z-index:2}
+.final-symbol{font-size:clamp(65px,15vw,150px);animation:finalSymbol 1.2s ease-out forwards;text-shadow:0 0 15px #fff,0 0 40px #d000ff,0 0 90px #ff00cc}
+.final-title{font-size:clamp(35px,8vw,82px);font-weight:900;letter-spacing:8px;color:#fff;text-shadow:0 0 12px #fff,0 0 35px #d000ff,0 0 70px #ff00aa;animation:titleSlam .8s .35s both}
+.final-sub{font-size:clamp(15px,3vw,25px);color:#e6c8ff;margin-top:12px;opacity:0;animation:subIn .7s 1s forwards}
+@keyframes cinemaIn{from{opacity:0}to{opacity:1}}
+@keyframes starsMove{to{background-position:0 45px}}
+@keyframes finalSymbol{0%{transform:scale(.1) rotate(-180deg);opacity:0}60%{transform:scale(1.35) rotate(15deg);opacity:1}100%{transform:scale(1) rotate(0)}}
+@keyframes titleSlam{from{transform:scale(2.5);opacity:0;filter:blur(12px)}to{transform:scale(1);opacity:1;filter:blur(0)}}
+@keyframes subIn{to{opacity:1}}
+
+.boss-portrait{width:170px;height:145px;margin:8px auto 0;position:relative;display:flex;justify-content:center;align-items:center}
+.boss-aura{position:absolute;width:145px;height:145px;border-radius:50%;background:radial-gradient(circle,#d000ff55 0%,#7b00ff22 45%,transparent 70%);animation:aura 1.7s ease-in-out infinite}
+@keyframes aura{50%{transform:scale(1.18);opacity:.7}}
+.boss-face{position:relative;width:95px;height:105px;border-radius:45% 45% 48% 48%;background:linear-gradient(145deg,#35124e,#100719);border:2px solid #a52cff;box-shadow:0 0 20px #a000ff, inset 0 0 20px #000;animation:floatBoss 2s ease-in-out infinite}
+@keyframes floatBoss{50%{transform:translateY(-5px)}}
+.horn{position:absolute;top:-25px;width:34px;height:42px;background:linear-gradient(135deg,#2b0b3d,#9b2cff);clip-path:polygon(50% 0,100% 100%,0 100%);filter:drop-shadow(0 0 7px #a000ff)}
+.horn.left{left:-5px;transform:rotate(-18deg)}.horn.right{right:-5px;transform:rotate(18deg)}
+.eye{position:absolute;top:39px;width:25px;height:12px;background:#ff3b71;border-radius:50%;box-shadow:0 0 12px #ff1744;animation:eyeGlow .8s infinite alternate}
+.left-eye{left:18px}.right-eye{right:18px}
+@keyframes eyeGlow{to{box-shadow:0 0 25px #ff1744;filter:brightness(1.7)}}
+.boss-mouth{position:absolute;left:31px;bottom:20px;width:33px;height:13px;border-bottom:3px solid #ff4b8b;border-radius:50%}
+.boss-caption{position:absolute;bottom:-2px;font-size:11px;color:#ff9ce9;text-shadow:0 0 8px #f0f}
+body.boss-hit .boss-face{animation:bossHit .28s ease}
+body.boss-hit .boss-aura{background:radial-gradient(circle,#ff174488 0%,#d000ff33 50%,transparent 72%)}
+
+canvas{transition:filter .15s ease;position:relative}
+body.power-flash canvas{filter:brightness(1.55) saturate(1.4)}
+body.power-flash .table{box-shadow:0 0 55px #ff00ff,0 0 100px #7b00ff99}
+body.boss-hit .boss-name{animation:bossHit .25s ease}
+@keyframes bossHit{50%{transform:scale(1.15);filter:brightness(2)}}
+.magic-ring{position:fixed;pointer-events:none;border:3px solid #e878ff;border-radius:50%;box-shadow:0 0 25px #d000ff,0 0 60px #7b00ff;animation:ring .55s ease-out forwards;z-index:4}
+@keyframes ring{to{transform:scale(5);opacity:0}}
+
+.overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:radial-gradient(circle,#5a008055,#000e);z-index:5;padding:20px}
+.overlay.show{display:flex}.box{width:min(650px,92vw);padding:35px 25px;border:2px solid #b528ff;border-radius:25px;background:linear-gradient(145deg,#210b32,#08050d);box-shadow:0 0 35px #9b00ff,0 0 100px #8c00ff55}
+.overlay-title{font-size:clamp(30px,6vw,50px);font-weight:900;color:#ff74e9;text-shadow:0 0 12px #f0c,0 0 30px #a000ff}.overlay-text{font-size:16px;line-height:1.8;color:#ddd0e8;margin:12px 0 20px}.result{font-size:22px;color:#ffe66d;font-weight:bold;margin-bottom:20px}
+</style>
+</head>
+<body>
+<div class="game">
+<h1>☠ 正負數・魔王決戰 ☠</h1>
+<div class="author">原作者：劉柏安</div>
+<div class="subtitle">「愚蠢的人類……讓我看看你是否掌握了數字的力量。」</div>
+
+<div class="stage-select">
+<button class="stage-btn active" data-stage="1">第1關</button>
+<button class="stage-btn" data-stage="2">第2關</button>
+<button class="stage-btn" data-stage="3">第3關</button>
+<button class="stage-btn" data-stage="4">第4關</button>
+<button class="stage-btn" data-stage="5">第5關</button>
+<button class="stage-btn" data-stage="6">第6關</button>
+<button class="stage-btn" data-stage="7">第7關</button>
+<button class="stage-btn" data-stage="8">第8關</button>
+<button class="stage-btn" data-stage="9">第9關</button>
+<button class="stage-btn" data-stage="10">☄ 終焉 10</button>
+</div>
+
+<div class="boss">
+<div class="boss-name">👿 暗黑數學魔王・負號領主</div>
+<div class="boss-title">「吾乃掌控正負之境的終極存在……」</div>
+<div class="boss-portrait" id="bossPortrait">
+  <div class="boss-aura"></div>
+  <div class="boss-face">
+    <div class="horn left"></div><div class="horn right"></div>
+    <div class="eye left-eye"></div><div class="eye right-eye"></div>
+    <div class="boss-mouth"></div>
+  </div>
+  <div class="boss-caption">⚠ 數學魔王降臨 ⚠</div>
+</div>
+<div class="hp-frame"><div class="hp-bar" id="hpBar"></div><div class="hp-text" id="hpText">魔王能量：100%</div></div>
+</div>
+
+<div class="stats">
+<div class="stat"><span class="label">目前分數</span><span class="value" id="score">+0</span></div>
+<div class="stat"><span class="label">封印目標</span><span class="value" id="target">+3</span></div>
+<div class="stat"><span class="label">剩餘出桿</span><span class="value" id="shots">3</span></div>
+<div class="stat"><span class="label">連擊</span><span class="value" id="combo">x0</span></div>
+</div>
+
+<div class="table"><canvas id="canvas" width="900" height="500"></canvas></div>
+<div class="message" id="message">🎯 拖曳中央白球……將數字球擊入袋中！</div>
+<div class="help">🖱 按住白球 → 往反方向拉動瞄準 → 放開發射</div>
+<div class="formula">🔴 正數球進袋：增加分數 ｜ 🔵 負數球進袋：扣除分數</div>
+<br><button id="restart">⚔ 重新挑戰本關</button>
+</div>
+
+<div class="final-cinematic" id="finalCinematic">
+  <div class="stars"></div>
+  <div class="final-core">
+    <div class="final-symbol">👑</div>
+    <div class="final-title">數學之王・誕生</div>
+    <div class="final-sub">「正負皆為吾之力量。」—— 原作者 劉柏安</div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+<div class="box">
+<div class="overlay-title" id="overlayTitle"></div>
+<div class="overlay-text" id="overlayText"></div>
+<div class="result" id="result"></div>
+<button id="again">前進下一關</button>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");
+const $=id=>document.getElementById(id);
+const R=22,Friction=.986;
+const POCKETS=[
+  {x:24,y:24,r:32},
+  {x:450,y:14,r:28},
+  {x:876,y:24,r:32},
+  {x:24,y:476,r:32},
+  {x:450,y:486,r:28},
+  {x:876,y:476,r:32}
+];
+
+let score,target,shots,combo,hp,gameOver,moving,dragging,aimX,aimY,white,balls,particles,texts,raf,stage=1;
+let pocketedThisTurn=0;
+let audioCtx=null;
+
+function sound(type){
+ try{
+  audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+  const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+  const now=audioCtx.currentTime;
+  const f=type==="hit"?220:type==="win"?620:type==="critical"?920:type==="pocket"?440:180;
+  o.type=type==="critical"?"sawtooth":"sine";
+  o.frequency.setValueAtTime(f,now);
+  o.frequency.exponentialRampToValueAtTime(f*1.6,now+.12);
+  g.gain.setValueAtTime(.0001,now);g.gain.exponentialRampToValueAtTime(.09,now+.01);g.gain.exponentialRampToValueAtTime(.0001,now+.18);
+  o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+.2);
+ }catch(e){}
+}
+
+function screenRing(x,y){
+ const r=canvas.getBoundingClientRect(),el=document.createElement("div");
+ el.className="magic-ring";
+ el.style.left=(r.left+x*r.width/900-12)+"px";
+ el.style.top=(r.top+y*r.height/500-12)+"px";
+ el.style.width="24px";el.style.height="24px";
+ document.body.appendChild(el);setTimeout(()=>el.remove(),600);
+}
+
+function flash(){
+ document.body.classList.remove("power-flash");void document.body.offsetWidth;document.body.classList.add("power-flash");
+ setTimeout(()=>document.body.classList.remove("power-flash"),180);
+}
+
+const lines=[
+"哼……區區正負數，也敢挑戰吾？",
+"負號的力量……你真的理解嗎？",
+"哈哈哈哈！你的分數正在墮落！",
+"這就是數學的深淵！",
+"很好……終於有點魔王戰的樣子了。",
+"不可能！你竟然掌握了正負數！"
+];
+
+function fmt(n){return n>=0?"+"+n:n}
+
+// 10 關設定：由淺入深，前面關卡進球需求少 (1~2 顆)，後續球數與組合逐步增加
+const configs={
+  1:{target:3,shots:3,hp:100,msg:"🎯 第1關：暖身！只需將 +3 球打進洞即可達成！",balls:[[240,150,3],[660,350,-2],[250,350,1]]},
+  2:{target:4,shots:4,hp:105,msg:"🎯 第2關：進 1 顆 +4 或 2 顆 +2 都能達標！",balls:[[200,160,4],[700,160,2],[700,340,2],[200,340,-1]]},
+  3:{target:5,shots:4,hp:110,msg:"🔥 第3關：需要打入 2 顆球組合成 +5！",balls:[[220,140,3],[680,140,2],[220,360,4],[680,360,-2]]},
+  4:{target:6,shots:5,hp:120,msg:"🔥 第4關：注意負數干擾，湊滿 +6！",balls:[[220,130,4],[680,130,2],[220,370,5],[680,370,1],[450,110,-3]]},
+  5:{target:7,shots:5,hp:130,msg:"⚡ 第5關：半程考驗！靈活運用加減法達成 +7！",balls:[[180,130,5],[720,130,2],[180,370,4],[720,370,3],[450,110,-2],[450,390,-4]]},
+  6:{target:8,shots:6,hp:140,msg:"⚡ 第6關：需要 3 顆球的連擊精準計算！",balls:[[180,130,3],[320,110,3],[720,130,2],[180,370,5],[720,370,-2],[450,110,-3]]},
+  7:{target:9,shots:6,hp:150,msg:"💥 第7關：正負交錯，注意不要誤進負數大球！",balls:[[160,120,4],[320,110,3],[740,120,2],[160,380,5],[580,390,4],[740,380,-3],[450,110,-5]]},
+  8:{target:10,shots:7,hp:160,msg:"💥 第8關：魔王能量暴漲，目標兩位數 +10！",balls:[[150,120,4],[300,110,3],[600,110,3],[750,120,5],[150,380,-2],[300,390,2],[600,390,-4],[750,380,-6]]},
+  9:{target:11,shots:7,hp:170,msg:"💀 第9關：踏入深淵！球台極度擁擠！",balls:[[140,110,3],[280,105,3],[620,105,3],[760,110,2],[140,390,5],[320,390,-2],[580,390,-3],[760,390,6],[450,105,-4]]},
+  10:{target:12,shots:8,hp:200,msg:"☄ 第10關：終焉魔王真身！達成 +12 徹底封印！",balls:[[130,100,4],[270,95,3],[450,90,7],[630,95,-4],[770,100,5],[130,400,-3],[300,405,2],[450,410,3],[600,405,-5],[770,400,8]]}
+};
+
+function init(newStage=stage){
+ cancelAnimationFrame(raf);
+ stage=newStage; score=0; combo=0; gameOver=false; moving=false; dragging=false;
+ document.body.classList.remove("power-flash","boss-hit");
+ particles=[];texts=[];
+ 
+ const c=configs[stage]; target=c.target; shots=c.shots; hp=c.hp;
+ white={x:450,y:250,vx:0,vy:0,r:R,type:"white",value:0,active:true};
+ balls=c.balls.map(a=>({x:a[0],y:a[1],vx:0,vy:0,r:R,type:a[2]>0?"positive":"negative",value:a[2],active:true}));
+ 
+ document.querySelectorAll(".stage-btn").forEach(b=>b.classList.toggle("active",+b.dataset.stage===stage));
+ $("overlay").classList.remove("show");
+ $("message").className="message";
+ $("message").textContent=c.msg;
+ updateUI(); draw();
+ 
+ if(stage===10){
+  setTimeout(()=>{ flash(); sound("critical"); $("message").textContent="☄ 終焉魔王真身降臨——接招！"; },180);
+ }
+}
+
+function updateUI(){
+ $("score").textContent=fmt(score);$("target").textContent=fmt(target);
+ $("shots").textContent=shots;$("combo").textContent="x"+combo;
+ $("hpBar").style.width=Math.min(100,hp)+"%";$("hpText").textContent="魔王能量："+hp+"%";
+}
+
+function table(){
+ let g=ctx.createLinearGradient(0,0,0,500);g.addColorStop(0,"#09834b");g.addColorStop(1,"#034d31");
+ ctx.fillStyle=g;ctx.fillRect(0,0,900,500);
+ ctx.strokeStyle="#063b28";ctx.lineWidth=14;ctx.strokeRect(7,7,886,486);
+ ctx.strokeStyle="#d78aff66";ctx.lineWidth=2;ctx.strokeRect(18,18,864,464);
+ ctx.fillStyle="#e8b4ff99";[[80,20],[180,20],[270,20],[630,20],[720,20],[820,20],[80,480],[180,480],[270,480],[630,480],[720,480],[820,480]].forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill()});
+ ctx.save();ctx.strokeStyle="#d264ff22";ctx.lineWidth=2;
+ ctx.beginPath();ctx.arc(450,250,150,0,Math.PI*2);ctx.stroke();
+ ctx.beginPath();ctx.arc(450,250,105,0,Math.PI*2);ctx.stroke();
+ ctx.restore();
+
+ POCKETS.forEach(p=>{
+  let pg=ctx.createRadialGradient(p.x,p.y,3,p.x,p.y,p.r);
+  pg.addColorStop(0,"#000");pg.addColorStop(0.7,"#150521");pg.addColorStop(1,"#4b1660");
+  ctx.fillStyle=pg;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#b249f888";ctx.lineWidth=2.5;ctx.stroke();
+ });
+}
+
+function ball(b){
+ if(!b.active)return;
+ ctx.save();ctx.beginPath();ctx.arc(b.x+4,b.y+5,b.r,0,Math.PI*2);ctx.fillStyle="#0005";ctx.fill();
+ let c=b.type==="white"?["#fff","#eee","#aaa"]:b.type==="positive"?["#ff8c8c","#e52c4b","#720c25"]:["#78aaff","#326ce8","#102875"];
+ let g=ctx.createRadialGradient(b.x-8,b.y-9,2,b.x,b.y,b.r);g.addColorStop(0,c[0]);g.addColorStop(.65,c[1]);g.addColorStop(1,c[2]);
+ ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
+ ctx.fillStyle="#ffffffbb";ctx.beginPath();ctx.arc(b.x-8,b.y-8,5,0,Math.PI*2);ctx.fill();
+ ctx.globalAlpha=.22;ctx.strokeStyle="#fff";ctx.lineWidth=1;
+ ctx.beginPath();ctx.arc(b.x,b.y,b.r-4,.3,2.4);ctx.stroke();
+ ctx.globalAlpha=.12;ctx.beginPath();ctx.arc(b.x,b.y,b.r-7,3.4,5.7);ctx.stroke();
+ ctx.globalAlpha=1;
+ if(b.type==="white"){
+   ctx.fillStyle="#ffffffaa";ctx.beginPath();ctx.arc(b.x+3,b.y+2,2,0,Math.PI*2);ctx.fill();
+ }else{ctx.fillStyle="#fff";ctx.font="900 18px Arial";ctx.textAlign="center";ctx.textBaseline="middle";ctx.fillText(fmt(b.value),b.x,b.y+1)}
+ ctx.restore();
+}
+
+function aim(){
+ if(!dragging)return;
+ let dx=white.x-aimX,dy=white.y-aimY,d=Math.hypot(dx,dy);if(d<1)return;
+ let p=Math.min(d,150),a=Math.atan2(dy,dx);
+ ctx.save();ctx.setLineDash([12,8]);ctx.lineWidth=3;ctx.strokeStyle="#ffe866";ctx.shadowBlur=10;ctx.shadowColor="#fc0";
+ ctx.beginPath();ctx.moveTo(white.x,white.y);ctx.lineTo(white.x+Math.cos(a)*p*1.7,white.y+Math.sin(a)*p*1.7);ctx.stroke();
+ ctx.setLineDash([]);ctx.strokeStyle="#ffffff88";ctx.shadowBlur=0;ctx.beginPath();ctx.moveTo(white.x,white.y);ctx.lineTo(aimX,aimY);ctx.stroke();
+ ctx.fillStyle="#0009";ctx.fillRect(375,465,150,10);ctx.fillStyle=p>110?"#ff1744":p>70?"#ffd740":"#58ffad";ctx.fillRect(375,465,p,10);ctx.restore();
+}
+
+function trail(x,y){
+ for(let i=0;i<4;i++) particles.push({x:x+(Math.random()-.5)*10,y:y+(Math.random()-.5)*10,vx:(Math.random()-.5)*1.5,vy:(Math.random()-.5)*1.5,life:.55,size:1+Math.random()*3});
+}
+function burst(x,y,n=20){
+ for(let i=0;i<n;i++){let a=Math.random()*Math.PI*2,s=1+Math.random()*5;particles.push({x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:1,size:2+Math.random()*4})}
+}
+function floatText(t,x,y,c="#ffe66d"){texts.push({t,x,y,life:1,c})}
+
+function effects(){
+ if(moving) trail(white.x,white.y);
+ particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=.05;p.life-=.025});
+ particles=particles.filter(p=>p.life>0);
+ texts.forEach(t=>{t.y-=.7;t.life-=.018});
+ texts=texts.filter(t=>t.life>0);
+ particles.forEach(p=>{ctx.save();ctx.globalAlpha=p.life;ctx.fillStyle="#ffdd55";ctx.shadowBlur=15;ctx.shadowColor="#f0f";ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill();ctx.restore()});
+ texts.forEach(t=>{ctx.save();ctx.globalAlpha=t.life;ctx.fillStyle=t.c;ctx.font="900 23px Arial";ctx.textAlign="center";ctx.shadowBlur=10;ctx.shadowColor=t.c;ctx.fillText(t.t,t.x,t.y);ctx.restore()});
+}
+
+function collision(a,b){
+ if(!a.active||!b.active)return;
+ let dx=b.x-a.x,dy=b.y-a.y,d=Math.hypot(dx,dy),min=a.r+b.r;
+ if(d>0&&d<min){
+  let nx=dx/d,ny=dy/d,rel=(a.vx-b.vx)*nx+(a.vy-b.vy)*ny;
+  if(rel>0){
+   a.vx-=rel*nx;a.vy-=rel*ny;
+   b.vx+=rel*nx;b.vy+=rel*ny;
+   if(Math.abs(rel)>0.5) sound("hit");
+  }
+  let o=min-d;
+  a.x-=nx*o/2;a.y-=ny*o/2;
+  b.x+=nx*o/2;b.y+=ny*o/2;
+ }
+}
+
+function collect(b){
+ if(!b.active)return;
+ b.active=false;
+ pocketedThisTurn++;
+ sound(Math.abs(b.value)>=5?"critical":"pocket");
+ screenRing(b.x,b.y);
+ flash();
+ document.body.classList.remove("boss-hit");void document.body.offsetWidth;document.body.classList.add("boss-hit");
+ let old=score;score+=b.value;combo++;hp=Math.max(0,hp-(15+combo*3));
+ burst(b.x,b.y,25+combo*4);
+ floatText("進袋 "+fmt(b.value),b.x,b.y-35,b.type==="positive"?"#ff7474":"#65a4ff");
+ if(combo>=2)floatText("COMBO x"+combo,b.x,b.y-65);
+ if(Math.abs(b.value)>=5){floatText("★ CRITICAL ★",b.x,b.y-95,"#ff55ff");burst(b.x,b.y,35)}
+ document.body.classList.remove("shake");void document.body.offsetWidth;document.body.classList.add("shake");
+ $("message").textContent="🎯 球進袋！ "+fmt(old)+" + ("+fmt(b.value)+") = "+fmt(score)+(combo>=2?" ⚡ 連擊 x"+combo+"！":"");
+ updateUI();
+ if(score===target||hp<=0){win();return}
+ if(Math.random()<.35)setTimeout(()=>{if(!gameOver)$("message").textContent="👿 "+lines[Math.floor(Math.random()*lines.length)]},500);
+}
+
+function checkPockets(){
+ const all=[white,...balls];
+ all.forEach(b=>{
+  if(!b.active)return;
+  for(let p of POCKETS){
+   if(Math.hypot(b.x-p.x,b.y-p.y)<p.r){
+    if(b===white){
+     b.vx=0;b.vy=0;
+     b.x=450;b.y=250;
+     sound("hit");
+     flash();
+     floatText("母球洗袋！回到中央",450,220,"#ff5252");
+    }else{
+     collect(b);
+    }
+    break;
+   }
+  }
+ });
+}
+
+function wall(b){
+ for(let p of POCKETS){
+  if(Math.hypot(b.x-p.x,b.y-p.y)<p.r+10) return;
+ }
+ if(b.x-b.r<18){b.x=18+b.r;b.vx*=-.88}
+ if(b.x+b.r>882){b.x=882-b.r;b.vx*=-.88}
+ if(b.y-b.r<18){b.y=18+b.r;b.vy*=-.88}
+ if(b.y+b.r>482){b.y=482-b.r;b.vy*=-.88}
+}
+
+function physics(){
+ let all=[white,...balls];
+ all.forEach(b=>{
+  if(!b.active)return;
+  b.x+=b.vx;b.y+=b.vy;
+  let f=(stage>=8?.982:stage>=5?.984:Friction);
+  b.vx*=f;b.vy*=f;
+  wall(b);
+  if(Math.abs(b.vx)<.035)b.vx=0;
+  if(Math.abs(b.vy)<.035)b.vy=0;
+ });
+ for(let i=0;i<all.length;i++)
+  for(let j=i+1;j<all.length;j++)
+   collision(all[i],all[j]);
+ checkPockets();
+}
+
+function stopped(){return [white,...balls].every(b=>!b.active||(Math.abs(b.vx)<.035&&Math.abs(b.vy)<.035))}
+
+function shoot(){
+ if(gameOver||moving)return;
+ let dx=white.x-aimX,dy=white.y-aimY,d=Math.hypot(dx,dy);
+ if(d<10){$("message").textContent="🤏 這點力量……連魔王的頭髮都吹不動。";return}
+ sound("shoot");
+ let p=Math.min(d,150),s=p*(stage>=8?.098:stage>=5?.092:.086);
+ white.vx=dx/d*s;white.vy=dy/d*s;
+ shots--;pocketedThisTurn=0;moving=true;updateUI();
+ $("message").textContent="⚡ 擊球出桿！瞄準球袋進球！";
+ animate();
+}
+
+function draw(){
+ table();
+ if(stage>=5){
+  ctx.save();ctx.translate(450,250);ctx.rotate(performance.now()/5000);
+  ctx.strokeStyle=stage===10?"#ff55ff44":"#c85cff33";ctx.lineWidth=2;
+  for(let i=0;i<8;i++){ctx.rotate(Math.PI/4);ctx.beginPath();ctx.moveTo(0,-190);ctx.lineTo(0,-165);ctx.stroke()}
+  ctx.restore();
+ }
+ balls.forEach(ball);ball(white);aim();effects();
+}
+
+function animate(){
+ physics();draw();
+ if(stopped()){
+  moving=false;
+  if(!gameOver){
+   if(pocketedThisTurn===0) combo=0;
+   updateUI();
+   if(shots>0){
+    white.vx=0;white.vy=0;
+    $("message").textContent=combo>=2?"⚡ 連擊 x"+combo+"！下一桿，繼續攻擊魔王！":"🎱 球已停下，準備下一桿出擊！";
+   }else lose();
+  }
+  draw();return;
+ }
+ raf=requestAnimationFrame(animate);
+}
+
+function win(){
+ gameOver=true; moving=false; sound("win"); flash();
+ $("message").className="message win";
+ burst(450,250,100);
+ if(stage<10){
+  $("message").textContent="🏆 第 "+stage+" 關封印成功！";
+  $("overlayTitle").textContent="🔥 關卡 "+stage+" 通關！";
+  $("overlayText").innerHTML="「可惡……竟然破解了吾之陣法！」<br><br>下一關挑戰難度將會提升，準備迎接更多正負數球！";
+  $("result").textContent="目前分數："+fmt(score)+" ｜ 連擊：x"+combo;
+  $("again").textContent="進入第 "+(stage+1)+" 關";
+ }else{
+  $("message").textContent="👑 終焉封印成功！你徹底消滅了數學魔王！";
+  $("overlayTitle").textContent="👑 魔王・完全敗北";
+  $("overlayText").innerHTML="「不……正負數的極意，竟然被你完全參透……」<br><br>恭喜突破全 10 關試煉！<br>✨ <b>榮登【正負數之王】寶座</b> ✨<br><br><span style='color:#ffe66d'>原作者：劉柏安 感謝您的遊玩！</span>";
+  $("result").textContent="最終分數："+fmt(score)+" ｜ 最終連擊：x"+combo;
+  $("again").textContent="重返第 1 關再戰";
+ }
+ $("overlay").classList.add("show");
+}
+
+function lose(){
+ gameOver=true;$("message").className="message danger";$("message").textContent="☠ 出桿次數耗盡……魔王仍在嘲笑你。";
+ $("overlayTitle").textContent="☠ 魔王勝利";
+ $("overlayText").innerHTML="「哈哈哈哈！<br>計算仍有破綻！」<br><br>冷靜分析球路與正負值，掌握好每一次進袋。";
+ $("result").textContent="最終分數："+fmt(score)+" ｜ 目標："+fmt(target);
+ $("again").textContent="重新挑戰本關";
+ $("overlay").classList.add("show");
+}
+
+function pos(e){let r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*900/r.width,y:(e.clientY-r.top)*500/r.height}}
+function inside(x,y){return Math.hypot(x-white.x,y-white.y)<white.r+8}
+
+canvas.addEventListener("pointerdown",e=>{
+ if(gameOver||moving)return;let p=pos(e);
+ if(inside(p.x,p.y)){dragging=true;aimX=p.x;aimY=p.y;canvas.setPointerCapture(e.pointerId);$("message").textContent="⚡ 力量正在聚集……"}
+});
+canvas.addEventListener("pointermove",e=>{if(dragging){let p=pos(e);aimX=p.x;aimY=p.y;draw()}});
+canvas.addEventListener("pointerup",e=>{if(!dragging)return;dragging=false;let p=pos(e);aimX=p.x;aimY=p.y;shoot()});
+$("restart").onclick=()=>init(stage);
+$("again").onclick=()=>{
+ if($("again").textContent==="重新挑戰本關") init(stage);
+ else stage<10?init(stage+1):init(1);
+};
+document.querySelectorAll(".stage-btn").forEach(btn=>{
+ btn.addEventListener("click",()=>init(+btn.dataset.stage));
+});
+
+init(1);
+</script>
+</body>
+</html>

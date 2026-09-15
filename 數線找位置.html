@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>數線座標尋點器 - 溫暖療癒色系版</title>
+    <style>
+        :root {
+            --bg: #f8f3eb;              /* 暖米白 / 燕麥亞麻底色 */
+            --card-bg: #fffdf9;         /* 溫潤牛奶白卡片 */
+            --card-border: #ebdcc9;     /* 暖沙色邊框 */
+            --text-main: #3d2b1f;       /* 深焙咖啡文字 */
+            --text-muted: #826e5e;      /* 暖褐色次要文字 */
+            --axis-color: #5c4333;      /* 暖胡桃木色數線主軸 */
+            --axis-tick: #a89484;       /* 柔和刻度線 */
+            --primary: #c26928;         /* 暖陶土橘 */
+            --secondary: #d97706;       /* 琥珀金 */
+            --pos-color: #0284c7;       /* 溫和晴空藍 (正向) */
+            --neg-color: #c2410c;       /* 磚紅 / 茜草紅 (負向) */
+            --screen-bg: #2d1f17;       /* 暖黑巧克力螢幕底色 */
+            --screen-text: #fcd34d;     /* 暖金黃字體 */
+            --key-bg: #f2e7d8;          /* 奶茶色按鍵 */
+            --key-border: #ddceba;      /* 按鍵邊框 */
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            min-height: 100vh;
+            padding: 24px 16px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            width: 100%;
+            max-width: 1180px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 18px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(88, 59, 38, 0.07), 0 2px 8px rgba(88, 59, 38, 0.04);
+        }
+        .title-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            border-bottom: 1.5px solid #f1e4d3;
+            padding-bottom: 15px;
+        }
+        .title-bar h1 {
+            font-size: 1.55rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .direction-compass {
+            display: flex;
+            gap: 10px;
+            background: #f4ecdf;
+            border: 1px solid var(--card-border);
+            padding: 6px 12px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .compass-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 6px;
+            transition: all 0.3s ease;
+            color: var(--text-muted);
+        }
+        .compass-item.active-neg {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: var(--neg-color);
+            box-shadow: 0 2px 8px rgba(194, 65, 12, 0.15);
+        }
+        .compass-item.active-pos {
+            background: #e0f2fe;
+            border: 1px solid #bae6fd;
+            color: var(--pos-color);
+            box-shadow: 0 2px 8px rgba(2, 132, 199, 0.15);
+        }
+
+        .input-workbench {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 22px;
+            margin-top: 18px;
+        }
+        @media (max-width: 890px) {
+            .input-workbench {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .keypad-container {
+            background: #fbf6ee;
+            border: 1px solid var(--card-border);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .screen-preview {
+            background: var(--screen-bg);
+            border: 2.5px solid #52392b;
+            border-radius: 10px;
+            color: var(--screen-text);
+            font-size: 1.85rem;
+            font-weight: bold;
+            padding: 10px 14px;
+            min-height: 56px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            letter-spacing: 1.5px;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.4);
+            transition: border-color 0.3s;
+        }
+        .screen-preview.is-negative {
+            border-color: #ef4444;
+            color: #fca5a5;
+        }
+        .cursor-blink {
+            display: inline-block;
+            width: 3px;
+            height: 1.35rem;
+            background: currentColor;
+            animation: blink 0.8s infinite;
+        }
+        @keyframes blink { 50% { opacity: 0; } }
+
+        .keypad-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+        .key-btn {
+            background: var(--key-bg);
+            color: var(--text-main);
+            border: 1px solid var(--key-border);
+            border-radius: 8px;
+            font-size: 1.22rem;
+            font-weight: bold;
+            padding: 11px 0;
+            cursor: pointer;
+            user-select: none;
+            box-shadow: 0 2px 4px rgba(88, 59, 38, 0.06);
+            transition: all 0.1s ease;
+            text-align: center;
+        }
+        .key-btn:active {
+            transform: translateY(1.5px);
+            background: #e7dac7;
+            box-shadow: none;
+        }
+        .key-sym {
+            background: #f8edd8;
+            color: #92400e;
+            border-color: #fde68a;
+        }
+        .key-neg {
+            background: #fee2e2;
+            color: var(--neg-color);
+            border-color: #fca5a5;
+            font-weight: 900;
+        }
+        .key-del {
+            background: #e9decb;
+            color: #78350f;
+        }
+        .key-locate {
+            grid-column: span 4;
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            font-size: 1.15rem;
+            padding: 13px;
+            border-radius: 9px;
+            box-shadow: 0 4px 12px rgba(194, 105, 40, 0.3);
+            margin-top: 4px;
+        }
+        .key-locate:active {
+            background: #a9571d;
+        }
+
+        .preset-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 14px;
+        }
+        .preset-btn {
+            background: #fbf5eb;
+            color: var(--text-muted);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 6px 11px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+        .preset-btn.neg-btn {
+            background: #fff5f5;
+            border-color: #fed7d7;
+            color: #991b1b;
+        }
+        .preset-btn:hover {
+            color: var(--primary);
+            border-color: var(--primary);
+            background: #fffdfa;
+        }
+
+        .number-line-box {
+            position: relative;
+            margin: 80px 30px 50px 30px;
+            height: 140px;
+        }
+
+        .negative-zone-bg {
+            position: absolute;
+            top: 35px;
+            left: 0;
+            width: 50%;
+            height: 85px;
+            background: linear-gradient(to left, rgba(194, 65, 12, 0.02), rgba(194, 65, 12, 0.08));
+            border-radius: 12px 0 0 12px;
+            pointer-events: none;
+            border-left: 3px dashed rgba(194, 65, 12, 0.35);
+        }
+        .negative-zone-tag {
+            position: absolute;
+            top: 8px;
+            left: 12px;
+            font-size: 0.82rem;
+            font-weight: 800;
+            color: var(--neg-color);
+            letter-spacing: 0.5px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .main-axis {
+            position: absolute;
+            top: 80px;
+            left: 0;
+            width: 100%;
+            height: 4.5px;
+            background: var(--axis-color);
+            border-radius: 3px;
+        }
+        .arrow-right {
+            position: absolute;
+            right: -13px;
+            top: 74px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-left: 15px solid var(--pos-color);
+        }
+        .arrow-left {
+            position: absolute;
+            left: -13px;
+            top: 74px;
+            width: 0;
+            height: 0;
+            border-top: 8px solid transparent;
+            border-bottom: 8px solid transparent;
+            border-right: 15px solid var(--neg-color);
+        }
+        .tick {
+            position: absolute;
+            top: 68px;
+            width: 2px;
+            height: 26px;
+            background: var(--axis-tick);
+            transform: translateX(-50%);
+            cursor: pointer;
+            z-index: 2;
+        }
+        .tick.zero {
+            height: 34px;
+            top: 64px;
+            width: 4px;
+            background: var(--secondary);
+        }
+        .tick-label {
+            position: absolute;
+            top: 104px;
+            transform: translateX(-50%);
+            font-size: 0.98rem;
+            color: var(--text-muted);
+            font-weight: bold;
+            cursor: pointer;
+            user-select: none;
+            padding: 4px;
+            z-index: 2;
+            transition: transform 0.15s, color 0.15s;
+        }
+        .tick-label:hover {
+            color: var(--primary);
+            transform: translateX(-50%) scale(1.18);
+        }
+        .tick-label.is-neg {
+            color: #991b1b;
+        }
+        .tick-label.zero {
+            color: var(--secondary);
+            font-size: 1.25rem;
+            font-weight: 900;
+        }
+
+        .trajectory-svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: visible;
+            pointer-events: none;
+            z-index: 15;
+        }
+
+        .trail-dot {
+            position: absolute;
+            top: 80px;
+            width: 11px;
+            height: 11px;
+            background: var(--secondary);
+            border: 2.5px solid #ffffff;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .trail-dot.neg-dot {
+            background: var(--neg-color);
+            box-shadow: 0 0 8px rgba(194, 65, 12, 0.4);
+        }
+
+        .segment-highlight {
+            position: absolute;
+            top: 74px;
+            height: 16px;
+            background: rgba(217, 119, 6, 0.22);
+            border: 2px solid var(--secondary);
+            border-radius: 6px;
+            display: none;
+            z-index: 4;
+        }
+
+        .character-marker {
+            position: absolute;
+            top: -24px;
+            transform: translateX(-50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 30;
+            transition: left 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+            display: none;
+        }
+        .char-avatar-box {
+            position: relative;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .vision-cone {
+            position: absolute;
+            top: 24px;
+            width: 50px;
+            height: 30px;
+            pointer-events: none;
+            opacity: 0.85;
+            transition: all 0.3s;
+        }
+        .vision-cone.facing-left {
+            left: -42px;
+            background: linear-gradient(to left, rgba(194, 65, 12, 0.65), rgba(194, 65, 12, 0));
+            clip-path: polygon(100% 40%, 0 0, 0 100%, 100% 60%);
+        }
+        .vision-cone.facing-right {
+            right: -42px;
+            background: linear-gradient(to right, rgba(2, 132, 199, 0.65), rgba(2, 132, 199, 0));
+            clip-path: polygon(0 40%, 100% 0, 100% 100%, 0 60%);
+        }
+        .char-img {
+            width: 66px;
+            height: 66px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 6px rgba(88, 59, 38, 0.3));
+        }
+        .marker-tag {
+            background: var(--secondary);
+            color: #ffffff;
+            font-weight: 800;
+            font-size: 0.86rem;
+            padding: 2.5px 9px;
+            border-radius: 6px;
+            white-space: nowrap;
+            margin-bottom: 2px;
+            box-shadow: 0 2px 6px rgba(88, 59, 38, 0.2);
+        }
+        .marker-tag.neg-tag {
+            background: var(--neg-color);
+        }
+
+        .subdivision-panel {
+            background: #faf4ea;
+            border: 1.5px dashed #ddceba;
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-top: 15px;
+            display: none;
+        }
+        .sub-axis-wrapper {
+            position: relative;
+            height: 105px;
+            margin: 25px 35px 5px 35px;
+        }
+        .sub-axis {
+            position: absolute;
+            top: 55px;
+            left: 0;
+            width: 100%;
+            height: 4.5px;
+            background: var(--secondary);
+            border-radius: 2px;
+        }
+
+        .steps-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .step-card {
+            background: #faf5eb;
+            border-left: 4.5px solid #d4c5b3;
+            padding: 12px 16px;
+            border-radius: 0 10px 10px 0;
+            border-top: 1px solid #f1e7d8;
+            border-bottom: 1px solid #f1e7d8;
+            border-right: 1px solid #f1e7d8;
+        }
+        .step-card.active {
+            border-left-color: var(--secondary);
+            background: #fffdfa;
+        }
+        .step-card.neg-accent {
+            border-left-color: var(--neg-color);
+            background: #fff8f6;
+        }
+        .step-num {
+            color: var(--secondary);
+            font-weight: bold;
+            font-size: 0.88rem;
+            margin-bottom: 4px;
+        }
+        .step-num.neg-text {
+            color: var(--neg-color);
+        }
+        .step-desc {
+            font-size: 0.93rem;
+            line-height: 1.45;
+            color: var(--text-main);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="panel">
+        <div class="title-bar">
+            <h1>📍 數線座標尋點器（溫暖教學版）</h1>
+            <div class="direction-compass">
+                <div class="compass-item" id="compass-neg">
+                    <span>⬅ 負向（向左數）</span>
+                    <span style="font-size: 0.75rem; background: var(--neg-color); color: #fff; padding: 1px 6px; border-radius: 4px;">負數 -</span>
+                </div>
+                <div class="compass-item" id="compass-pos">
+                    <span style="font-size: 0.75rem; background: var(--pos-color); color: #fff; padding: 1px 6px; border-radius: 4px;">正數 +</span>
+                    <span>正向（向右數）➔</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-workbench">
+            <div class="keypad-container">
+                <div class="screen-preview" id="screen-box">
+                    <span id="screen-text">-3.5</span>
+                    <span class="cursor-blink"></span>
+                </div>
+
+                <div class="keypad-grid">
+                    <button class="key-btn" onclick="pressKey('7')">7</button>
+                    <button class="key-btn" onclick="pressKey('8')">8</button>
+                    <button class="key-btn" onclick="pressKey('9')">9</button>
+                    <button class="key-btn key-del" onclick="pressDel()">⌫</button>
+
+                    <button class="key-btn" onclick="pressKey('4')">4</button>
+                    <button class="key-btn" onclick="pressKey('5')">5</button>
+                    <button class="key-btn" onclick="pressKey('6')">6</button>
+                    <button class="key-btn key-del" onclick="pressClear()">C</button>
+
+                    <button class="key-btn" onclick="pressKey('1')">1</button>
+                    <button class="key-btn" onclick="pressKey('2')">2</button>
+                    <button class="key-btn" onclick="pressKey('3')">3</button>
+                    <button class="key-btn key-neg" onclick="toggleNegative()">- 負向</button>
+
+                    <button class="key-btn" onclick="pressKey('0')">0</button>
+                    <button class="key-btn key-sym" onclick="pressKey('.')">.</button>
+                    <button class="key-btn key-sym" onclick="pressKey('/')">/</button>
+                    <button class="key-btn key-sym" onclick="pressKey(' ')" title="帶分數空格">␣</button>
+
+                    <button class="key-btn key-locate" id="run-btn" onclick="locatePointWithAnimation()">🚀 執行轉向與移動</button>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div class="preset-row">
+                    <span style="font-size: 0.88rem; color: var(--text-muted); align-self: center;">經典座標：</span>
+                    <button class="preset-btn neg-btn" onclick="setRawCoord('-4')">⬅ 負整數 -4</button>
+                    <button class="preset-btn neg-btn" onclick="setRawCoord('-3.7')">⬅ 負小數 -3.7</button>
+                    <button class="preset-btn neg-btn" onclick="setRawCoord('-2 1/3')">⬅ 負帶分數 -2 1/3</button>
+                    <button class="preset-btn" onclick="setRawCoord('6')">➔ 正整數 6</button>
+                    <button class="preset-btn" onclick="setRawCoord('2.6')">➔ 正小數 2.6</button>
+                    <button class="preset-btn" onclick="setRawCoord('7/2')">➔ 假分數 7/2</button>
+                </div>
+
+                <div class="number-line-box" id="main-line-box">
+                    <div class="negative-zone-bg">
+                        <div class="negative-zone-tag">⬅ 負向區域 (值小於 0)</div>
+                    </div>
+                    <div class="arrow-left" title="負向（向左延伸）"></div>
+                    <div class="arrow-right" title="正向（向右延伸）"></div>
+                    <div class="main-axis"></div>
+                    
+                    <div id="segment-highlight" class="segment-highlight"></div>
+                    
+                    <svg id="main-traj-svg" class="trajectory-svg">
+                        <defs>
+                            <marker id="arrow-pos" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M1,1 L7,4 L1,7 Z" fill="#0284c7" />
+                            </marker>
+                            <marker id="arrow-neg" markerWidth="8" markerHeight="8" refX="6" refY="4" orient="auto">
+                                <path d="M1,1 L7,4 L1,7 Z" fill="#c2410c" />
+                            </marker>
+                        </defs>
+                    </svg>
+
+                    <div id="dots-layer"></div>
+
+                    <div id="char-marker" class="character-marker">
+                        <div id="marker-tag" class="marker-tag">0</div>
+                        <div class="char-avatar-box">
+                            <div id="vision-cone" class="vision-cone facing-left"></div>
+                            <img id="char-img" class="char-img" src="https://duk.tw/m9ZqrN.png" alt="數線角色">
+                        </div>
+                    </div>
+
+                    <div id="ticks-layer"></div>
+                </div>
+
+                <div id="sub-panel" class="subdivision-panel">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                        <strong id="sub-title" style="color: var(--primary); font-size: 0.96rem;">🔍 區間等分微觀軌跡</strong>
+                        <span id="sub-rule-text" style="font-size: 0.88rem; color: var(--text-muted);"></span>
+                    </div>
+                    <div class="sub-axis-wrapper" id="sub-axis-wrapper">
+                        <div class="sub-axis"></div>
+                        <svg id="sub-traj-svg" class="trajectory-svg">
+                            <defs>
+                                <marker id="arrow-sub" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                                    <path d="M1,1 L5,3 L1,5 Z" fill="#d97706" />
+                                </marker>
+                            </defs>
+                        </svg>
+                        <div id="sub-dots-layer"></div>
+                        <div id="sub-char-marker" class="character-marker" style="top: -24px;">
+                            <div id="sub-marker-tag" class="marker-tag" style="background: var(--pos-color);">0</div>
+                            <img id="sub-char-img" class="char-img" style="width: 48px; height: 48px;" src="https://duk.tw/m9ZqrN.png" alt="等分角色">
+                        </div>
+                        <div id="sub-ticks-layer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="steps-container">
+            <div class="step-card active" id="card-step1">
+                <div class="step-num" id="card-step1-num">步驟 1：正負號決定「方向」</div>
+                <div class="step-desc" id="step1-text">判定向右或向左...</div>
+            </div>
+            <div class="step-card active">
+                <div class="step-num">步驟 2：夾擠相鄰整數</div>
+                <div class="step-desc" id="step2-text">尋找兩側整數...</div>
+            </div>
+            <div class="step-card active">
+                <div class="step-num">步驟 3：區間等分分割</div>
+                <div class="step-desc" id="step3-text">依分母或小數位等分...</div>
+            </div>
+            <div class="step-card active">
+                <div class="step-num">步驟 4：定點標示</div>
+                <div class="step-desc" id="step4-text">由基準點數出位置...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const MIN = -10;
+    const MAX = 10;
+    const ticksLayer = document.getElementById('ticks-layer');
+    const mainSvg = document.getElementById('main-traj-svg');
+    const dotsLayer = document.getElementById('dots-layer');
+
+    const IMG_RIGHT = 'https://duk.tw/LosHyT.png';
+    const IMG_LEFT = 'https://duk.tw/m9ZqrN.png';
+    new Image().src = IMG_RIGHT;
+    new Image().src = IMG_LEFT;
+
+    let inputBuffer = "-3.5";
+    let isLocating = false;
+
+    for (let i = MIN; i <= MAX; i++) {
+        let pct = ((i - MIN) / (MAX - MIN)) * 100;
+        
+        const tick = document.createElement('div');
+        tick.className = i === 0 ? 'tick zero' : 'tick';
+        tick.style.left = pct + '%';
+        tick.onclick = () => setRawCoord(i.toString());
+        ticksLayer.appendChild(tick);
+
+        const label = document.createElement('div');
+        label.className = i === 0 ? 'tick-label zero' : (i < 0 ? 'tick-label is-neg' : 'tick-label');
+        label.style.left = pct + '%';
+        label.innerText = i;
+        label.onclick = () => setRawCoord(i.toString());
+        ticksLayer.appendChild(label);
+    }
+
+    function updateScreen() {
+        const screenEl = document.getElementById('screen-text');
+        const screenBox = document.getElementById('screen-box');
+        const compNeg = document.getElementById('compass-neg');
+        const compPos = document.getElementById('compass-pos');
+
+        screenEl.innerText = inputBuffer || "0";
+        let isNeg = inputBuffer.startsWith('-');
+
+        if (isNeg) {
+            screenBox.classList.add('is-negative');
+            compNeg.classList.add('active-neg');
+            compPos.classList.remove('active-pos');
+        } else {
+            screenBox.classList.remove('is-negative');
+            compNeg.classList.remove('active-neg');
+            compPos.classList.add('active-pos');
+        }
+    }
+
+    function toggleNegative() {
+        if (isLocating) return;
+        if (inputBuffer.startsWith('-')) {
+            inputBuffer = inputBuffer.substring(1);
+        } else {
+            inputBuffer = '-' + (inputBuffer === '0' ? '' : inputBuffer);
+        }
+        updateScreen();
+    }
+
+    function pressKey(char) {
+        if (isLocating) return;
+        if (inputBuffer === "0" && char !== '.' && char !== '/' && char !== ' ') {
+            inputBuffer = char;
+        } else {
+            inputBuffer += char;
+        }
+        updateScreen();
+    }
+
+    function pressDel() {
+        if (isLocating) return;
+        inputBuffer = inputBuffer.slice(0, -1);
+        updateScreen();
+    }
+
+    function pressClear() {
+        if (isLocating) return;
+        inputBuffer = "";
+        updateScreen();
+    }
+
+    function setRawCoord(val) {
+        if (isLocating) return;
+        inputBuffer = val;
+        updateScreen();
+        locatePointWithAnimation();
+    }
+
+    function getPercent(val) {
+        return ((val - MIN) / (MAX - MIN)) * 100;
+    }
+
+    function parseCoordString(str) {
+        str = str.trim().replace(/\s+/g, ' ');
+        if (!str) return null;
+
+        let isNegative = str.startsWith('-');
+        let unsigned = isNegative ? str.slice(1).trim() : str;
+
+        if (unsigned.includes(' ') && unsigned.includes('/')) {
+            let [wholeStr, fracStr] = unsigned.split(' ');
+            let [numStr, denStr] = fracStr.split('/');
+            let whole = parseInt(wholeStr, 10);
+            let num = parseInt(numStr, 10);
+            let den = parseInt(denStr, 10);
+            if (den === 0 || isNaN(whole) || isNaN(num) || isNaN(den)) return null;
+            let val = whole + (num / den);
+            return {
+                val: isNegative ? -val : val,
+                type: 'fraction',
+                wholePart: isNegative ? -whole : whole,
+                remainderNum: num,
+                denominator: den,
+                display: str
+            };
+        }
+
+        if (unsigned.includes('/')) {
+            let [numStr, denStr] = unsigned.split('/');
+            let num = parseInt(numStr, 10);
+            let den = parseInt(denStr, 10);
+            if (den === 0 || isNaN(num) || isNaN(den)) return null;
+            let whole = Math.floor(num / den);
+            let rem = num % den;
+            let val = num / den;
+            return {
+                val: isNegative ? -val : val,
+                type: 'fraction',
+                wholePart: isNegative ? -whole : whole,
+                remainderNum: rem,
+                denominator: den,
+                display: str
+            };
+        }
+
+        let num = parseFloat(str);
+        if (isNaN(num)) return null;
+        
+        let isFloat = str.includes('.');
+        let parts = str.split('.');
+        let decPlaces = isFloat ? parts[1].length : 0;
+        let den = isFloat ? Math.pow(10, Math.min(decPlaces, 2)) : 1;
+        let baseInt = isNegative ? Math.ceil(num) : Math.floor(num);
+        let remNum = isFloat ? Math.round(Math.abs(num - baseInt) * den) : 0;
+
+        return {
+            val: num,
+            type: isFloat ? 'decimal' : 'integer',
+            wholePart: baseInt,
+            remainderNum: remNum,
+            denominator: den,
+            display: str
+        };
+    }
+
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function drawTrajectoryArc(svgElement, startPct, endPct, axisY, arcHeight, isPos) {
+        const svgWidth = svgElement.clientWidth || 800;
+        const x1 = (startPct / 100) * svgWidth;
+        const x2 = (endPct / 100) * svgWidth;
+        const midX = (x1 + x2) / 2;
+        const midY = axisY - arcHeight;
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        const strokeColor = isPos ? "#0284c7" : "#c2410c";
+        const markerId = isPos ? "url(#arrow-pos)" : "url(#arrow-neg)";
+
+        path.setAttribute("d", `M ${x1} ${axisY} Q ${midX} ${midY} ${x2} ${axisY}`);
+        path.setAttribute("fill", "none");
+        path.setAttribute("stroke", strokeColor);
+        path.setAttribute("stroke-width", "2.8");
+        path.setAttribute("stroke-linecap", "round");
+        path.setAttribute("marker-end", markerId);
+        svgElement.appendChild(path);
+    }
+
+    function addFootprintDot(container, pct, isNeg) {
+        const dot = document.createElement('div');
+        dot.className = isNeg ? 'trail-dot neg-dot' : 'trail-dot';
+        dot.style.left = pct + '%';
+        container.appendChild(dot);
+    }
+
+    function clearTrajectories() {
+        mainSvg.querySelectorAll('path').forEach(p => p.remove());
+        dotsLayer.innerHTML = '';
+        document.getElementById('sub-traj-svg').querySelectorAll('path').forEach(p => p.remove());
+        document.getElementById('sub-dots-layer').innerHTML = '';
+    }
+
+    async function locatePointWithAnimation() {
+        if (isLocating) return;
+        let parsed = parseCoordString(inputBuffer);
+
+        if (!parsed || parsed.val < MIN || parsed.val > MAX) {
+            alert("請輸入 -10 到 10 範圍內的有效數字、小數或分數！");
+            return;
+        }
+
+        isLocating = true;
+        document.getElementById('run-btn').innerText = "🐾 轉向與移動中...";
+        clearTrajectories();
+
+        let val = parsed.val;
+        let isZero = (val === 0);
+        let isNegative = (val < 0);
+        let isPositive = (val > 0);
+
+        let card1 = document.getElementById('card-step1');
+        let card1Num = document.getElementById('card-step1-num');
+        if (isNegative) {
+            card1.classList.add('neg-accent');
+            card1Num.classList.add('neg-text');
+        } else {
+            card1.classList.remove('neg-accent');
+            card1Num.classList.remove('neg-text');
+        }
+
+        let step1 = document.getElementById('step1-text');
+        if (isZero) {
+            step1.innerHTML = `座標為 <strong>0</strong>，恰好停在數線原點。`;
+        } else if (isNegative) {
+            step1.innerHTML = `座標 <strong>${parsed.display}</strong> 為負數 ➔ <strong>負號表示負向！人物轉身面向負向（左方）◀，準備往左數</strong>！`;
+        } else {
+            step1.innerHTML = `座標 <strong>${parsed.display}</strong> 為正數 ➔ <strong>正號表示正向！人物面向正向（右方）▶，準備往右數</strong>！`;
+        }
+
+        let mainChar = document.getElementById('char-marker');
+        let charImg = document.getElementById('char-img');
+        let tag = document.getElementById('marker-tag');
+        let cone = document.getElementById('vision-cone');
+
+        mainChar.style.display = 'flex';
+        mainChar.style.left = getPercent(0) + '%';
+        tag.innerText = "起點 0";
+        tag.className = 'marker-tag';
+        addFootprintDot(dotsLayer, getPercent(0), isNegative);
+
+        if (isNegative) {
+            charImg.src = IMG_LEFT;
+            cone.className = 'vision-cone facing-left';
+        } else {
+            charImg.src = IMG_RIGHT;
+            cone.className = 'vision-cone facing-right';
+        }
+        await wait(600);
+
+        let highlight = document.getElementById('segment-highlight');
+        let subPanel = document.getElementById('sub-panel');
+        const axisY = 80;
+
+        let baseInt = isNegative ? Math.ceil(val) : Math.floor(val);
+        let wholeSteps = Math.abs(baseInt);
+
+        let currentInt = 0;
+        let stepDir = isNegative ? -1 : 1;
+
+        for (let i = 0; i < wholeSteps; i++) {
+            let nextInt = currentInt + stepDir;
+            let startPct = getPercent(currentInt);
+            let endPct = getPercent(nextInt);
+
+            drawTrajectoryArc(mainSvg, startPct, endPct, axisY, 28, !isNegative);
+            currentInt = nextInt;
+
+            mainChar.style.left = endPct + '%';
+            tag.innerText = currentInt;
+            if (isNegative) tag.classList.add('neg-tag');
+            addFootprintDot(dotsLayer, endPct, isNegative);
+            await wait(360);
+        }
+
+        if (parsed.type !== 'integer' && parsed.remainderNum !== 0) {
+            let startPct = getPercent(baseInt);
+            let endPct = getPercent(val);
+
+            drawTrajectoryArc(mainSvg, startPct, endPct, axisY, 18, !isNegative);
+            mainChar.style.left = endPct + '%';
+            tag.innerText = parsed.display;
+            if (isNegative) tag.classList.add('neg-tag');
+            addFootprintDot(dotsLayer, endPct, isNegative);
+            await wait(400);
+
+            let lowerInt = isNegative ? baseInt - 1 : baseInt;
+            let upperInt = isNegative ? baseInt : baseInt + 1;
+
+            highlight.style.display = 'block';
+            highlight.style.left = getPercent(lowerInt) + '%';
+            highlight.style.width = (getPercent(upperInt) - getPercent(lowerInt)) + '%';
+
+            document.getElementById('step2-text').innerHTML = `介於整數 <strong>${lowerInt}</strong> 與 <strong>${upperInt}</strong> 之間。`;
+            let den = parsed.denominator;
+            let targetSteps = parsed.remainderNum;
+            document.getElementById('step3-text').innerHTML = `將 [${lowerInt}, ${upperInt}] 平分為 <strong>${den}</strong> 等分。`;
+            
+            let dirWord = isNegative ? '左（負向）' : '右（正向）';
+            document.getElementById('step4-text').innerHTML = `從整數基準點 <strong>${baseInt}</strong> 繼續往<strong>${dirWord}數 ${targetSteps}</strong> 個等分格。`;
+
+            await renderSubdivisionWithAnimation(lowerInt, upperInt, baseInt, den, targetSteps, !isNegative, parsed.display);
+        } else {
+            highlight.style.display = 'none';
+            subPanel.style.display = 'none';
+            document.getElementById('step2-text').innerHTML = `恰為整數刻度點 <strong>${val}</strong>。`;
+            document.getElementById('step3-text').innerHTML = `無須細分區間。`;
+            document.getElementById('step4-text').innerHTML = `面向${isNegative ? '負向（左）' : '正向（右）'}前進 <strong>${wholeSteps}</strong> 個完整單位抵達！`;
+        }
+
+        document.getElementById('run-btn').innerText = "🚀 執行轉向與移動";
+        isLocating = false;
+    }
+
+    async function renderSubdivisionWithAnimation(lower, upper, base, den, steps, isPositive, labelText) {
+        const subPanel = document.getElementById('sub-panel');
+        const subTicksLayer = document.getElementById('sub-ticks-layer');
+        const subRuleText = document.getElementById('sub-rule-text');
+        const subCharMarker = document.getElementById('sub-char-marker');
+        const subCharImg = document.getElementById('sub-char-img');
+        const subTag = document.getElementById('sub-marker-tag');
+        const subSvg = document.getElementById('sub-traj-svg');
+        const subDotsLayer = document.getElementById('sub-dots-layer');
+
+        subPanel.style.display = 'block';
+        subTicksLayer.innerHTML = '';
+        subSvg.querySelectorAll('path').forEach(p => p.remove());
+        subDotsLayer.innerHTML = '';
+
+        let dirText = isPositive ? '向右（正向）' : '向左（負向）';
+        subRuleText.innerHTML = `基準整數：<strong>${base}</strong> ➔ 繼續<strong>${dirText}細數 ${steps}/${den}</strong> 單位`;
+
+        for (let i = 0; i <= den; i++) {
+            let pct = (i / den) * 100;
+            let isEdge = (i === 0 || i === den);
+
+            const tick = document.createElement('div');
+            tick.style.position = 'absolute';
+            tick.style.top = isEdge ? '38px' : '46px';
+            tick.style.width = isEdge ? '3px' : '1.5px';
+            tick.style.height = isEdge ? '34px' : '18px';
+            tick.style.background = isEdge ? 'var(--axis-color)' : 'var(--axis-tick)';
+            tick.style.left = pct + '%';
+            tick.style.transform = 'translateX(-50%)';
+            subTicksLayer.appendChild(tick);
+
+            if (isEdge) {
+                const label = document.createElement('div');
+                label.style.position = 'absolute';
+                label.style.top = '76px';
+                label.style.left = pct + '%';
+                label.style.transform = 'translateX(-50%)';
+                label.style.fontWeight = 'bold';
+                label.style.fontSize = '1.05rem';
+                label.style.color = (i === 0 && !isPositive) || (i === den && !isPositive) ? 'var(--neg-color)' : 'var(--pos-color)';
+                label.innerText = (i === 0) ? lower : upper;
+                subTicksLayer.appendChild(label);
+            }
+        }
+
+        let baseSubPct = isPositive ? 0 : 100;
+        subCharMarker.style.display = 'flex';
+        subCharMarker.style.left = baseSubPct + '%';
+        subTag.innerText = base;
+        subTag.className = isPositive ? 'marker-tag' : 'marker-tag neg-tag';
+        subCharImg.src = isPositive ? IMG_RIGHT : IMG_LEFT;
+        addFootprintDot(subDotsLayer, baseSubPct, !isPositive);
+        await wait(300);
+
+        const subAxisY = 55;
+        const svgWidth = subSvg.clientWidth || 700;
+
+        for (let s = 1; s <= steps; s++) {
+            let fromRatio = isPositive ? ((s - 1) / den) : (1 - (s - 1) / den);
+            let toRatio = isPositive ? (s / den) : (1 - s / den);
+
+            let x1 = fromRatio * svgWidth;
+            let x2 = toRatio * svgWidth;
+            let midX = (x1 + x2) / 2;
+            let midY = subAxisY - 22;
+
+            const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            path.setAttribute("d", `M ${x1} ${subAxisY} Q ${midX} ${midY} ${x2} ${subAxisY}`);
+            path.setAttribute("fill", "none");
+            path.setAttribute("stroke", isPositive ? "var(--secondary)" : "var(--neg-color)");
+            path.setAttribute("stroke-width", "2.2");
+            path.setAttribute("stroke-linecap", "round");
+            path.setAttribute("marker-end", "url(#arrow-sub)");
+            subSvg.appendChild(path);
+
+            subCharMarker.style.left = (toRatio * 100) + '%';
+            subTag.innerText = s + '/' + den;
+            addFootprintDot(subDotsLayer, toRatio * 100, !isPositive);
+            await wait(240);
+        }
+
+        subTag.innerText = labelText;
+    }
+
+    locatePointWithAnimation();
+</script>
+
+</body>
+</html>

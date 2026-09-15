@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>桌面公牌生成器</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  body {
+    background: #0b132b;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 20px;
+    text-align: center;
+  }
+  .title {
+    font-size: 20px;
+    color: #94a3b8;
+    margin-bottom: 25px;
+    letter-spacing: 2px;
+  }
+  .board {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 35px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .symbol-card {
+    width: 100px;
+    height: 140px;
+    background: linear-gradient(135deg, #fbbf24, #d97706);
+    color: #0b132b;
+    font-size: 64px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+    user-select: none;
+    transition: transform 0.15s ease;
+  }
+  .symbol-card:active {
+    transform: scale(0.95);
+  }
+  button {
+    padding: 16px 36px;
+    font-size: 20px;
+    font-weight: bold;
+    color: #0b132b;
+    background: #10b981;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(16, 185, 129, 0.4);
+    transition: 0.15s;
+  }
+  button:hover {
+    filter: brightness(1.1);
+  }
+  button:active {
+    transform: scale(0.96);
+  }
+</style>
+</head>
+<body>
+
+  <div class="title">極限運算梭哈 ｜ 桌面公牌</div>
+
+  <div class="board" id="sym-box">
+    <div class="symbol-card">+</div>
+    <div class="symbol-card">-</div>
+    <div class="symbol-card">×</div>
+  </div>
+
+  <button onclick="drawSymbols()">🎲 抽取新公牌 (四選三)</button>
+
+<script>
+  const SYMBOLS = ['+', '-', '×', '÷'];
+
+  function drawSymbols() {
+    // 從四個符號中隨機洗牌，固定取前 3 個，確保完全不重複
+    const selected = [...SYMBOLS].sort(() => 0.5 - Math.random()).slice(0, 3);
+    const box = document.getElementById('sym-box');
+    box.innerHTML = selected.map(s => `<div class="symbol-card">${s}</div>`).join('');
+  }
+
+  // 進入頁面時自動先抽一局
+  drawSymbols();
+</script>
+</body>
+</html>

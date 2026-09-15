@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE DEVIL'S PLAN: 多人極限運算梭哈</title>
+<style>
+  :root {
+    --bg-dark: #06080e;
+    --table-bg: #0d1322;
+    --gold: #d4af37;
+    --gold-glow: #f59e0b;
+    --gold-dim: #785a1a;
+    --gold-gradient: linear-gradient(135deg, #f6d365 0%, #d4af37 50%, #996515 100%);
+    --cyan: #38bdf8;
+    --red: #f43f5e;
+    --green: #10b981;
+    --purple: #a855f7;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --border-line: #1e293b;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: "Cinzel", "PingFang TC", "Microsoft JhengHei", -apple-system, sans-serif; }
+  body {
+    background: radial-gradient(circle at center, #111827 0%, var(--bg-dark) 100%);
+    color: var(--text-primary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 10px;
+  }
+
+  .arena-wrapper {
+    width: 100%;
+    max-width: 740px;
+    background: linear-gradient(165deg, rgba(24, 32, 50, 0.8) 0%, rgba(10, 14, 24, 0.96) 100%);
+    border: 1.5px solid var(--gold-dim);
+    border-radius: 20px;
+    padding: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.85);
+    position: relative;
+  }
+
+  .arena-header {
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .arena-title {
+    font-size: 11px;
+    letter-spacing: 5px;
+    color: var(--gold);
+    text-transform: uppercase;
+    font-weight: 900;
+  }
+  .arena-sub {
+    font-size: 20px;
+    letter-spacing: 2px;
+    font-weight: 900;
+    color: #fff;
+    text-shadow: 0 0 14px rgba(212, 175, 55, 0.4);
+    margin-top: 2px;
+  }
+
+  /* 設定與選人面板 */
+  .setup-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border-line);
+    border-radius: 10px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    font-size: 13px;
+  }
+  .player-select-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .p-btn {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  .p-btn.active {
+    background: var(--gold);
+    color: #000;
+    border-color: #fde68a;
+  }
+
+  /* 公牌區 */
+  .board-section {
+    background: rgba(0,0,0,0.45);
+    border: 1px solid rgba(212, 175, 55, 0.25);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+  .board-label {
+    font-size: 11px;
+    letter-spacing: 2px;
+    color: var(--gold);
+    margin-bottom: 6px;
+  }
+  .symbol-board {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 4px 0 8px;
+  }
+  .card-symbol {
+    width: 48px;
+    height: 64px;
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    border: 1.5px solid var(--gold);
+    color: var(--gold);
+    font-size: 28px;
+    font-weight: 900;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    text-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+  }
+  .pot-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    background: #00000090;
+    border: 1px solid var(--border-line);
+    border-radius: 30px;
+    padding: 4px 16px;
+    font-size: 12px;
+  }
+  .pot-banner .val {
+    color: var(--gold);
+    font-size: 15px;
+    font-weight: bold;
+  }
+
+  /* 4 人牌桌排列區 (2x2 Grid) */
+  .players-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  @media (max-width: 580px) {
+    .players-grid { grid-template-columns: 1fr; }
+  }
+  .player-card-box {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid var(--border-line);
+    border-radius: 10px;
+    padding: 8px 10px;
+    position: relative;
+    transition: 0.2s;
+  }
+  .player-card-box.active-turn {
+    border-color: var(--gold);
+    box-shadow: 0 0 16px rgba(212, 175, 55, 0.25);
+    background: rgba(30, 41, 59, 0.85);
+  }
+  .player-card-box.folded {
+    opacity: 0.4;
+    filter: grayscale(0.8);
+  }
+  .p-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+  }
+  .p-name { font-weight: bold; display: flex; align-items: center; gap: 4px; }
+  .p-chips { color: var(--gold); font-weight: bold; }
+  .cards-row { display: flex; gap: 6px; }
+  .card {
+    width: 44px;
+    height: 62px;
+    background: linear-gradient(160deg, #1e293b 0%, #0f172a 100%);
+    border: 1px solid #334155;
+    color: #fff;
+    font-size: 22px;
+    font-weight: 900;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    position: relative;
+  }
+  .card.back {
+    background: repeating-linear-gradient(45deg, #131a28, #131a28 5px, #1c2538 5px, #1c2538 10px);
+    border: 1px dashed var(--gold-dim);
+    color: var(--gold-dim);
+    cursor: pointer;
+  }
+  .card.back:hover { border-color: var(--gold); }
+  .card-tag {
+    font-size: 8px;
+    position: absolute;
+    top: 2px;
+    color: var(--text-secondary);
+    font-weight: normal;
+  }
+
+  /* 操作面板 */
+  .control-panel {
+    background: #00000050;
+    border: 1px solid var(--border-line);
+    border-radius: 12px;
+    padding: 10px;
+    margin-top: 8px;
+  }
+  .turn-prompt {
+    font-size: 13px;
+    font-weight: bold;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .action-buttons {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  button {
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 700;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #fff;
+    transition: 0.15s;
+  }
+  button:hover:not(:disabled) { transform: translateY(-1px); filter: brightness(1.15); }
+  button:disabled { background: #1e293b !important; border-color: #334155 !important; color: #64748b !important; cursor: not-allowed; transform: none; }
+  .btn-start { background: linear-gradient(135deg, #10b981, #047857); border-color: #34d399; }
+  .btn-peek { background: linear-gradient(135deg, #8b5cf6, #6d28d9); border-color: #c084fc; }
+  .btn-call { background: linear-gradient(135deg, #2563eb, #1d4ed8); border-color: #60a5fa; }
+  .btn-raise { background: var(--gold-gradient); color: #000; border-color: #fde68a; }
+  .btn-fold { background: linear-gradient(135deg, #dc2626, #991b1b); border-color: #f87171; }
+  input[type="number"], input[type="text"] {
+    background: #0b111e;
+    border: 1px solid #334155;
+    color: #fff;
+    padding: 7px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    outline: none;
+  }
+
+  /* 通用全螢幕遮罩彈窗 (Modal) */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.88);
+    backdrop-filter: blur(8px);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+    padding: 16px;
+  }
+  .modal-overlay.active { display: flex; animation: fadeIn 0.2s ease-out; }
+  .modal-card {
+    background: linear-gradient(170deg, #151d30, #0a0f1d);
+    border: 2px solid var(--gold);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 500px;
+    padding: 20px;
+    box-shadow: 0 0 50px rgba(212, 175, 55, 0.3);
+    text-align: center;
+  }
+  .modal-title { font-size: 18px; font-weight: 900; color: var(--gold); margin-bottom: 12px; letter-spacing: 1px; }
+
+  /* 秘密看底牌專用樣式 */
+  .peek-card-display {
+    width: 90px;
+    height: 128px;
+    background: #111a2e;
+    border: 2px solid var(--gold);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: 900;
+    color: #fff;
+    margin: 16px auto;
+    box-shadow: 0 0 25px rgba(212, 175, 55, 0.35);
+  }
+  .peek-instruction { font-size: 13px; color: var(--text-secondary); line-height: 1.6; margin-bottom: 14px; }
+
+  /* 快速輸入鍵盤 */
+  .quick-tokens { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; margin: 10px 0; }
+  .q-btn {
+    background: #1e293b;
+    border: 1px solid #475569;
+    color: #fff;
+    padding: 8px 14px;
+    font-size: 15px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .q-btn.sym { background: #382506; border-color: var(--gold); color: var(--gold); }
+  .q-btn.ctrl { background: #3b1119; border-color: var(--red); color: #fca5a5; }
+
+  /* 審判結算表格 */
+  .verdict-list {
+    text-align: left;
+    margin: 14px 0;
+    max-height: 280px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .v-item {
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--border-line);
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 12px;
+  }
+  .v-item.winner {
+    border-color: var(--gold);
+    background: rgba(212, 175, 55, 0.1);
+  }
+  .v-top { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 4px; }
+  .v-analysis {
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px dashed #334155;
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .history-box {
+    background: #050810;
+    border: 1px solid var(--border-line);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-family: ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+    max-height: 80px;
+    overflow-y: auto;
+    margin-top: 10px;
+    color: var(--text-secondary);
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
+</style>
+</head>
+<body>
+
+<div class="arena-wrapper">
+  <div class="arena-header">
+    <div class="arena-title">The Devil's Plan · Multi-Arena</div>
+    <div class="arena-sub">極限運算梭哈 · 終極淘汰賽</div>
+  </div>
+
+  <!-- 人數選擇與快速功能 -->
+  <div class="setup-bar">
+    <div class="player-select-group">
+      <span style="color: var(--gold); font-weight: bold;">參賽人數：</span>
+      <button class="p-btn" onclick="setPlayerCount(2)" id="pcount-2">2 人</button>
+      <button class="p-btn" onclick="setPlayerCount(3)" id="pcount-3">3 人</button>
+      <button class="p-btn active" onclick="setPlayerCount(4)" id="pcount-4">4 人</button>
+    </div>
+    <div>
+      <button class="btn-peek" id="btn-peek-all" onclick="startSequentialPeek()" disabled>👁️ 輪流秘密查看底牌</button>
+    </div>
+  </div>
+
+  <!-- 公牌區域 -->
+  <div class="board-section">
+    <div class="board-label">◆ 運算公牌 (OPERATION BOARD) ◆</div>
+    <div class="symbol-board" id="sym-box">
+      <div class="card-symbol">?</div>
+      <div class="card-symbol">?</div>
+      <div class="card-symbol">?</div>
+    </div>
+    <div class="pot-banner">
+      <div>底池 PIECES：<span class="val" id="pot-display">0</span></div>
+      <div style="color: var(--border-line);">|</div>
+      <div>當前跟注額：<span class="val" id="call-req-display">0</span></div>
+    </div>
+  </div>
+
+  <!-- 玩家牌桌區 (2~4 人動態佈局) -->
+  <div class="players-grid" id="players-container"></div>
+
+  <!-- 賭局操作面板 -->
+  <div class="control-panel">
+    <div class="turn-prompt">
+      <span id="turn-indicator">點擊「開始新回合」進行底注投入。</span>
+      <span id="stage-indicator" style="color: var(--gold); font-size: 12px;"></span>
+    </div>
+    <div class="action-buttons">
+      <button class="btn-start" id="btn-start" onclick="startRound()">◆ 開始新回合 (各投底注10)</button>
+      <button class="btn-call" id="btn-call" onclick="handleAction('call')" disabled>過牌 / 跟注</button>
+      <input type="number" id="raise-input" placeholder="加注額" style="width: 80px;" disabled>
+      <button class="btn-raise" id="btn-raise" onclick="handleAction('raise')" disabled>加注 PIECES</button>
+      <button class="btn-fold" id="btn-fold" onclick="handleAction('fold')" disabled>棄牌 FOLD</button>
+    </div>
+  </div>
+
+  <div class="history-box" id="game-log">選擇參賽人數，點擊「開始新回合」啟動牌局。</div>
+</div>
+
+<!-- 彈窗 1：輪流秘密查看底牌 (Pass-and-Play) -->
+<div class="modal-overlay" id="peek-modal">
+  <div class="modal-card">
+    <div class="modal-title" id="peek-player-title">請交給【玩家 1】查看</div>
+    <div class="peek-instruction" id="peek-instruction">請其他玩家避開視線，點擊下方按鈕揭示你的底牌。</div>
+    
+    <div id="peek-hidden-zone">
+      <button class="btn-start" onclick="revealPeekCard()" style="font-size: 15px; padding: 12px 24px;">👁️ 點擊檢視我的底牌</button>
+    </div>
+    
+    <div id="peek-revealed-zone" style="display: none;">
+      <div class="peek-card-display" id="peek-card-val">?</div>
+      <button class="btn-raise" onclick="nextPeekPlayer()" style="width: 100%;">記住了，蓋上並交給下一位</button>
+    </div>
+  </div>
+</div>
+
+<!-- 彈窗 2：終局算式輸入面板 (每位存活玩家輪流輸入) -->
+<div class="modal-overlay" id="formula-modal">
+  <div class="modal-card">
+    <div class="modal-title" id="formula-player-title">【玩家 1】請輸入你的算式</div>
+    <div style="font-size: 12px; color: var(--text-secondary); margin-bottom: 10px;">
+      完整使用手牌 4 個數字與公牌 3 個符號，逼近 1 或 20（先乘除後加減）：
+    </div>
+    <div style="display: flex; gap: 6px; margin-bottom: 8px;">
+      <input type="text" id="formula-input" placeholder="例如: 8 * 2 + 5 - 1" style="flex: 1; font-size: 15px;">
+      <button class="btn-start" onclick="submitCurrentFormula()">提交算式</button>
+    </div>
+    <div class="quick-tokens" id="formula-quick-btns"></div>
+  </div>
+</div>
+
+<!-- 彈窗 3：終局審判與魔鬼覆盤面板 -->
+<div class="modal-overlay" id="verdict-modal">
+  <div class="modal-card" style="max-width: 580px;">
+    <div class="modal-title" style="letter-spacing: 3px;">JUDGEMENT & TACTICAL REVIEW</div>
+    <div style="font-size: 18px; font-weight: 900; margin-bottom: 8px;" id="verdict-summary"></div>
+    <div class="verdict-list" id="verdict-items"></div>
+    <button class="btn-start" onclick="closeVerdictModal()" style="width: 100%; margin-top: 8px;">確認結果，結束本回合</button>
+  </div>
+</div>
+
+<script>
+/* 音效合成 (Web Audio API) */
+let audioCtx;
+function playSound(type) {
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    const now = audioCtx.currentTime;
+    if (type === 'chip') {
+      osc.type = 'triangle'; osc.frequency.setValueAtTime(900, now);
+      gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+      osc.start(now); osc.stop(now + 0.1);
+    } else if (type === 'deal') {
+      osc.frequency.setValueAtTime(400, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+      gain.gain.setValueAtTime(0.12, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+      osc.start(now); osc.stop(now + 0.08);
+    } else if (type === 'win') {
+      osc.type = 'sine'; osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.setValueAtTime(659.25, now + 0.12);
+      gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+      osc.start(now); osc.stop(now + 0.35);
+    }
+  } catch(e){}
+}
+
+const SYMBOLS = ['+', '-', '×', '÷'];
+let numPlayers = 4;
+let players = [];
+let pot = 0;
+let stage = 0; // 0:未開始, 1:第1輪明牌, 2:第2輪明牌, 3:終局下注, 4:算式結算
+let currentSymbols = [];
+let currentBet = 0;
+let activeTurn = 0;
+let playersActedThisRound = 0;
+
+// 秘密查看底牌流程控制
+let peekQueue = [];
+let currentPeekIndex = 0;
+
+// 輪流輸入算式隊列
+let formulaQueue = [];
+let currentFormulaPlayerIdx = 0;
+
+function log(msg) {
+  const box = document.getElementById('game-log');
+  box.innerHTML += `<div>> ${msg}</div>`;
+  box.scrollTop = box.scrollHeight;
+}
+
+function setPlayerCount(n) {
+  if (stage !== 0) return;
+  numPlayers = n;
+  document.querySelectorAll('.p-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(`pcount-${n}`).classList.add('active');
+  initPlayers();
+  renderPlayers(false);
+  log(`已設置為 ${n} 位參賽者對決。`);
+}
+
+function initPlayers() {
+  players = [];
+  for (let i = 0; i < numPlayers; i++) {
+    players.push({
+      id: i,
+      name: `玩家 ${i + 1}`,
+      chips: 100,
+      hand: [],
+      folded: false,
+      roundBet: 0,
+      formula: "",
+      val: null,
+      diff: null,
+      submitted: false
+    });
+  }
+}
+
+function renderPlayers(showAllHoles = false) {
+  const container = document.getElementById('players-container');
+  container.innerHTML = "";
+  const tags = ["底牌", "明1", "明2", "明3"];
+
+  players.forEach((p, idx) => {
+    let box = document.createElement('div');
+    box.className = `player-card-box ${stage > 0 && activeTurn === idx && !p.folded ? 'active-turn' : ''} ${p.folded ? 'folded' : ''}`;
+    
+    let cardsHtml = "";
+    p.hand.forEach((c, cIdx) => {
+      if (cIdx === 0 && !showAllHoles) {
+        cardsHtml += `<div class="card back" onclick="quickPeekSelf(${idx})"><span class="card-tag">底牌</span>👁️</div>`;
+      } else {
+        cardsHtml += `<div class="card"><span class="card-tag">${tags[cIdx]}</span>${c}</div>`;
+      }
+    });
+
+    box.innerHTML = `
+      <div class="p-info-row">
+        <span class="p-name">${idx === activeTurn && stage > 0 && !p.folded ? '👉 ' : ''}${p.name} ${p.folded ? '(已棄牌)' : ''}</span>
+        <span class="p-chips">皮斯：${p.chips}</span>
+      </div>
+      <div class="cards-row">${cardsHtml}</div>
+    `;
+    container.appendChild(box);
+  });
+}
+
+/* 算式計算邏輯 */
+function evalTokens(nums, ops) {
+  let curNums = [nums[0]];
+  let curOps = [];
+  for (let i = 0; i < ops.length; i++) {
+    let op = ops[i];
+    let nextNum = nums[i + 1];
+    if (op === '×' || op === '÷') {
+      let prevNum = curNums.pop();
+      if (op === '÷') {
+        if (nextNum === 0) return null;
+        curNums.push(prevNum / nextNum);
+      } else {
+        curNums.push(prevNum * nextNum);
+      }
+    } else {
+      curOps.push(op);
+      curNums.push(nextNum);
+    }
+  }
+  let res = curNums[0];
+  for (let i = 0; i < curOps.length; i++) {
+    let op = curOps[i];
+    let next = curNums[i + 1];
+    if (op === '+') res += next;
+    else if (op === '-') res -= next;
+  }
+  return res;
+}
+
+function solveBest(cards, symbols) {
+  function perm(arr) {
+    if (arr.length === 0) return [[]];
+    let res = [];
+    for (let i = 0; i < arr.length; i++) {
+      let rest = perm(arr.slice(0, i).concat(arr.slice(i + 1)));
+      for (let r of rest) res.push([arr[i], ...r]);
+    }
+    return res;
+  }
+  let cardPerms = perm(cards);
+  let symPerms = perm(symbols);
+  let best = { diff: Infinity, val: null, formula: "", target: 1 };
+
+  for (let pNums of cardPerms) {
+    for (let pOps of symPerms) {
+      let val = evalTokens(pNums, pOps);
+      if (val !== null && !isNaN(val)) {
+        let rounded = Math.round(val * 100) / 100;
+        let diffTo1 = Math.abs(rounded - 1);
+        let diffTo20 = Math.abs(rounded - 20);
+        let diff = Math.min(diffTo1, diffTo20);
+        diff = Math.round(diff * 100) / 100;
+        if (diff < best.diff) {
+          best = {
+            diff: diff,
+            val: rounded,
+            target: diffTo1 < diffTo20 ? 1 : 20,
+            formula: `${pNums[0]} ${pOps[0]} ${pNums[1]} ${pOps[1]} ${pNums[2]} ${pOps[2]} ${pNums[3]}`
+          };
+        }
+      }
+    }
+  }
+  return best;
+}
+
+/* 遊戲核心流程 */
+function startRound() {
+  for (let p of players) {
+    if (p.chips < 10) {
+      alert(`${p.name} 的皮斯不足以支付底注，請重新開局！`);
+      return;
+    }
+  }
+  playSound('chip');
+  pot = 0;
+  stage = 1;
+  currentBet = 0;
+  playersActedThisRound = 0;
+
+  players.forEach(p => {
+    p.chips -= 10;
+    pot += 10;
+    p.folded = false;
+    p.roundBet = 0;
+    p.hand = [];
+    p.formula = "";
+    p.val = null;
+    p.diff = null;
+    p.submitted = false;
+  });
+
+  currentSymbols = [...SYMBOLS].sort(() => 0.5 - Math.random()).slice(0, 3);
+  document.getElementById('sym-box').innerHTML = currentSymbols.map(s => `<div class="card-symbol">${s}</div>`).join('');
+
+  const draw = () => Math.floor(Math.random() * 10);
+  players.forEach(p => { p.hand = [draw(), draw()]; });
+
+  activeTurn = 0;
+  document.getElementById('btn-peek-all').disabled = false;
+  updateUI();
+  playSound('deal');
+  log(`【回合開始】${numPlayers} 位玩家各投底注 10 皮斯（底池：${pot}）。請點擊上方「輪流秘密查看底牌」！`);
+  setBettingButtons(true);
+}
+
+function updateUI() {
+  document.getElementById('pot-display').innerText = pot;
+  document.getElementById('call-req-display').innerText = currentBet;
+  
+  const stageNames = ["", "第 1 輪明牌", "第 2 輪明牌", "終局明牌下注", "算式結算中"];
+  document.getElementById('stage-indicator').innerText = stageNames[stage] || "";
+  
+  let activeP = players[activeTurn];
+  if (stage > 0 && stage < 4 && activeP) {
+    let toCall = currentBet - activeP.roundBet;
+    document.getElementById('turn-indicator').innerText = `👉 當前行動：【${activeP.name}】（需跟注：${toCall} 皮斯）`;
+  }
+  renderPlayers(false);
+}
+
+function setBettingButtons(active) {
+  document.getElementById('btn-start').disabled = active;
+  document.getElementById('btn-call').disabled = !active;
+  document.getElementById('btn-raise').disabled = !active;
+  document.getElementById('raise-input').disabled = !active;
+  document.getElementById('btn-fold').disabled = !active;
+}
+
+/* 下注機制 (多人循環) */
+function handleAction(action) {
+  let p = players[activeTurn];
+  if (!p || p.folded) return;
+
+  if (action === 'fold') {
+    p.folded = true;
+    log(`${p.name} 選擇棄牌 (FOLD)。`);
+    playSound('chip');
+  } else if (action === 'call') {
+    let need = currentBet - p.roundBet;
+    let actual = Math.min(need, p.chips);
+    p.chips -= actual;
+    p.roundBet += actual;
+    pot += actual;
+    log(`${p.name} 選擇 ${need === 0 ? '過牌 (CHECK)' : `跟注 (CALL) ${actual} 皮斯`}`);
+    playSound('chip');
+  } else if (action === 'raise') {
+    let amt = parseInt(document.getElementById('raise-input').value) || 0;
+    let minRaise = currentBet + 5;
+    if (amt <= 0 || (p.roundBet + amt) < minRaise || amt > p.chips) {
+      alert(`加注無效！必須高於當前注額至少 5 皮斯（且不超過剩餘籌碼）。`);
+      return;
+    }
+    p.chips -= amt;
+    p.roundBet += amt;
+    pot += amt;
+    currentBet = p.roundBet;
+    playersActedThisRound = 0; // 加注後重設行動人數，確保其他人重新回應
+    log(`💥 ${p.name} 加注至 ${currentBet} 皮斯！`);
+    playSound('chip');
+  }
+
+  document.getElementById('raise-input').value = "";
+  playersActedThisRound++;
+
+  // 檢查是否只剩 1 人未棄牌
+  let alive = players.filter(pl => !pl.folded);
+  if (alive.length === 1) {
+    let winner = alive[0];
+    winner.chips += pot;
+    log(`🏆 所有人皆棄牌，【${winner.name}】直接獨得底池 ${pot} 皮斯！`);
+    playSound('win');
+    finishRound();
+    return;
+  }
+
+  // 前進下一個行動玩家
+  advanceTurn();
+}
+
+function advanceTurn() {
+  let alive = players.filter(p => !p.folded);
+  let allMatched = alive.every(p => p.roundBet === currentBet);
+
+  if (playersActedThisRound >= alive.length && allMatched) {
+    // 當前階段下注結束，進入下一階段
+    advanceStage();
+    return;
+  }
+
+  // 輪到下一位未棄牌玩家
+  do {
+    activeTurn = (activeTurn + 1) % numPlayers;
+  } while (players[activeTurn].folded);
+
+  updateUI();
+}
+
+function advanceStage() {
+  players.forEach(p => p.roundBet = 0);
+  currentBet = 0;
+  playersActedThisRound = 0;
+  const draw = () => Math.floor(Math.random() * 10);
+
+  if (stage === 1) {
+    stage = 2;
+    players.forEach(p => { if (!p.folded) p.hand.push(draw()); });
+    log("── 發放第 2 張明牌，開啟第二輪交鋒 ──");
+    playSound('deal');
+  } else if (stage === 2) {
+    stage = 3;
+    players.forEach(p => { if (!p.folded) p.hand.push(draw()); });
+    log("── 發放第 3 張明牌，進入終局下注 ──");
+    playSound('deal');
+  } else if (stage === 3) {
+    // 進入算式拼裝與攤牌
+    stage = 4;
+    setBettingButtons(false);
+    startFormulaEntryPhase();
+    return;
+  }
+
+  // 重設第一個說話的人為未棄牌的第一位
+  activeTurn = 0;
+  while (players[activeTurn].folded) {
+    activeTurn = (activeTurn + 1) % numPlayers;
+  }
+  updateUI();
+}
+
+/* 輪流秘密查看底牌 (防偷窺交接系統) */
+function startSequentialPeek() {
+  peekQueue = players.map((p, idx) => idx);
+  currentPeekIndex = 0;
+  showPeekModalForCurrent();
+}
+
+function quickPeekSelf(idx) {
+  peekQueue = [idx];
+  currentPeekIndex = 0;
+  showPeekModalForCurrent();
+}
+
+function showPeekModalForCurrent() {
+  const pIdx = peekQueue[currentPeekIndex];
+  const p = players[pIdx];
+  const modal = document.getElementById('peek-modal');
+  
+  document.getElementById('peek-player-title').innerText = `請將裝置交給【${p.name}】`;
+  document.getElementById('peek-instruction').innerText = `請其他參賽者避開視線，點擊按鈕親自檢視底牌。`;
+  document.getElementById('peek-hidden-zone').style.display = 'block';
+  document.getElementById('peek-revealed-zone').style.display = 'none';
+  modal.classList.add('active');
+}
+
+function revealPeekCard() {
+  const pIdx = peekQueue[currentPeekIndex];
+  const p = players[pIdx];
+  document.getElementById('peek-card-val').innerText = p.hand[0];
+  document.getElementById('peek-hidden-zone').style.display = 'none';
+  document.getElementById('peek-revealed-zone').style.display = 'block';
+}
+
+function nextPeekPlayer() {
+  currentPeekIndex++;
+  if (currentPeekIndex < peekQueue.length) {
+    showPeekModalForCurrent();
+  } else {
+    document.getElementById('peek-modal').classList.remove('active');
+    log("底牌確認完畢，請開始下注！");
+  }
+}
+
+/* 算式輸入階段 (每人輪流傳遞裝置輸入) */
+function startFormulaEntryPhase() {
+  formulaQueue = players.filter(p => !p.folded);
+  currentFormulaPlayerIdx = 0;
+  showFormulaModal();
+}
+
+function showFormulaModal() {
+  const p = formulaQueue[currentFormulaPlayerIdx];
+  const modal = document.getElementById('formula-modal');
+  document.getElementById('formula-player-title').innerText = `【${p.name}】請輸入算式`;
+  document.getElementById('formula-input').value = "";
+  
+  // 建立快捷按鈕 (手牌4數字 + 公牌3符號)
+  const btnBox = document.getElementById('formula-quick-btns');
+  btnBox.innerHTML = "";
+  p.hand.forEach(n => {
+    btnBox.innerHTML += `<button type="button" class="q-btn" onclick="appendFormulaToken('${n} ')">${n}</button>`;
+  });
+  currentSymbols.forEach(s => {
+    btnBox.innerHTML += `<button type="button" class="q-btn sym" onclick="appendFormulaToken('${s} ')">${s}</button>`;
+  });
+  btnBox.innerHTML += `<button type="button" class="q-btn ctrl" onclick="document.getElementById('formula-input').value=''">清除</button>`;
+  
+  modal.classList.add('active');
+}
+
+function appendFormulaToken(tok) {
+  document.getElementById('formula-input').value += tok;
+}
+
+function submitCurrentFormula() {
+  const p = formulaQueue[currentFormulaPlayerIdx];
+  const raw = document.getElementById('formula-input').value;
+  
+  let normalized = raw.replace(/\*/g, '×').replace(/\//g, '÷').trim();
+  let tokens = normalized.match(/\d+|[+\-×÷]/g);
+  if (!tokens || tokens.length !== 7) {
+    alert("格式錯誤！必須為 4 個數字與 3 個符號交錯（例如：8 * 2 + 5 - 1）。");
+    return;
+  }
+
+  let nums = [], ops = [];
+  for (let i = 0; i < 7; i++) {
+    if (i % 2 === 0) nums.push(parseInt(tokens[i]));
+    else ops.push(tokens[i]);
+  }
+
+  // 驗證數字吻合
+  if ([...nums].sort().join(',') !== [...p.hand].sort().join(',')) {
+    alert(`使用的數字 [${nums.join(',')}] 與手牌 [${p.hand.join(',')}] 不符！`);
+    return;
+  }
+  // 驗證符號吻合
+  if ([...ops].sort().join(',') !== [...currentSymbols].sort().join(',')) {
+    alert(`使用的符號 [${ops.join(',')}] 與公牌 [${currentSymbols.join(',')}] 不符！`);
+    return;
+  }
+
+  let val = evalTokens(nums, ops);
+  if (val === null) {
+    alert("算式中出現「除以 0」無效操作！");
+    return;
+  }
+
+  let rounded = Math.round(val * 100) / 100;
+  let diff = Math.min(Math.abs(rounded - 1), Math.abs(rounded - 20));
+  p.formula = `${nums[0]} ${ops[0]} ${nums[1]} ${ops[1]} ${nums[2]} ${ops[2]} ${nums[3]}`;
+  p.val = rounded;
+  p.diff = Math.round(diff * 100) / 100;
+  p.submitted = true;
+
+  currentFormulaPlayerIdx++;
+  if (currentFormulaPlayerIdx < formulaQueue.length) {
+    showFormulaModal();
+  } else {
+    document.getElementById('formula-modal').classList.remove('active');
+    triggerFinalShowdown();
+  }
+}
+
+/* 終局審判與魔鬼覆盤 (Judgement & Review) */
+function triggerFinalShowdown() {
+  renderPlayers(true); // 全面翻開底牌
+  let alive = players.filter(p => !p.folded);
+  
+  // 計算各玩家理論最佳解
+  alive.forEach(p => {
+    p.optimal = solveBest(p.hand, currentSymbols);
+  });
+
+  // 找出最小差距者
+  let minDiff = Math.min(...alive.map(p => p.diff));
+  let winners = alive.filter(p => Math.abs(p.diff - minDiff) < 0.001);
+
+  let share = Math.floor(pot / winners.length);
+  winners.forEach(w => w.chips += share);
+
+  // 顯示審判面板
+  const summaryEl = document.getElementById('verdict-summary');
+  if (winners.length === 1) {
+    summaryEl.innerText = `🏆 【${winners[0].name}】奪冠！獨得底池 ${pot} 皮斯！`;
+    summaryEl.style.color = "var(--gold)";
+    playSound('win');
+  } else {
+    summaryEl.innerText = `🤝 勢均力敵！由 ${winners.map(w => w.name).join('、')} 平分底池（各得 ${share} 皮斯）`;
+    summaryEl.style.color = "var(--cyan)";
+  }
+
+  const listEl = document.getElementById('verdict-items');
+  listEl.innerHTML = "";
+  alive.forEach(p => {
+    let isWin = winners.includes(p);
+    let hitOptimal = Math.abs(p.diff - p.optimal.diff) < 0.001;
+    listEl.innerHTML += `
+      <div class="v-item ${isWin ? 'winner' : ''}">
+        <div class="v-top">
+          <span>${isWin ? '👑 ' : ''}${p.name} (底牌: ${p.hand[0]})</span>
+          <span style="color: ${isWin ? 'var(--gold)' : '#fff'};">結果: ${p.val} (距目標差: ${p.diff})</span>
+        </div>
+        <div>所組算式：<b>${p.formula}</b></div>
+        <div class="v-analysis">
+          ${hitOptimal ? 
+            `<span style="color: var(--green);">★ 算力巔峰：已達到該手牌之理論最高極限！</span>` : 
+            `<span>⚠ 錯失更優解訂正：最佳算式為 <b style="color:var(--gold);">${p.optimal.formula} = ${p.optimal.val}</b> (差距僅 ${p.optimal.diff})</span>`}
+        </div>
+      </div>
+    `;
+  });
+
+  document.getElementById('verdict-modal').classList.add('active');
+}
+
+function closeVerdictModal() {
+  document.getElementById('verdict-modal').classList.remove('active');
+  finishRound();
+}
+
+function finishRound() {
+  pot = 0;
+  stage = 0;
+  document.getElementById('btn-peek-all').disabled = true;
+  setBettingButtons(false);
+  updateUI();
+
+  // 檢查是否有人遭到徹底淘汰
+  let eliminated = players.filter(p => p.chips <= 0);
+  if (eliminated.length > 0) {
+    log(`☠ 淘汰公告：${eliminated.map(p => p.name).join('、')} 皮斯歸零，遭到無情淘汰！`);
+  }
+}
+
+// 初始化
+initPlayers();
+renderPlayers(false);
+</script>
+</body>
+</html>
