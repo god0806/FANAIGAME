@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>快打旋風：心算加減奧義對決</title>
+  <!-- 引入免後端 WebRTC 連線庫 -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      margin: 0; padding: 0; background: #0a0a10; color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      min-height: 100vh; overflow: hidden;
+    }
+    #game-container {
+      position: relative; width: 1000px; height: 600px;
+      border: 4px solid #f59e0b; border-radius: 12px;
+      box-shadow: 0 0 40px rgba(245, 158, 11, 0.4);
+      background: #000; overflow: hidden;
+    }
+    canvas { display: block; width: 100%; height: 100%; }
+
+    /* 街機血條與抬頭顯示 */
+    .hud {
+      position: absolute; top: 12px; left: 0; width: 100%;
+      display: flex; justify-content: space-between; align-items: flex-start;
+      padding: 0 24px; z-index: 10;
+    }
+    .hp-wrapper { width: 380px; }
+    .name-tag { font-size: 1.2rem; font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #000; margin-bottom: 4px; }
+    .hp-bar-outer {
+      width: 100%; height: 26px; background: #7f1d1d;
+      border: 2px solid #fff; border-radius: 4px; overflow: hidden;
+    }
+    .hp-bar-fill {
+      width: 100%; height: 100%; background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
+      transition: width 0.2s ease-out;
+    }
+    .ko-box {
+      font-size: 2.2rem; font-weight: 900; color: #ef4444;
+      text-shadow: 0 0 10px #f59e0b, 2px 2px 0 #000;
+      background: #000; padding: 2px 14px; border: 2px solid #f59e0b; border-radius: 8px;
+    }
+
+    /* 題目與輸入看板 */
+    .quiz-overlay {
+      position: absolute; bottom: 20px; left: 0; width: 100%;
+      display: flex; justify-content: space-between; padding: 0 30px; z-index: 10;
+    }
+    .quiz-card {
+      background: rgba(15, 23, 42, 0.88); border: 2px solid #38bdf8;
+      border-radius: 12px; padding: 12px 18px; width: 280px; text-align: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+    }
+    .quiz-exp { font-size: 2rem; font-weight: 900; color: #38bdf8; margin-bottom: 8px; letter-spacing: 2px; }
+    .quiz-input-box {
+      font-size: 1.8rem; font-weight: 900; background: #020617;
+      border: 2px solid #94a3b8; border-radius: 6px; color: #fde047;
+      height: 48px; line-height: 48px; letter-spacing: 4px;
+    }
+
+    /* 主選單 & 連線彈窗 */
+    .modal {
+      position: absolute; inset: 0; background: rgba(0,0,0,0.85);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      z-index: 50; gap: 16px;
+    }
+    .menu-title { font-size: 3rem; font-weight: 900; color: #fbbf24; text-shadow: 3px 3px 0 #b91c1c; }
+    .btn {
+      background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
+      color: #000; font-size: 1.2rem; font-weight: 900; border: none;
+      padding: 12px 36px; border-radius: 8px; cursor: pointer;
+      box-shadow: 0 4px 0 #78350f; transition: all 0.1s;
+    }
+    .btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
+    .btn:active { transform: translateY(2px); box-shadow: none; }
+    .input-field {
+      padding: 10px 16px; font-size: 1.2rem; border-radius: 8px;
+      border: 2px solid #f59e0b; background: #1e1e2f; color: #fff; text-align: center;
+    }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<div id="game-container">
+  <!-- 畫布：渲染格鬥家、波動拳與背景 -->
+  <canvas id="stage" width="1000" height="600"></canvas>
+
+  <!-- 頂部血條 -->
+  <div class="hud">
+    <div class="hp-wrapper">
+      <div class="name-tag" id="p1-name">RYU (玩家 1)</div>
+      <div class="hp-bar-outer"><div class="hp-bar-fill" id="p1-hp"></div></div>
+    </div>
+    <div class="ko-box">VS</div>
+    <div class="hp-wrapper" style="text-align: right;">
+      <div class="name-tag" id="p2-name">SAGAT (電腦)</div>
+      <div class="hp-bar-outer"><div class="hp-bar-fill" id="p2-hp"></div></div>
+    </div>
+  </div>
+
+  <!-- 底部算術速答看板 -->
+  <div class="quiz-overlay">
+    <div class="quiz-card" id="p1-card">
+      <div class="quiz-exp" id="p1-exp">8 + 7 = ?</div>
+      <div class="quiz-input-box" id="p1-val"></div>
+    </div>
+    <div class="quiz-card" id="p2-card">
+      <div class="quiz-exp" id="p2-exp">15 - 6 = ?</div>
+      <div class="quiz-input-box" id="p2-val"></div>
+    </div>
+  </div>
+
+  <!-- 主選單面板 -->
+  <div class="modal" id="menu-modal">
+    <div class="menu-title">快打心算王</div>
+    <button class="btn" onclick="startPVE()">1. 單人 vs 電腦人機</button>
+    <button class="btn" onclick="openOnlinePanel()">2. 線上開房遠端對戰</button>
+    <button class="btn" onclick="startLocalPVP()">3. 線下大屏雙人對決</button>
+  </div>
+
+  <!-- 線上連線控制選單 -->
+  <div class="modal hidden" id="online-modal">
+    <div class="menu-title" style="font-size: 2.2rem;">線上開房連線</div>
+    <div id="my-peer-info" style="color: #94a3b8; font-size: 1.1rem;">正在建立連線金鑰...</div>
+    <div style="display: flex; gap: 8px;">
+      <input type="text" id="join-room-id" class="input-field" placeholder="輸入好友房間碼">
+      <button class="btn" onclick="joinOnlineRoom()">加入對戰</button>
+    </div>
+    <button class="btn" style="background: #64748b; color: white;" onclick="backToMenu()">返回主選單</button>
+  </div>
+
+  <!-- KO 結算彈窗 -->
+  <div class="modal hidden" id="gameover-modal">
+    <div class="menu-title" id="winner-text">RYU WIN!</div>
+    <button class="btn" onclick="backToMenu()">再來一局</button>
+  </div>
+</div>
+
+<script>
+  // 音效合成模組 (8-bit 街機復古打擊與氣功音效)
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  let audioCtx = null;
+  function playHitSound() {
+    if (!audioCtx) audioCtx = new AudioCtx();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
+  }
+
+  // 狀態管理
+  let gameMode = 'PVE'; // 'PVE' | 'ONLINE' | 'LOCAL'
+  let p1Hp = 100, p2Hp = 100;
+  let p1Question = null, p2Question = null;
+  let p1Input = '', p2Input = '';
+  let projectiles = []; // 飛行中的波動拳 / 猛虎波
+  let isGameOver = false;
+  let aiInterval = null;
+
+  // WebRTC Peer 連線實例
+  let peer = null, conn = null, isHost = false;
+
+  const canvas = document.getElementById('stage');
+  const ctx = canvas.getContext('2d');
+
+  // 生成加減法題目
+  function generateQuiz() {
+    const isAdd = Math.random() > 0.5;
+    if (isAdd) {
+      const a = Math.floor(Math.random() * 45) + 3;
+      const b = Math.floor(Math.random() * 45) + 3;
+      return { text: `${a} + ${b} = ?`, ans: a + b };
+    } else {
+      const a = Math.floor(Math.random() * 50) + 20;
+      const b = Math.floor(Math.random() * (a - 5)) + 3;
+      return { text: `${a} - ${b} = ?`, ans: a - b };
+    }
+  }
+
+  function updateHUD() {
+    document.getElementById('p1-hp').style.width = Math.max(0, p1Hp) + '%';
+    document.getElementById('p2-hp').style.width = Math.max(0, p2Hp) + '%';
+    document.getElementById('p1-exp').innerText = p1Question ? p1Question.text : '';
+    document.getElementById('p2-exp').innerText = p2Question ? p2Question.text : '';
+    document.getElementById('p1-val').innerText = p1Input;
+    document.getElementById('p2-val').innerText = p2Input;
+  }
+
+  // 啟動模式
+  function startPVE() {
+    gameMode = 'PVE';
+    document.getElementById('p1-name').innerText = "RYU (玩家)";
+    document.getElementById('p2-name').innerText = "SAGAT (電腦)";
+    document.getElementById('p2-card').style.opacity = '0.6';
+    resetGame();
+    // 電腦 AI 每隔 3.5 ~ 5.5 秒答對一題
+    if (aiInterval) clearInterval(aiInterval);
+    aiInterval = setInterval(() => {
+      if (isGameOver || gameMode !== 'PVE') return;
+      p2Input = p2Question.ans.toString();
+      updateHUD();
+      setTimeout(() => {
+        triggerAttack('p2');
+        p2Input = '';
+        p2Question = generateQuiz();
+        updateHUD();
+      }, 500);
+    }, 4500);
+  }
+
+  function startLocalPVP() {
+    gameMode = 'LOCAL';
+    document.getElementById('p1-name').innerText = "P1 (鍵盤主區 0~9)";
+    document.getElementById('p2-name').innerText = "P2 (右側九宮格)";
+    document.getElementById('p2-card').style.opacity = '1';
+    resetGame();
+  }
+
+  function resetGame() {
+    p1Hp = 100; p2Hp = 100;
+    p1Input = ''; p2Input = '';
+    projectiles = [];
+    isGameOver = false;
+    p1Question = generateQuiz();
+    p2Question = generateQuiz();
+    document.getElementById('menu-modal').classList.add('hidden');
+    document.getElementById('online-modal').classList.add('hidden');
+    document.getElementById('gameover-modal').classList.add('hidden');
+    updateHUD();
+  }
+
+  function backToMenu() {
+    if (aiInterval) clearInterval(aiInterval);
+    if (conn) conn.close();
+    document.getElementById('menu-modal').classList.remove('hidden');
+    document.getElementById('gameover-modal').classList.add('hidden');
+    document.getElementById('online-modal').classList.add('hidden');
+  }
+
+  // 波動拳攻擊邏輯
+  function triggerAttack(attacker) {
+    playHitSound();
+    if (attacker === 'p1') {
+      projectiles.push({ x: 220, y: 390, vx: 16, type: 'hadouken' });
+    } else {
+      projectiles.push({ x: 780, y: 390, vx: -16, type: 'tigershot' });
+    }
+  }
+
+  // 按鍵監聽
+  window.addEventListener('keydown', (e) => {
+    if (isGameOver) return;
+
+    // 線上模式或人機模式：玩家只掌控 P1 (Enter 送出答案，Backspace 刪除)
+    if (gameMode === 'PVE' || gameMode === 'ONLINE') {
+      if (e.key >= '0' && e.key <= '9') {
+        p1Input += e.key;
+      } else if (e.key === 'Backspace') {
+        p1Input = p1Input.slice(0, -1);
+      } else if (e.key === 'Enter') {
+        checkAnswer('p1');
+      }
+    } 
+    // 線下大屏雙人同台對抗
+    else if (gameMode === 'LOCAL') {
+      // P1: 主鍵盤數字 + Enter
+      if ((e.code.startsWith('Digit') || (!e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9'))) {
+        p1Input += e.key;
+      } else if (e.code === 'Backspace') {
+        p1Input = p1Input.slice(0, -1);
+      } else if (e.code === 'Enter') {
+        checkAnswer('p1');
+      }
+
+      // P2: 九宮格數字 + NumpadEnter
+      if (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9') {
+        p2Input += e.key;
+      } else if (e.code === 'NumpadDecimal' || e.code === 'Delete') {
+        p2Input = p2Input.slice(0, -1);
+      } else if (e.code === 'NumpadEnter') {
+        checkAnswer('p2');
+      }
+    }
+    updateHUD();
+  });
+
+  function checkAnswer(player) {
+    if (player === 'p1') {
+      if (parseInt(p1Input, 10) === p1Question.ans) {
+        triggerAttack('p1');
+        if (gameMode === 'ONLINE' && conn) conn.send({ action: 'attack' });
+        p1Question = generateQuiz();
+      }
+      p1Input = '';
+    } else if (player === 'p2') {
+      if (parseInt(p2Input, 10) === p2Question.ans) {
+        triggerAttack('p2');
+        p2Question = generateQuiz();
+      }
+      p2Input = '';
+    }
+  }
+
+  // 線上開房 WebRTC 邏輯
+  function openOnlinePanel() {
+    document.getElementById('menu-modal').classList.add('hidden');
+    document.getElementById('online-modal').classList.remove('hidden');
+    if (!peer) {
+      peer = new Peer();
+      peer.on('open', (id) => {
+        document.getElementById('my-peer-info').innerHTML = `你的房間代碼：<b style="color:#fde047; font-size:1.4rem;">${id}</b><br>請將代碼提供給另一位玩家加入`;
+      });
+      peer.on('connection', (c) => {
+        conn = c; isHost = true;
+        setupOnlineEvents();
+        startOnlineGame();
+      });
+    }
+  }
+
+  function joinOnlineRoom() {
+    const remoteId = document.getElementById('join-room-id').value.trim();
+    if (!remoteId) return alert('請輸入房間代碼');
+    conn = peer.connect(remoteId);
+    isHost = false;
+    setupOnlineEvents();
+    conn.on('open', () => startOnlineGame());
+  }
+
+  function setupOnlineEvents() {
+    conn.on('data', (data) => {
+      if (data.action === 'attack') {
+        triggerAttack(isHost ? 'p2' : 'p1');
+      }
+    });
+  }
+
+  function startOnlineGame() {
+    gameMode = 'ONLINE';
+    document.getElementById('p1-name').innerText = isHost ? "RYU (你)" : "RYU (對手)";
+    document.getElementById('p2-name').innerText = isHost ? "SAGAT (對手)" : "SAGAT (你)";
+    resetGame();
+  }
+
+  // 繪製循環與碰撞檢測
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 1. 泰國臥佛背景
+    ctx.fillStyle = "#4a7c59"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#caa068";
+    ctx.beginPath();
+    ctx.ellipse(500, 360, 420, 160, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#2d5a27"; ctx.fillRect(0, 480, canvas.width, 120);
+
+    // 2. 繪製角色 (左: 隆 / 右: 沙加特)
+    drawRyu(ctx, 150, 480);
+    drawSagat(ctx, 850, 480);
+
+    // 3. 處理氣功彈與命中
+    for (let i = projectiles.length - 1; i >= 0; i--) {
+      const p = projectiles[i];
+      p.x += p.vx;
+
+      // 繪製氣彈
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 24, 0, Math.PI * 2);
+      ctx.fillStyle = p.type === 'hadouken' ? '#38bdf8' : '#f97316';
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 20;
+      ctx.fill();
+      ctx.restore();
+
+      // 命中沙加特
+      if (p.type === 'hadouken' && p.x >= 780) {
+        projectiles.splice(i, 1);
+        p2Hp = Math.max(0, p2Hp - 25);
+        updateHUD();
+        if (p2Hp <= 0) endGame("RYU 獲勝！");
+      }
+      // 命中隆
+      else if (p.type === 'tigershot' && p.x <= 220) {
+        projectiles.splice(i, 1);
+        p1Hp = Math.max(0, p1Hp - 25);
+        updateHUD();
+        if (p1Hp <= 0) endGame("SAGAT 獲勝！");
+      }
+    }
+
+    requestAnimationFrame(render);
+  }
+
+  function endGame(msg) {
+    isGameOver = true;
+    document.getElementById('winner-text').innerText = msg;
+    document.getElementById('gameover-modal').classList.remove('hidden');
+  }
+
+  // 向量角色繪製
+  function drawRyu(ctx, x, y) {
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = "#fff"; // 白道服
+    ctx.fillRect(-30, -110, 60, 80);
+    ctx.fillStyle = "#df9e6d"; // 頭部
+    ctx.beginPath(); ctx.arc(0, -130, 20, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = "#dc2626"; // 紅頭帶
+    ctx.fillRect(-22, -140, 44, 10);
+    ctx.fillRect(-50, -135, 30, 6);
+    ctx.fillStyle = "#18181b"; // 黑帶
+    ctx.fillRect(-32, -45, 64, 12);
+    ctx.restore();
+  }
+
+  function drawSagat(ctx, x, y) {
+    ctx.save(); ctx.translate(x, y);
+    ctx.fillStyle = "#c27838"; // 軀幹
+    ctx.fillRect(-35, -140, 70, 90);
+    ctx.beginPath(); ctx.arc(0, -165, 22, 0, Math.PI * 2); ctx.fill(); // 光頭
+    ctx.fillStyle = "#000"; // 獨眼罩
+    ctx.fillRect(-10, -172, 10, 10);
+    ctx.fillStyle = "#dc2626"; // 胸口巨疤
+    ctx.lineWidth = 5; ctx.strokeStyle = "#dc2626";
+    ctx.beginPath(); ctx.moveTo(-20, -130); ctx.lineTo(20, -70); ctx.stroke();
+    ctx.fillStyle = "#1d4ed8"; // 藍色泰拳褲
+    ctx.fillRect(-36, -50, 72, 45);
+    ctx.restore();
+  }
+
+  requestAnimationFrame(render);
+</script>
+</body>
+</html>
