@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>桌迷藏：楚越舟戰 (±25) - 觀戰特權控盤版</title>
+    <title>桌迷藏：楚越舟戰</title>
     <!-- WebRTC P2P 連線庫 -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -52,68 +52,51 @@
             gap: 14px;
         }
 
-        details.info-card {
-            background: white;
+        /* 分頁導覽列 */
+        .tab-nav {
+            display: flex;
+            background: #edf2f7;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-left: 5px solid #4299e1;
-            padding: 10px 14px;
+            padding: 4px;
+            gap: 6px;
         }
 
-        details.info-card summary {
-            font-weight: bold;
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
             font-size: 0.95rem;
+            font-weight: bold;
+            border: none;
+            background: transparent;
+            color: #4a5568;
+            border-radius: 8px;
             cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: white;
             color: #2b6cb0;
-            outline: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
         }
 
-        .rules-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 8px;
-            margin-top: 10px;
+        .tab-content {
+            display: none;
         }
 
-        @media (min-width: 600px) {
-            .rules-grid { grid-template-columns: 1fr 1fr; }
+        .tab-content.active {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
-        .rule-box {
-            background: #f8fafc;
-            padding: 8px 12px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            font-size: 0.82rem;
-        }
-
-        .rule-box h4 { margin: 0 0 4px 0; font-size: 0.88rem; }
-
-        .lobby-card {
-            background: #ffffff;
+        .card-box {
+            background: white;
             padding: 14px;
             border-radius: 12px;
             box-shadow: 0 2px 6px rgba(0,0,0,0.06);
-            border: 2px solid #cbd5e0;
-        }
-
-        .lobby-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 12px;
-            margin-top: 10px;
-        }
-
-        @media (min-width: 768px) {
-            .lobby-grid { grid-template-columns: 1fr 1fr; }
-        }
-
-        .lobby-section {
-            background: #f8fafc;
-            padding: 14px;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-            text-align: center;
+            border: 1.5px solid #e2e8f0;
         }
 
         .name-input {
@@ -167,32 +150,18 @@
         .role-guest { background: #fed7d7; color: #c53030; }
         .role-spectator { background: #e2e8f0; color: #4a5568; }
 
-        /* 觀戰者專屬裁判密令控制卡 */
-        .spectator-admin-card {
-            display: none;
-            background: #fffaf0;
-            border: 2px solid #d69e2e;
-            border-radius: 10px;
-            padding: 12px 16px;
-            box-shadow: 0 2px 5px rgba(214, 158, 46, 0.2);
-        }
-
-        .spectator-admin-card h4 {
-            margin: 0 0 6px 0;
-            color: #b7791f;
-            display: flex;
+        .event-toggle-label {
+            display: inline-flex;
             align-items: center;
             gap: 6px;
+            font-size: 0.88rem;
+            font-weight: bold;
+            color: #4a5568;
+            cursor: pointer;
+            user-select: none;
         }
 
-        .admin-controls {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            gap: 10px;
-            margin-top: 8px;
-        }
-
+        /* 遊戲舞台 */
         .game-stage {
             background: white;
             padding: 14px;
@@ -220,11 +189,12 @@
         .turn-chu { background: linear-gradient(90deg, var(--chu-color), #4299e1); }
         .turn-yue { background: linear-gradient(90deg, #e53e3e, var(--yue-color)); }
 
+        /* 數線區域 - 十字貫穿重疊設定 */
         .number-line-container {
             background: var(--water-bg);
             border: 2px solid var(--board-border);
             border-radius: 10px;
-            padding: 70px 10px 55px 10px;
+            padding: 55px 10px 65px 10px;
             position: relative;
             overflow-x: auto;
             scroll-behavior: smooth;
@@ -237,61 +207,76 @@
             align-items: center;
             position: relative;
             min-width: 1050px;
-            padding: 0 20px;
+            padding: 0 25px;
+            height: 40px;
         }
 
-        .axis-bar {
+        /* 主橫軸：利用 ::before 偽元素繪製在垂直中心 (50%) */
+        .number-line::before {
+            content: "";
             position: absolute;
-            top: 50px;
-            left: 15px;
-            right: 15px;
+            left: 20px;
+            right: 20px;
+            top: 50%;
             height: 4px;
             background: #718096;
+            transform: translateY(-50%);
             z-index: 1;
+            border-radius: 2px;
         }
 
+        /* 刻度項目容器 */
         .tick-item {
             position: relative;
             display: flex;
             flex-direction: column;
             align-items: center;
-            width: 18px;
+            justify-content: center;
+            width: 20px;
+            height: 100%;
             z-index: 2;
         }
 
+        /* 垂直刻度線：以 50% 居中垂直穿透主橫軸，形成完全重疊交會 */
         .tick {
+            position: absolute;
+            top: 50%;
+            left: 50%;
             width: 2px;
-            height: 10px;
-            background: #a0aec0;
-            margin-top: 14px;
+            height: 14px;
+            background: #718096;
+            transform: translate(-50%, -50%);
         }
 
         .tick.major {
-            height: 20px;
             width: 3px;
-            background: #2d3748;
-            margin-top: 9px;
+            height: 24px;
+            background: #1a202c;
         }
 
+        /* 刻度文字標籤：統一排列在大刻度正下方 */
         .tick-label {
-            font-size: 0.68rem;
-            margin-top: 5px;
-            color: #718096;
+            position: absolute;
+            top: 32px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.72rem;
+            color: #4a5568;
             user-select: none;
+            white-space: nowrap;
         }
 
         .tick-item.major .tick-label {
-            font-size: 0.78rem;
             font-weight: bold;
-            color: #2d3748;
+            color: #1a202c;
         }
 
         .tick-item.origin .tick-label {
             font-weight: 900;
-            font-size: 0.85rem;
             color: #000;
         }
 
+        /* 戰船定位：楚船居數線上側，越船居刻度文字下側 */
         .boat {
             position: absolute;
             transition: all 0.6s cubic-bezier(0.34, 1.3, 0.64, 1);
@@ -317,8 +302,13 @@
         .nametag-chu { background: var(--chu-color); }
         .nametag-yue { background: var(--yue-color); }
 
-        #boatChu { top: 10px; }
-        #boatYue { top: 68px; }
+        #boatChu {
+            top: 14px;
+        }
+
+        #boatYue {
+            top: 106px;
+        }
 
         .mistake-marker {
             position: absolute;
@@ -383,7 +373,7 @@
             width: 100%;
             padding: 24px 20px;
             text-align: center;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 0 25px rgba(214, 158, 46, 0.35);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
             animation: popModal 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
@@ -582,75 +572,122 @@
 
 <header>
     <h1>桌迷藏：楚越舟戰</h1>
-    <div class="subtitle">姓名識別・觀戰者裁判特權控盤版 (±25)</div>
+    <div class="subtitle">特殊劇情自選・AI 對戰與線上連線整合版 (±25)</div>
 </header>
 
 <div class="container">
 
-    <details class="info-card">
-        <summary>📖 點我看戰略運算說明與特殊事件</summary>
-        <div class="rules-grid">
-            <div class="rule-box">
-                <h4 style="color: var(--chu-color)">🔵 楚國目標：-25</h4>
-                <p style="margin:0;">數值要<b>變小（往左）</b>。<br>前進＝加法（＋），後退＝減法（－）。</p>
-            </div>
-            <div class="rule-box">
-                <h4 style="color: var(--yue-color)">🔴 越國目標：+25</h4>
-                <p style="margin:0;">數值要<b>變大（往右）</b>。<br>抽到負數按「後退」（減去負數＝向右推進）！</p>
-            </div>
-            <div class="rule-box">
-                <h4>🎴 系統自動發牌</h4>
-                <p style="margin:0;"><b>紅色</b>：正數（+N）｜<b>黑色</b>：負數（-N）</p>
-            </div>
-            <div class="rule-box">
-                <h4>📜 長江風雲事件 (20% 機率)</h4>
-                <p style="margin:0;">順風點數 x2、暗礁點數減半、軍師推進 3 格、急流遠離 2 格，以及全場限一次的「水寨迷霧（10%）」！</p>
-            </div>
-        </div>
-    </details>
+    <!-- 分頁導覽列 -->
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('aiTab')">🤖 電腦人機對戰</button>
+        <button class="tab-btn" onclick="switchTab('onlineTab')">🌐 線上雙人連線</button>
+        <button class="tab-btn" onclick="switchTab('ruleTab')">📖 規則與戰略手冊</button>
+    </div>
 
-    <div class="lobby-card" id="lobbyCard">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
-            <h3 style="margin: 0; font-size: 1.05rem;">⚡ 快速線上對戰通道</h3>
-            <span id="roleIndicator" class="role-badge role-spectator">本機單機練習</span>
-        </div>
-
-        <div class="lobby-grid">
-            <div class="lobby-section">
-                <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">開立新局 (楚越陣營對戰時隨機抽籤)</h4>
-                <input type="text" id="hostPlayerName" class="name-input" maxlength="8" placeholder="輸入您的姓名/暱稱" value="將軍甲">
-                <div id="generatedCodeBox" class="code-display">----</div>
-                <button id="btnHostCreate" class="btn btn-primary" onclick="startRandomHost()">隨機生成 4 碼並開局</button>
+    <!-- 1. 電腦對戰版分頁 -->
+    <div id="aiTab" class="tab-content active">
+        <div class="card-box" style="text-align: center;">
+            <h3 style="margin: 0 0 6px 0; font-size: 1.05rem;">🤖 單機電腦對戰模式</h3>
+            <div style="font-size: 0.85rem; color: #718096; margin-bottom: 10px;">
+                可自由挑選陣營，並自主決定是否開啟特殊隨機劇情！
             </div>
-
-            <div class="lobby-section">
-                <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">輸入 4 碼加入戰局</h4>
-                <input type="text" id="joinPlayerName" class="name-input" maxlength="8" placeholder="輸入您的姓名/暱稱" value="將軍乙">
-                <input type="text" id="joinPasscode" class="passcode-input" maxlength="4" placeholder="0000" pattern="\d{4}" inputmode="numeric">
+            
+            <div style="display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; align-items: center;">
+                <input type="text" id="aiPlayerName" class="name-input" maxlength="8" placeholder="輸入您的姓名" value="征西大將軍" style="margin: 0;">
+                <select id="aiCampSelect" style="padding: 8px 14px; border-radius: 6px; border: 1.5px solid #cbd5e0; font-weight: bold;">
+                    <option value="chu">扮演 楚國 (藍方，目標 -25)</option>
+                    <option value="yue">扮演 越國 (紅方，目標 +25)</option>
+                </select>
                 
-                <div style="margin-bottom: 8px;">
-                    <label style="font-size: 0.82rem; cursor: pointer;">
-                        <input type="checkbox" id="spectatorCheck"> 以觀戰者身份加入（具裁判特權）
-                    </label>
-                </div>
-                <button id="btnJoin" class="btn btn-primary" style="background-color: #38a169;" onclick="clientJoin()">加入房間</button>
+                <label class="event-toggle-label">
+                    <input type="checkbox" id="aiEventToggle"> 啟用長江風雲特殊劇情
+                </label>
+
+                <button class="btn btn-primary" style="width: auto; padding: 8px 20px;" onclick="startAiGame()">開始對局</button>
             </div>
         </div>
-        <div id="connectionStatus" style="margin-top: 8px; font-size: 0.85rem; text-align: center; color: #4a5568;"></div>
     </div>
 
-    <!-- 觀戰者專屬裁判特權控盤面板 -->
-    <div id="spectatorAdminPanel" class="spectator-admin-card">
-        <h4>⚖️ 軍師法旨・裁判控盤特權（僅觀戰者可見）</h4>
-        <div style="font-size: 0.82rem; color: #718096;">輸入裁判密碼後，可指定楚國或越國下一輪必定抽得「順風疾行（點數 ×2）」翻倍卡！</div>
-        <div class="admin-controls">
-            <input type="password" id="refereeSecret" class="name-input" style="max-width:130px; margin:0; padding:6px;" maxlength="4" placeholder="裁判密碼" value="">
-            <button class="btn btn-gold" style="min-height:36px; padding:6px 14px; font-size:0.85rem;" onclick="requestForcedBuff('chu')">賜令：楚國下回翻倍(×2)</button>
-            <button class="btn btn-gold" style="min-height:36px; padding:6px 14px; font-size:0.85rem; background:#c53030;" onclick="requestForcedBuff('yue')">賜令：越國下回翻倍(×2)</button>
+    <!-- 2. 線上對戰版分頁 -->
+    <div id="onlineTab" class="tab-content">
+        <div class="lobby-card" id="lobbyCard">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+                <h3 style="margin: 0; font-size: 1.05rem;">🌐 線上連線大廳</h3>
+                <span id="roleIndicator" class="role-badge role-spectator">未連線</span>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 12px; margin-top: 10px;" id="onlineLobbyGrid">
+                <!-- 房主開局 -->
+                <div class="lobby-section">
+                    <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">開立新局 (楚越陣營隨機抽選)</h4>
+                    <input type="text" id="hostPlayerName" class="name-input" maxlength="8" placeholder="輸入您的姓名/暱稱" value="將軍甲">
+                    
+                    <div style="margin-bottom: 8px;">
+                        <label class="event-toggle-label">
+                            <input type="checkbox" id="onlineEventToggle"> 啟用長江風雲特殊劇情
+                        </label>
+                    </div>
+
+                    <div id="generatedCodeBox" class="code-display">----</div>
+                    <button id="btnHostCreate" class="btn btn-primary" onclick="startRandomHost()">隨機生成 4 碼並開局</button>
+                </div>
+
+                <!-- 訪客加入 -->
+                <div class="lobby-section">
+                    <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">輸入 4 碼加入戰局</h4>
+                    <input type="text" id="joinPlayerName" class="name-input" maxlength="8" placeholder="輸入您的姓名/暱稱" value="將軍乙">
+                    <input type="text" id="joinPasscode" class="passcode-input" maxlength="4" placeholder="0000" pattern="\d{4}" inputmode="numeric">
+                    
+                    <div style="margin-bottom: 8px;">
+                        <label style="font-size: 0.82rem; cursor: pointer;">
+                            <input type="checkbox" id="spectatorCheck"> 以觀戰者身份加入（具裁判控盤特權）
+                        </label>
+                    </div>
+                    <button id="btnJoin" class="btn btn-primary" style="background-color: #38a169;" onclick="clientJoin()">加入房間</button>
+                </div>
+            </div>
+            <div id="connectionStatus" style="margin-top: 8px; font-size: 0.85rem; text-align: center; color: #4a5568;"></div>
         </div>
-        <div id="refereeStatusMsg" style="font-size:0.8rem; color:#b7791f; margin-top:4px; font-weight:bold;"></div>
+
+        <!-- 觀戰裁判面板 -->
+        <div id="spectatorAdminPanel" class="card-box" style="display:none; background:#fffaf0; border:2px solid #d69e2e;">
+            <h4 style="margin:0 0 6px 0; color:#b7791f;">⚖️ 軍師法旨・裁判特權控盤（僅觀戰者可見）</h4>
+            <div style="font-size: 0.82rem; color: #718096;">輸入裁判密碼（預設 9999）後，可指定楚國或越國下一輪必定抽得「順風疾行（點數 ×2）」翻倍卡！</div>
+            <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px;">
+                <input type="password" id="refereeSecret" class="name-input" style="max-width:130px; margin:0; padding:6px;" maxlength="4" placeholder="裁判密碼" value="">
+                <button class="btn btn-gold" style="min-height:36px; padding:6px 14px; font-size:0.85rem;" onclick="requestForcedBuff('chu')">賜令：楚國下回翻倍(×2)</button>
+                <button class="btn btn-gold" style="min-height:36px; padding:6px 14px; font-size:0.85rem; background:#c53030;" onclick="requestForcedBuff('yue')">賜令：越國下回翻倍(×2)</button>
+            </div>
+            <div id="refereeStatusMsg" style="font-size:0.8rem; color:#b7791f; margin-top:4px; font-weight:bold;"></div>
+        </div>
     </div>
 
+    <!-- 3. 教學手冊分頁 -->
+    <div id="ruleTab" class="tab-content">
+        <div class="card-box">
+            <h3 style="margin:0 0 10px 0; color:#2b6cb0;">📖 舟戰指南與數學運算戰略</h3>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:10px;">
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <h4 style="color:var(--chu-color); margin:0 0 4px 0;">🔵 楚國戰略 (目標 -25)</h4>
+                    <p style="margin:0; font-size:0.85rem;">數值要變小（向左推進）。抽到紅牌（正數）選後退（減法），抽到黑牌（負數）選前進（加法）。</p>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <h4 style="color:var(--yue-color); margin:0 0 4px 0;">🔴 越國戰略 (目標 +25)</h4>
+                    <p style="margin:0; font-size:0.85rem;">數值要變大（向右推進）。抽到黑牌（負數）按「後退」（減去負數＝負負得正向右推進）！</p>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <h4 style="margin:0 0 4px 0;">🎴 符號律速記口訣</h4>
+                    <p style="margin:0; font-size:0.85rem;"><b>前進</b>：加上該牌本性<br><b>後退</b>：反轉該牌本性（減負得正、減正得負）</p>
+                </div>
+                <div style="background:#f8fafc; padding:10px; border-radius:8px; border:1px solid #e2e8f0;">
+                    <h4 style="margin:0 0 4px 0;">📜 長江風雲事件（可選擇開啟）</h4>
+                    <p style="margin:0; font-size:0.85rem;">若啟用特殊劇情，將有 20% 機率遭遇順風翻倍、暗礁減半、神風推進 3 格、急流遠離 2 格或迷霧互換！</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 遊戲互動舞台 -->
     <div class="game-stage">
         
         <div id="turnBanner" class="turn-banner turn-chu">
@@ -661,7 +698,6 @@
         </div>
 
         <div class="number-line-container" id="lineWrapper">
-            <div class="axis-bar"></div>
             <div id="mistakeLayer" style="position: absolute; top:0; left:0; right:0; bottom:0; pointer-events: none; z-index: 40;"></div>
             
             <div id="boatChu" class="boat" title="楚國戰船">
@@ -754,8 +790,10 @@
 <script>
     const MIN_BOUND = -25;
     const MAX_BOUND = 25;
-    const P2P_PREFIX = "chuyue_referee_v4_";
-    const REFEREE_PWD = "9999"; // 裁判/觀戰者特權密碼
+    const P2P_PREFIX = "chuyue_aligned_v7_";
+    const REFEREE_PWD = "9999";
+
+    let gameMode = 'ai';
 
     let state = {
         posChu: 0,
@@ -764,11 +802,12 @@
         drawnCard: null,
         roundChu: 1,
         roundYue: 1,
+        enableEvents: false,
         activeEvent: null,
         mistTriggered: false,
-        nameChu: '楚國玩家',
-        nameYue: '越國玩家',
-        forcedBuffTarget: null, // 裁判指定的強制翻倍陣營：'chu' 或 'yue'
+        nameChu: '楚國大將軍',
+        nameYue: '越國大將軍',
+        forcedBuffTarget: null,
         gameOver: false,
         isEventModalOpen: false
     };
@@ -782,6 +821,93 @@
         currentCode: '',
         myName: ''
     };
+
+    let aiConfig = {
+        userCamp: 'chu',
+        aiCamp: 'yue'
+    };
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+
+        if (tabId === 'aiTab') {
+            gameMode = 'ai';
+            net.role = 'local';
+            document.getElementById('playerRoleStatus').innerText = '模式：單機電腦對抗';
+        } else if (tabId === 'onlineTab') {
+            gameMode = 'online';
+            document.getElementById('playerRoleStatus').innerText = '模式：線上連線對戰';
+        }
+        updateControlsAvailability();
+    }
+
+    function startAiGame() {
+        const userName = document.getElementById('aiPlayerName').value.trim() || '征西大將軍';
+        const userCamp = document.getElementById('aiCampSelect').value;
+        const enableEvents = document.getElementById('aiEventToggle').checked;
+
+        aiConfig.userCamp = userCamp;
+        aiConfig.aiCamp = (userCamp === 'chu') ? 'yue' : 'chu';
+
+        state.enableEvents = enableEvents;
+        state.posChu = 0;
+        state.posYue = 0;
+        state.roundChu = 1;
+        state.roundYue = 1;
+        state.gameOver = false;
+        state.mistTriggered = false;
+        state.currentTurn = 'chu';
+
+        if (userCamp === 'chu') {
+            state.nameChu = userName;
+            state.nameYue = '智能電腦軍師';
+        } else {
+            state.nameChu = '智能電腦軍師';
+            state.nameYue = userName;
+        }
+
+        document.getElementById('logBodyChu').innerHTML = '';
+        document.getElementById('logBodyYue').innerHTML = '';
+        refreshNameDisplays();
+        updateBoatPositions(false);
+        executeHostAutoDraw();
+
+        document.getElementById('playerRoleStatus').innerText = `本機：${userName}（飾演${userCamp === 'chu' ? '楚國' : '越國'}，${enableEvents ? '含劇情' : '純淨數學版'}）`;
+        updateControlsAvailability();
+    }
+
+    function checkAiTurn() {
+        if (gameMode !== 'ai' || state.gameOver) return;
+
+        if (state.currentTurn === aiConfig.aiCamp) {
+            document.getElementById('hintText').innerText = `🤖 電腦軍師（${aiConfig.aiCamp === 'chu' ? '楚國' : '越國'}）正在盤算水戰策略...`;
+            
+            setTimeout(() => {
+                if (state.gameOver || state.isEventModalOpen) return;
+                const bestOp = getAiBestMove();
+                executeHostMove(bestOp);
+            }, 1200);
+        }
+    }
+
+    function getAiBestMove() {
+        const isChu = state.currentTurn === 'chu';
+        const currentPos = isChu ? state.posChu : state.posYue;
+        const cardVal = state.drawnCard.signedVal;
+
+        const posIfAdd = currentPos + cardVal;
+        const posIfSub = currentPos - cardVal;
+
+        if (isChu) {
+            return posIfAdd < posIfSub ? 'add' : 'sub';
+        } else {
+            return posIfAdd > posIfSub ? 'add' : 'sub';
+        }
+    }
 
     function initNumberLine() {
         const line = document.getElementById('numberLine');
@@ -797,11 +923,8 @@
 
             const label = document.createElement('div');
             label.className = 'tick-label';
-            if (isMajor) {
-                label.innerText = i > 0 ? `+${i}` : `${i}`;
-            } else {
-                label.innerText = '';
-            }
+            if (isMajor) label.innerText = i > 0 ? `+${i}` : `${i}`;
+            else label.innerText = '';
 
             tickItem.appendChild(tick);
             tickItem.appendChild(label);
@@ -881,14 +1004,21 @@
             return;
         }
 
-        if (net.role === 'spectator') {
+        if (gameMode === 'ai' && state.currentTurn === aiConfig.aiCamp) {
+            btnFwd.disabled = true;
+            btnBack.disabled = true;
+            return;
+        }
+
+        if (gameMode === 'online' && net.role === 'spectator') {
             btnFwd.disabled = true;
             btnBack.disabled = true;
             document.getElementById('hintText').innerText = "👁️ 觀戰中：裁判特權已就緒，雙方畫面即時同步。";
             return;
         }
 
-        const isMyTurn = (net.role === 'local') || (net.role === state.currentTurn);
+        const isMyTurn = (gameMode === 'ai' && state.currentTurn === aiConfig.userCamp) ||
+                         (gameMode === 'online' && (net.role === 'local' || net.role === state.currentTurn));
 
         if (!isMyTurn) {
             btnFwd.disabled = true;
@@ -952,51 +1082,23 @@
             updateBoatPositions(true);
             setTimeout(() => {
                 updateControlsAvailability();
+                checkAiTurn();
             }, 1200);
         } else {
             updateControlsAvailability();
+            checkAiTurn();
         }
 
-        if (net.isHost) {
+        if (gameMode === 'online' && net.isHost) {
             net.connections.forEach(c => c.send({ type: 'CLOSE_EVENT_MODAL' }));
-        }
-    }
-
-    // ==========================================
-    // 裁判特權與事件生成
-    // ==========================================
-
-    function requestForcedBuff(target) {
-        const inputPwd = document.getElementById('refereeSecret').value.trim();
-        const msgElem = document.getElementById('refereeStatusMsg');
-
-        if (inputPwd !== REFEREE_PWD) {
-            alert('裁判密碼錯誤！無法下達特權密令。');
-            msgElem.innerText = '❌ 密碼錯誤，操作遭拒';
-            return;
-        }
-
-        const targetName = target === 'chu' ? `楚國 (${state.nameChu})` : `越國 (${state.nameYue})`;
-        msgElem.innerText = `✅ 裁判法旨已下達：${targetName} 下一次輪到出牌時必定獲得【點數 ×2】翻倍卡！`;
-
-        // 若觀戰端，向房主送出裁判密令
-        if (net.role === 'spectator' && net.hostConn) {
-            net.hostConn.send({
-                type: 'REFEREE_FORCE_BUFF',
-                target: target,
-                password: inputPwd
-            });
-        } else if (net.isHost) {
-            state.forcedBuffTarget = target;
         }
     }
 
     function triggerRandomEvent(isChu) {
         const currentCamp = isChu ? 'chu' : 'yue';
 
-        // 檢查裁判是否指定該方必出翻倍
         if (state.forcedBuffTarget === currentCamp) {
-            state.forcedBuffTarget = null; // 觸發後重置
+            state.forcedBuffTarget = null;
             return {
                 id: 'DOUBLE_WIND',
                 name: '軍師法旨・順風疾行',
@@ -1010,7 +1112,10 @@
             };
         }
 
-        // 常規 20% 隨機事件
+        if (!state.enableEvents) {
+            return null;
+        }
+
         if (Math.random() >= 0.20) return null;
 
         const mistRoll = Math.random() < 0.10;
@@ -1098,11 +1203,8 @@
 
         if (evt) {
             eventPayload = { id: evt.id, name: evt.name, desc: evt.desc, hasPreMove: evt.hasPreMove };
-            if (evt.type === 'position') {
-                evt.execute(isChu);
-            } else if (evt.type === 'card') {
-                evt.modifyCard(card);
-            }
+            if (evt.type === 'position') evt.execute(isChu);
+            else if (evt.type === 'card') evt.modifyCard(card);
         }
 
         state.drawnCard = card;
@@ -1112,9 +1214,11 @@
 
         if (eventPayload) {
             showEventModal(eventPayload);
+        } else {
+            checkAiTurn();
         }
 
-        if (net.isHost) {
+        if (gameMode === 'online' && net.isHost) {
             net.connections.forEach(c => c.send({
                 type: 'SYNC_CARD_WITH_EVENT',
                 drawnCard: state.drawnCard,
@@ -1134,6 +1238,7 @@
             state.posChu = syncedState.posChu;
             state.posYue = syncedState.posYue;
             state.mistTriggered = syncedState.mistTriggered;
+            state.enableEvents = syncedState.enableEvents;
         }
 
         renderCardView(card, evt);
@@ -1147,7 +1252,7 @@
     }
 
     function onMoveClicked(op) {
-        if (!net.isHost && net.role !== 'local') {
+        if (gameMode === 'online' && !net.isHost && net.role !== 'local') {
             net.hostConn.send({ type: 'REQ_MOVE', op: op });
             document.getElementById('btnForward').disabled = true;
             document.getElementById('btnBackward').disabled = true;
@@ -1183,11 +1288,8 @@
         const dirText = delta > 0 ? `向右推進 ${delta} 格` : (delta < 0 ? `向左倒退 ${Math.abs(delta)} 格` : '原地不動');
         const clampedPos = Math.max(MIN_BOUND, Math.min(MAX_BOUND, newPos));
 
-        if (isChu) {
-            state.posChu = clampedPos;
-        } else {
-            state.posYue = clampedPos;
-        }
+        if (isChu) state.posChu = clampedPos;
+        else state.posYue = clampedPos;
 
         const formulaStr = `${startPos} ${opSymbol} ${cardStr} = ${newPos}`;
         const roundNum = isChu ? state.roundChu : state.roundYue;
@@ -1201,7 +1303,7 @@
 
         applyMoveState(state, formulaStr, dirText, logArgs, won, isWrongWay, isChu, clampedPos);
 
-        if (net.isHost) {
+        if (gameMode === 'online' && net.isHost) {
             net.connections.forEach(c => c.send({
                 type: 'SYNC_MOVE',
                 state: state,
@@ -1218,7 +1320,7 @@
         if (won) return;
 
         switchTurn();
-        if (net.role === 'local' || net.isHost) {
+        if (gameMode === 'ai' || net.role === 'local' || net.isHost) {
             executeHostAutoDraw();
         }
     }
@@ -1227,13 +1329,12 @@
         state.posChu = syncedState.posChu;
         state.posYue = syncedState.posYue;
         state.mistTriggered = syncedState.mistTriggered;
+        state.enableEvents = syncedState.enableEvents;
 
         document.getElementById('formulaDisplay').innerText = formulaStr;
         document.getElementById('hintText').innerText = `${dirText} ${isWrongWay ? '⚠️ 遠離目標！' : '🎯 航向目標'}`;
 
-        if (isWrongWay) {
-            spawnMistakeMarker(isChu, clampedPos);
-        }
+        if (isWrongWay) spawnMistakeMarker(isChu, clampedPos);
 
         addSeparateLog(...logArgs);
         updateBoatPositions(true);
@@ -1259,11 +1360,7 @@
     }
 
     function switchTurn() {
-        if (state.currentTurn === 'chu') {
-            state.currentTurn = 'yue';
-        } else {
-            state.currentTurn = 'chu';
-        }
+        state.currentTurn = (state.currentTurn === 'chu') ? 'yue' : 'chu';
         updateBannerTitle();
         updateControlsAvailability();
     }
@@ -1289,9 +1386,29 @@
         document.getElementById('hintText').innerText = `🏆 對局結束！${winnerText}`;
     }
 
-    // ==========================================
-    // PeerJS 通訊與權限授權
-    // ==========================================
+    function requestForcedBuff(target) {
+        const inputPwd = document.getElementById('refereeSecret').value.trim();
+        const msgElem = document.getElementById('refereeStatusMsg');
+
+        if (inputPwd !== REFEREE_PWD) {
+            alert('裁判密碼錯誤！無法下達特權密令。');
+            msgElem.innerText = '❌ 密碼錯誤，操作遭拒';
+            return;
+        }
+
+        const targetName = target === 'chu' ? `楚國 (${state.nameChu})` : `越國 (${state.nameYue})`;
+        msgElem.innerText = `✅ 裁判法旨已下達：${targetName} 下一次出牌必定獲得【點數 ×2】翻倍卡！`;
+
+        if (net.role === 'spectator' && net.hostConn) {
+            net.hostConn.send({
+                type: 'REFEREE_FORCE_BUFF',
+                target: target,
+                password: inputPwd
+            });
+        } else if (net.isHost) {
+            state.forcedBuffTarget = target;
+        }
+    }
 
     function getRandom4DigitCode() {
         return Math.floor(1000 + Math.random() * 9000).toString();
@@ -1299,7 +1416,11 @@
 
     function startRandomHost() {
         const name = document.getElementById('hostPlayerName').value.trim() || '房主將軍';
+        const enableEvents = document.getElementById('onlineEventToggle').checked;
+        
         net.myName = name;
+        state.enableEvents = enableEvents;
+        gameMode = 'online';
 
         document.getElementById('btnHostCreate').disabled = true;
         document.getElementById('btnJoin').disabled = true;
@@ -1318,9 +1439,9 @@
         net.peer.on('open', () => {
             net.isHost = true;
             document.getElementById('generatedCodeBox').innerText = candidateCode;
-            setStatus(`✅ 房間已建立！請告知對手 4 碼【${candidateCode}】。`);
-            updateRoleBadge('開局房主 (等待對手)', 'role-host');
-            document.getElementById('playerRoleStatus').innerText = `${net.myName}（房間：${candidateCode}）`;
+            setStatus(`✅ 房間已建立！請將 4 碼【${candidateCode}】告知對手，加入時將隨機分派楚越。`);
+            updateRoleBadge('開局房主 (等待加入)', 'role-host');
+            document.getElementById('playerRoleStatus').innerText = `${net.myName}（房間：${candidateCode}，${state.enableEvents ? '含劇情' : '純淨數學版'}）`;
             document.getElementById('lobbyCard').style.borderColor = '#2b6cb0';
         });
 
@@ -1366,12 +1487,11 @@
                         executeHostMove(data.op);
                     }
                 }
-                // 收到觀戰裁判下達的強制翻倍密令
                 else if (data.type === 'REFEREE_FORCE_BUFF') {
                     if (data.password === REFEREE_PWD) {
                         state.forcedBuffTarget = data.target;
                         const buffName = data.target === 'chu' ? state.nameChu : state.nameYue;
-                        setStatus(`⚖️ 裁判特權生效：已為【${buffName}】準備翻倍神令！`);
+                        setStatus(`⚖️ 裁判密令生效：已為【${buffName}】準備翻倍神令！`);
                     }
                 }
             });
@@ -1394,6 +1514,7 @@
         const asSpectator = document.getElementById('spectatorCheck').checked;
 
         net.myName = name;
+        gameMode = 'online';
 
         if (!/^\d{4}$/.test(code)) {
             alert('請輸入【4 碼純數字】房間代號！');
@@ -1433,11 +1554,10 @@
                     } else {
                         updateRoleBadge('現場觀戰者 (裁判)', 'role-spectator');
                         document.getElementById('playerRoleStatus').innerText = `觀戰中（房號：${code}）`;
-                        // 觀戰端解鎖裁判特權控制面板
                         document.getElementById('spectatorAdminPanel').style.display = 'block';
                     }
 
-                    setStatus(`連線成功！身份：${net.role === 'spectator' ? '觀戰者 (已獲裁判特權)' : (net.role === 'chu' ? '楚國藍方' : '越國紅方')}`);
+                    setStatus(`連線成功！身份：${net.role === 'spectator' ? '觀戰者 (具裁判特權)' : (net.role === 'chu' ? '楚國藍方' : '越國紅方')}，模式：${state.enableEvents ? '含劇情' : '純淨數學版'}`);
                     if (state.drawnCard) applyDrawState(state.drawnCard, state.activeEvent, state);
                     else updateControlsAvailability();
                 } else if (data.type === 'SYNC_CARD_WITH_EVENT') {
