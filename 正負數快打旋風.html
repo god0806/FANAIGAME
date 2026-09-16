@@ -4,34 +4,38 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>快打旋風：心算加減奧義對決</title>
-  <!-- 引入免後端 WebRTC 連線庫 -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
-    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
-    body {
-      margin: 0; padding: 0; background: #080811; color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      min-height: 100vh; overflow: hidden;
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    html, body {
+      margin: 0; padding: 0; width: 100%; height: 100%;
+      background: #090910; color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      overflow: hidden;
     }
-    #game-container {
-      position: relative; width: 1024px; height: 620px;
-      border: 4px solid #f59e0b; border-radius: 14px;
-      box-shadow: 0 0 45px rgba(245, 158, 11, 0.45);
-      background: #000; overflow: hidden;
+
+    /* 滿版垂直容器：上下徹底分離，絕不遮擋戰鬥 */
+    #app-container {
+      display: flex; flex-direction: column; width: 100vw; height: 100vh;
     }
-    canvas { display: block; width: 100%; height: 100%; }
+
+    /* 上半部：純戰鬥舞台 (固定 16:9 內部比例自適應) */
+    #battle-view {
+      position: relative; flex: 1 1 55%; min-height: 240px;
+      background: #000; overflow: hidden; border-bottom: 3px solid #f59e0b;
+    }
+    canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
 
     /* 頂部街機血條 HUD */
     .hud {
-      position: absolute; top: 12px; left: 0; width: 100%;
-      display: flex; justify-content: space-between; align-items: flex-start;
-      padding: 0 28px; z-index: 10;
+      position: absolute; top: 8px; left: 0; width: 100%;
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0 16px; z-index: 10; pointer-events: none;
     }
-    .hp-wrapper { width: 390px; }
-    .name-tag { font-size: 1.25rem; font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #000; margin-bottom: 4px; }
+    .hp-wrapper { width: 38%; max-width: 320px; }
+    .name-tag { font-size: 0.95rem; font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #000; margin-bottom: 3px; }
     .hp-bar-outer {
-      width: 100%; height: 26px; background: #7f1d1d;
+      width: 100%; height: 18px; background: #7f1d1d;
       border: 2px solid #fff; border-radius: 4px; overflow: hidden;
     }
     .hp-bar-fill {
@@ -39,121 +43,153 @@
       transition: width 0.2s ease-out;
     }
     .ko-box {
-      font-size: 2.2rem; font-weight: 900; color: #ef4444;
-      text-shadow: 0 0 10px #f59e0b, 2px 2px 0 #000;
-      background: #000; padding: 2px 14px; border: 2px solid #f59e0b; border-radius: 8px;
+      font-size: 1.5rem; font-weight: 900; color: #ef4444;
+      background: #000; padding: 1px 10px; border: 2px solid #f59e0b; border-radius: 6px;
     }
 
-    /* 底部運算卡片與輸入面板 */
-    .quiz-overlay {
-      position: absolute; bottom: 16px; left: 0; width: 100%;
-      display: flex; justify-content: space-between; padding: 0 24px; z-index: 10;
+    /* 下半部：獨立算術控制台（手機/平板舒適握持區域） */
+    #control-dock {
+      flex: 0 0 auto; height: 45%; max-height: 380px; min-height: 220px;
+      background: #0d1117; display: flex; justify-content: space-between;
+      gap: 8px; padding: 6px 12px;
     }
-    .quiz-card {
-      background: rgba(15, 23, 42, 0.92); border: 2px solid #38bdf8;
-      border-radius: 12px; padding: 10px 14px; width: 310px; text-align: center;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+
+    .player-zone {
+      flex: 1; display: flex; flex-direction: column;
+      background: #161b22; border: 2px solid #30363d;
+      border-radius: 12px; padding: 6px; justify-content: space-between;
     }
-    .quiz-exp { font-size: 1.9rem; font-weight: 900; color: #38bdf8; margin-bottom: 6px; letter-spacing: 2px; }
+    .player-zone.active-turn { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.25); }
+
+    /* 題目與目前輸入數字列 */
+    .screen-strip {
+      display: flex; justify-content: space-between; align-items: center;
+      background: #040d21; border-radius: 8px; padding: 6px 12px; margin-bottom: 6px;
+      border: 1px solid #1e293b;
+    }
+    .quiz-exp { font-size: 1.3rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; }
     .quiz-input-box {
-      font-size: 1.8rem; font-weight: 900; background: #020617;
-      border: 2px solid #94a3b8; border-radius: 6px; color: #fde047;
-      height: 44px; line-height: 44px; letter-spacing: 4px; margin-bottom: 8px;
+      font-size: 1.4rem; font-weight: 900; color: #fde047;
+      min-width: 70px; height: 32px; line-height: 32px; text-align: right;
+      letter-spacing: 2px;
     }
 
-    /* 線下大屏 / 觸控專用虛擬鍵盤 */
+    /* 觸控數字九宮格 */
     .numpad-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px;
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; flex: 1;
     }
     .num-btn {
-      background: #1e293b; border: 1px solid #475569; color: #fff;
-      font-size: 1.15rem; font-weight: 800; border-radius: 6px;
-      padding: 6px 0; cursor: pointer; transition: all 0.08s;
+      background: #21262d; border: 1px solid #30363d; color: #f0f6fc;
+      font-size: 1.25rem; font-weight: 800; border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; -webkit-tap-highlight-color: transparent;
     }
-    .num-btn:active { background: #f59e0b; color: #000; transform: scale(0.95); }
-    .num-btn.btn-action { background: #b91c1c; border-color: #ef4444; }
-    .num-btn.btn-enter { background: #047857; border-color: #10b981; }
+    .num-btn:active { background: #f59e0b; color: #000; transform: scale(0.96); }
+    .num-btn.btn-clear { background: #991b1b; color: #fff; font-size: 1rem; }
+    .num-btn.btn-enter { background: #047857; color: #fff; font-size: 1.1rem; }
 
-    /* 彈窗與功能按鈕 */
+    /* 彈窗選單 */
     .modal {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.88);
+      position: absolute; inset: 0; background: rgba(0,0,0,0.9);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 50; gap: 16px;
+      z-index: 50; gap: 14px; padding: 20px;
     }
-    .menu-title { font-size: 3rem; font-weight: 900; color: #fbbf24; text-shadow: 3px 3px 0 #b91c1c; }
+    .menu-title { font-size: 2.2rem; font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #b91c1c; }
     .btn {
       background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-      color: #000; font-size: 1.2rem; font-weight: 900; border: none;
-      padding: 12px 34px; border-radius: 8px; cursor: pointer;
-      box-shadow: 0 4px 0 #78350f; transition: all 0.1s;
+      color: #000; font-size: 1.1rem; font-weight: 900; border: none;
+      padding: 10px 28px; border-radius: 8px; cursor: pointer;
+      box-shadow: 0 4px 0 #78350f;
     }
-    .btn:hover { filter: brightness(1.15); transform: translateY(-2px); }
     .btn:active { transform: translateY(2px); box-shadow: none; }
     .input-field {
-      padding: 10px 14px; font-size: 1.5rem; border-radius: 8px;
+      padding: 8px 12px; font-size: 1.4rem; border-radius: 8px;
       border: 2px solid #f59e0b; background: #1e1e2f; color: #fff; text-align: center;
     }
     .hidden { display: none !important; }
+
+    /* 手機豎屏防呆提示 */
+    @media screen and (orientation: portrait) {
+      #portrait-warning {
+        display: flex !important;
+      }
+    }
+    #portrait-warning {
+      display: none; position: fixed; inset: 0; background: #000; z-index: 9999;
+      color: #fbbf24; font-size: 1.3rem; font-weight: 900;
+      flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: 20px;
+    }
   </style>
 </head>
 <body>
 
-<div id="game-container">
-  <!-- 畫布：渲染格鬥家、招式動畫與場景 -->
-  <canvas id="stage" width="1024" height="620"></canvas>
+<!-- 手機請轉橫屏提示 -->
+<div id="portrait-warning">
+  🔄 請旋轉手機為「橫向模式」以獲取最佳對戰視野！
+</div>
 
-  <!-- 頂部血條 -->
-  <div class="hud">
-    <div class="hp-wrapper">
-      <div class="name-tag" id="p1-name">RYU (隆)</div>
-      <div class="hp-bar-outer"><div class="hp-bar-fill" id="p1-hp"></div></div>
-    </div>
-    <div class="ko-box">VS</div>
-    <div class="hp-wrapper" style="text-align: right;">
-      <div class="name-tag" id="p2-name">SAGAT (沙加特)</div>
-      <div class="hp-bar-outer"><div class="hp-bar-fill" id="p2-hp"></div></div>
+<div id="app-container">
+  <!-- 1. 上半部純淨戰鬥視野 -->
+  <div id="battle-view">
+    <canvas id="stage" width="1024" height="460"></canvas>
+
+    <div class="hud">
+      <div class="hp-wrapper">
+        <div class="name-tag" id="p1-name">RYU (隆)</div>
+        <div class="hp-bar-outer"><div class="hp-bar-fill" id="p1-hp"></div></div>
+      </div>
+      <div class="ko-box">VS</div>
+      <div class="hp-wrapper" style="text-align: right;">
+        <div class="name-tag" id="p2-name">SAGAT (沙加特)</div>
+        <div class="hp-bar-outer"><div class="hp-bar-fill" id="p2-hp"></div></div>
+      </div>
     </div>
   </div>
 
-  <!-- 底部算術速答看板（支援大屏點擊觸控） -->
-  <div class="quiz-overlay">
-    <!-- P1 題目面板 -->
-    <div class="quiz-card" id="p1-card">
-      <div class="quiz-exp" id="p1-exp">8 + 7 = ?</div>
-      <div class="quiz-input-box" id="p1-val"></div>
-      <div class="numpad-grid" id="p1-numpad">
-        <button class="num-btn" onclick="handleVirtualInput('p1', '1')">1</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '2')">2</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '3')">3</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '4')">4</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '5')">5</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '6')">6</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '7')">7</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '8')">8</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '9')">9</button>
-        <button class="num-btn btn-action" onclick="handleVirtualInput('p1', 'C')">清除</button>
-        <button class="num-btn" onclick="handleVirtualInput('p1', '0')">0</button>
-        <button class="num-btn btn-enter" onclick="handleVirtualInput('p1', 'E')">發招</button>
+  <!-- 2. 下半部完全獨立的觸控鍵盤操控台 -->
+  <div id="control-dock">
+    <!-- P1 操控面板 -->
+    <div class="player-zone active-turn" id="p1-zone">
+      <div class="screen-strip">
+        <div class="quiz-exp" id="p1-exp">8 + 7 = ?</div>
+        <div class="quiz-input-box" id="p1-val"></div>
+      </div>
+      <div class="numpad-grid">
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','1')" onclick="handleVirtualInput('p1','1')">1</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','2')" onclick="handleVirtualInput('p1','2')">2</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','3')" onclick="handleVirtualInput('p1','3')">3</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','4')" onclick="handleVirtualInput('p1','4')">4</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','5')" onclick="handleVirtualInput('p1','5')">5</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','6')" onclick="handleVirtualInput('p1','6')">6</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','7')" onclick="handleVirtualInput('p1','7')">7</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','8')" onclick="handleVirtualInput('p1','8')">8</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','9')" onclick="handleVirtualInput('p1','9')">9</button>
+        <button class="num-btn btn-clear" ontouchstart="handleVirtualInput('p1','C')" onclick="handleVirtualInput('p1','C')">清除</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p1','0')" onclick="handleVirtualInput('p1','0')">0</button>
+        <button class="num-btn btn-enter" ontouchstart="handleVirtualInput('p1','E')" onclick="handleVirtualInput('p1','E')">發招</button>
       </div>
     </div>
 
-    <!-- P2 題目面板 -->
-    <div class="quiz-card" id="p2-card">
-      <div class="quiz-exp" id="p2-exp">15 - 6 = ?</div>
-      <div class="quiz-input-box" id="p2-val"></div>
+    <!-- P2 操控面板 -->
+    <div class="player-zone" id="p2-zone">
+      <div class="screen-strip">
+        <div class="quiz-exp" id="p2-exp">15 - 6 = ?</div>
+        <div class="quiz-input-box" id="p2-val"></div>
+      </div>
       <div class="numpad-grid" id="p2-numpad">
-        <button class="num-btn" onclick="handleVirtualInput('p2', '1')">1</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '2')">2</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '3')">3</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '4')">4</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '5')">5</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '6')">6</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '7')">7</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '8')">8</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '9')">9</button>
-        <button class="num-btn btn-action" onclick="handleVirtualInput('p2', 'C')">清除</button>
-        <button class="num-btn" onclick="handleVirtualInput('p2', '0')">0</button>
-        <button class="num-btn btn-enter" onclick="handleVirtualInput('p2', 'E')">發招</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','1')" onclick="handleVirtualInput('p2','1')">1</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','2')" onclick="handleVirtualInput('p2','2')">2</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','3')" onclick="handleVirtualInput('p2','3')">3</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','4')" onclick="handleVirtualInput('p2','4')">4</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','5')" onclick="handleVirtualInput('p2','5')">5</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','6')" onclick="handleVirtualInput('p2','6')">6</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','7')" onclick="handleVirtualInput('p2','7')">7</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','8')" onclick="handleVirtualInput('p2','8')">8</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','9')" onclick="handleVirtualInput('p2','9')">9</button>
+        <button class="num-btn btn-clear" ontouchstart="handleVirtualInput('p2','C')" onclick="handleVirtualInput('p2','C')">清除</button>
+        <button class="num-btn" ontouchstart="handleVirtualInput('p2','0')" onclick="handleVirtualInput('p2','0')">0</button>
+        <button class="num-btn btn-enter" ontouchstart="handleVirtualInput('p2','E')" onclick="handleVirtualInput('p2','E')">發招</button>
       </div>
     </div>
   </div>
@@ -161,32 +197,22 @@
   <!-- 主選單彈窗 -->
   <div class="modal" id="menu-modal">
     <div class="menu-title">快打心算王</div>
-    <p style="color: #cbd5e1; margin-top: -10px; margin-bottom: 15px;">算得快即出招！波動拳 vs 猛虎波極速對決</p>
     <button class="btn" onclick="startPVE()">1. 單人 vs 電腦人機</button>
     <button class="btn" onclick="openOnlinePanel()">2. 線上 4 碼開房對戰</button>
-    <button class="btn" onclick="startLocalPVP()">3. 線下大屏雙人同台對決</button>
+    <button class="btn" onclick="startLocalPVP()">3. 線下大屏/平板雙人對決</button>
   </div>
 
   <!-- 線上開房選單 -->
   <div class="modal hidden" id="online-modal">
-    <div class="menu-title" style="font-size: 2.2rem;">線上 4 碼極速開房</div>
-    <div id="my-peer-info" style="color: #94a3b8; font-size: 1.15rem; text-align: center; line-height: 1.6;">
+    <div class="menu-title" style="font-size: 1.8rem;">線上 4 碼極速開房</div>
+    <div id="my-peer-info" style="color: #94a3b8; font-size: 1.05rem; text-align: center; line-height: 1.5;">
       正在產生 4 碼房間代號...
     </div>
-    <div style="display: flex; gap: 8px; align-items: center; margin-top: 10px;">
-      <input 
-        type="text" 
-        id="join-room-id" 
-        class="input-field" 
-        maxlength="4" 
-        inputmode="numeric" 
-        pattern="[0-9]*" 
-        placeholder="輸入 4 碼" 
-        style="width: 170px; letter-spacing: 4px;"
-      >
-      <button class="btn" onclick="joinOnlineRoom()">加入對戰</button>
+    <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
+      <input type="text" id="join-room-id" class="input-field" maxlength="4" inputmode="numeric" placeholder="4 碼代號" style="width: 140px; letter-spacing: 4px;">
+      <button class="btn" onclick="joinOnlineRoom()">加入</button>
     </div>
-    <button class="btn" style="background: #475569; color: white; margin-top: 12px;" onclick="backToMenu()">返回主選單</button>
+    <button class="btn" style="background: #475569; color: white; margin-top: 10px;" onclick="backToMenu()">返回</button>
   </div>
 
   <!-- KO 結算彈窗 -->
@@ -197,7 +223,7 @@
 </div>
 
 <script>
-  // 音效合成模組 (8-bit 打擊與氣功音效)
+  // 音效合成模組
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   function playHitSound() {
@@ -206,15 +232,15 @@
     const gain = audioCtx.createGain();
     osc.type = 'sawtooth';
     osc.frequency.setValueAtTime(180, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.22);
-    gain.gain.setValueAtTime(0.35, audioCtx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.22);
+    osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.2);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
     osc.connect(gain); gain.connect(audioCtx.destination);
-    osc.start(); osc.stop(audioCtx.currentTime + 0.22);
+    osc.start(); osc.stop(audioCtx.currentTime + 0.2);
   }
 
   // 狀態管理
-  let gameMode = 'PVE'; // 'PVE' | 'ONLINE' | 'LOCAL'
+  let gameMode = 'PVE';
   let p1Hp = 100, p2Hp = 100;
   let p1Question = null, p2Question = null;
   let p1Input = '', p2Input = '';
@@ -222,13 +248,11 @@
   let isGameOver = false;
   let aiInterval = null;
 
-  // WebRTC Peer 連線實例
   let peer = null, conn = null, isHost = false;
 
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d');
 
-  // 生成加減運算題目 (2位數心算適中難度)
   function generateQuiz() {
     const isAdd = Math.random() > 0.5;
     if (isAdd) {
@@ -251,16 +275,14 @@
     document.getElementById('p2-val').innerText = p2Input;
   }
 
-  // 1. 單人對戰模式 (PVE)
   function startPVE() {
     gameMode = 'PVE';
     document.getElementById('p1-name').innerText = "RYU (玩家)";
     document.getElementById('p2-name').innerText = "SAGAT (電腦)";
-    document.getElementById('p2-card').style.opacity = '0.55';
+    document.getElementById('p2-zone').style.opacity = '0.4';
     document.getElementById('p2-numpad').style.pointerEvents = 'none';
     resetGame();
 
-    // 電腦 AI 每隔 3.5 ~ 5 秒自動出招一次
     if (aiInterval) clearInterval(aiInterval);
     aiInterval = setInterval(() => {
       if (isGameOver || gameMode !== 'PVE') return;
@@ -275,12 +297,11 @@
     }, 4200);
   }
 
-  // 2. 線下大屏雙人模式 (LOCAL)
   function startLocalPVP() {
     gameMode = 'LOCAL';
-    document.getElementById('p1-name').innerText = "P1 隆 (主鍵盤 0~9)";
-    document.getElementById('p2-name').innerText = "P2 沙加特 (九宮格鍵)";
-    document.getElementById('p2-card').style.opacity = '1';
+    document.getElementById('p1-name').innerText = "P1 隆 (左手操作)";
+    document.getElementById('p2-name').innerText = "P2 沙加特 (右手操作)";
+    document.getElementById('p2-zone').style.opacity = '1';
     document.getElementById('p2-numpad').style.pointerEvents = 'auto';
     resetGame();
   }
@@ -306,65 +327,57 @@
     document.getElementById('online-modal').classList.add('hidden');
   }
 
-  // 波動拳 / 猛虎波發射邏輯
   function triggerAttack(attacker) {
     playHitSound();
     if (attacker === 'p1') {
-      projectiles.push({ x: 230, y: 380, vx: 18, type: 'hadouken' });
+      projectiles.push({ x: 210, y: 310, vx: 18, type: 'hadouken' });
     } else {
-      projectiles.push({ x: 790, y: 380, vx: -18, type: 'tigershot' });
+      projectiles.push({ x: 814, y: 310, vx: -18, type: 'tigershot' });
     }
   }
 
-  // 實體鍵盤監聽
-  window.addEventListener('keydown', (e) => {
-    if (isGameOver) return;
-
-    if (gameMode === 'PVE' || gameMode === 'ONLINE') {
-      if (e.key >= '0' && e.key <= '9') {
-        p1Input += e.key;
-      } else if (e.key === 'Backspace') {
-        p1Input = p1Input.slice(0, -1);
-      } else if (e.key === 'Enter') {
-        checkAnswer('p1');
-      }
-    } 
-    else if (gameMode === 'LOCAL') {
-      // P1: 主鍵盤上方數字 + Enter
-      if ((e.code.startsWith('Digit') || (!e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9'))) {
-        p1Input += e.key;
-      } else if (e.code === 'Backspace') {
-        p1Input = p1Input.slice(0, -1);
-      } else if (e.code === 'Enter') {
-        checkAnswer('p1');
-      }
-
-      // P2: 右側九宮格數字 + NumpadEnter
-      if (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9') {
-        p2Input += e.key;
-      } else if (e.code === 'NumpadDecimal' || e.code === 'Delete') {
-        p2Input = p2Input.slice(0, -1);
-      } else if (e.code === 'NumpadEnter') {
-        checkAnswer('p2');
-      }
-    }
-    updateHUD();
-  });
-
-  // 畫面虛擬數字按鈕點擊處理（支援電子白板與平板點擊）
+  // 支援手機/平板觸控（防重複觸發）
+  let lastTouchTime = 0;
   function handleVirtualInput(player, val) {
+    const now = Date.now();
+    if (now - lastTouchTime < 40) return; // 避免 touchstart 與 click 重複觸發
+    lastTouchTime = now;
+
     if (isGameOver) return;
     if (player === 'p1') {
       if (val === 'C') p1Input = '';
       else if (val === 'E') checkAnswer('p1');
-      else if (p1Input.length < 5) p1Input += val;
+      else if (p1Input.length < 4) p1Input += val;
     } else if (player === 'p2') {
       if (val === 'C') p2Input = '';
       else if (val === 'E') checkAnswer('p2');
-      else if (p2Input.length < 5) p2Input += val;
+      else if (p2Input.length < 4) p2Input += val;
     }
     updateHUD();
   }
+
+  // 支援電腦實體鍵盤快捷鍵
+  window.addEventListener('keydown', (e) => {
+    if (isGameOver) return;
+    if (gameMode === 'PVE' || gameMode === 'ONLINE') {
+      if (e.key >= '0' && e.key <= '9') p1Input += e.key;
+      else if (e.key === 'Backspace') p1Input = p1Input.slice(0, -1);
+      else if (e.key === 'Enter') checkAnswer('p1');
+    } else if (gameMode === 'LOCAL') {
+      // P1: 主鍵盤上方數字鍵
+      if ((e.code.startsWith('Digit') || (!e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9'))) {
+        p1Input += e.key;
+      } else if (e.code === 'Backspace') p1Input = p1Input.slice(0, -1);
+      else if (e.code === 'Enter') checkAnswer('p1');
+
+      // P2: 右側九宮格數字鍵
+      if (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9') {
+        p2Input += e.key;
+      } else if (e.code === 'NumpadDecimal' || e.code === 'Delete') p2Input = p2Input.slice(0, -1);
+      else if (e.code === 'NumpadEnter') checkAnswer('p2');
+    }
+    updateHUD();
+  });
 
   function checkAnswer(player) {
     if (player === 'p1') {
@@ -383,7 +396,7 @@
     }
   }
 
-  // 3. 線上開房 (4 位純數字短代碼 WebRTC)
+  // 4 碼線上開房
   function generateShortRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
   }
@@ -396,32 +409,26 @@
     if (peer) { peer.destroy(); peer = null; }
 
     const infoEl = document.getElementById('my-peer-info');
-    infoEl.innerHTML = `正在生成 4 碼房間代碼...`;
+    infoEl.innerHTML = `正在生成 4 碼房間代號...`;
 
     function initShortPeer() {
       const shortId = generateShortRoomId();
       peer = new Peer(shortId);
 
       peer.on('open', (id) => {
-        infoEl.innerHTML = `你的房間代碼：<b style="color:#fde047; font-size:2.2rem; letter-spacing:6px; display:block; margin:6px 0;">${id}</b>告訴好友這 4 個數字即可連線加入`;
+        infoEl.innerHTML = `房間代碼：<b style="color:#fde047; font-size:2rem; letter-spacing:6px; display:block; margin:4px 0;">${id}</b>告訴好友 4 碼即可直接連線`;
       });
 
       peer.on('connection', (c) => {
-        conn = c; 
-        isHost = true;
+        conn = c; isHost = true;
         setupOnlineEvents();
         startOnlineGame();
       });
 
       peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') {
-          initShortPeer(); // 若代碼已被他人暫用，自動更換重試
-        } else {
-          console.error('Peer 錯誤:', err);
-        }
+        if (err.type === 'unavailable-id') initShortPeer();
       });
     }
-
     initShortPeer();
   }
 
@@ -436,9 +443,7 @@
 
   function setupOnlineEvents() {
     conn.on('data', (data) => {
-      if (data.action === 'attack') {
-        triggerAttack(isHost ? 'p2' : 'p1');
-      }
+      if (data.action === 'attack') triggerAttack(isHost ? 'p2' : 'p1');
     });
   }
 
@@ -446,61 +451,56 @@
     gameMode = 'ONLINE';
     document.getElementById('p1-name').innerText = isHost ? "RYU (你)" : "RYU (對手)";
     document.getElementById('p2-name').innerText = isHost ? "SAGAT (對手)" : "SAGAT (你)";
+    document.getElementById('p2-zone').style.opacity = '0.35';
     document.getElementById('p2-numpad').style.pointerEvents = 'none';
     resetGame();
   }
 
-  // 渲染迴圈與碰撞處理
+  // 繪製與碰撞迴圈
   function render() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 1. 泰國臥佛格鬥舞台
+    // 泰國大佛背景
     const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    skyGrad.addColorStop(0, "#4a7c59");
-    skyGrad.addColorStop(1, "#1f4024");
-    ctx.fillStyle = skyGrad;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    skyGrad.addColorStop(0, "#3a684b"); skyGrad.addColorStop(1, "#16331c");
+    ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 金色臥佛身形剪影
-    ctx.fillStyle = "#caa068";
+    ctx.fillStyle = "#baa068";
     ctx.beginPath();
-    ctx.ellipse(512, 360, 440, 160, 0, 0, Math.PI * 2);
+    ctx.ellipse(512, 280, 420, 140, 0, 0, Math.PI * 2);
     ctx.fill();
-    // 地面石磚與草坪
-    ctx.fillStyle = "#1e3a17"; ctx.fillRect(0, 480, canvas.width, 140);
-    ctx.fillStyle = "#64748b"; ctx.fillRect(60, 480, canvas.width - 120, 12);
 
-    // 2. 角色渲染 (左側: 隆 / 右側: 沙加特)
-    drawRyu(ctx, 160, 480);
-    drawSagat(ctx, 864, 480);
+    ctx.fillStyle = "#152a13"; ctx.fillRect(0, 370, canvas.width, 90);
+    ctx.fillStyle = "#475569"; ctx.fillRect(40, 370, canvas.width - 80, 10);
 
-    // 3. 處理氣功彈飛行動畫與命中判定
+    // 角色立繪
+    drawRyu(ctx, 160, 370);
+    drawSagat(ctx, 864, 370);
+
+    // 飛行氣功彈處理
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       p.x += p.vx;
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 26, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
       ctx.fillStyle = p.type === 'hadouken' ? '#38bdf8' : '#f97316';
-      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 22;
+      ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 18;
       ctx.fill();
 
-      // 核心高光
       ctx.fillStyle = '#ffffff';
       ctx.beginPath();
-      ctx.arc(p.x + (p.vx > 0 ? 5 : -5), p.y, 12, 0, Math.PI * 2);
+      ctx.arc(p.x + (p.vx > 0 ? 4 : -4), p.y, 10, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      // 命中判定 (每次擊中扣減 25% 血量)
       if (p.type === 'hadouken' && p.x >= 800) {
         projectiles.splice(i, 1);
         p2Hp = Math.max(0, p2Hp - 25);
         updateHUD();
         if (p2Hp <= 0) endGame("RYU (隆) 獲勝！");
-      }
-      else if (p.type === 'tigershot' && p.x <= 220) {
+      } else if (p.type === 'tigershot' && p.x <= 220) {
         projectiles.splice(i, 1);
         p1Hp = Math.max(0, p1Hp - 25);
         updateHUD();
@@ -517,47 +517,37 @@
     document.getElementById('gameover-modal').classList.remove('hidden');
   }
 
-  // 向量格鬥家精靈繪製
   function drawRyu(ctx, x, y) {
     ctx.save(); ctx.translate(x, y);
-    // 白道服軀幹與雙腿
     ctx.fillStyle = "#ffffff";
-    ctx.fillRect(-32, -112, 64, 82);
-    ctx.fillRect(-36, -30, 28, 30);
-    ctx.fillRect(8, -30, 28, 30);
-    // 剛毅頭部
+    ctx.fillRect(-28, -100, 56, 75);
+    ctx.fillRect(-30, -25, 24, 25);
+    ctx.fillRect(6, -25, 24, 25);
     ctx.fillStyle = "#df9e6d";
-    ctx.beginPath(); ctx.arc(0, -132, 20, 0, Math.PI * 2); ctx.fill();
-    // 紅頭帶與飄逸帶尾
+    ctx.beginPath(); ctx.arc(0, -118, 18, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#dc2626";
-    ctx.fillRect(-22, -142, 44, 10);
-    ctx.fillRect(-52, -138, 30, 6);
-    // 段位黑帶
+    ctx.fillRect(-20, -126, 40, 9);
+    ctx.fillRect(-46, -122, 26, 5);
     ctx.fillStyle = "#18181b";
-    ctx.fillRect(-34, -48, 68, 12);
+    ctx.fillRect(-30, -40, 60, 10);
     ctx.restore();
   }
 
   function drawSagat(ctx, x, y) {
     ctx.save(); ctx.translate(x, y);
-    // 魁梧軀幹與古銅肌膚
     ctx.fillStyle = "#c27838";
-    ctx.fillRect(-38, -142, 76, 92);
-    ctx.fillRect(-40, -50, 32, 50);
-    ctx.fillRect(8, -50, 32, 50);
-    // 光頭顱骨
-    ctx.beginPath(); ctx.arc(0, -166, 22, 0, Math.PI * 2); ctx.fill();
-    // 獨眼罩
+    ctx.fillRect(-34, -130, 68, 85);
+    ctx.fillRect(-36, -45, 28, 45);
+    ctx.fillRect(8, -45, 28, 45);
+    ctx.beginPath(); ctx.arc(0, -150, 20, 0, Math.PI * 2); ctx.fill();
     ctx.fillStyle = "#09090b";
-    ctx.fillRect(-10, -174, 11, 11);
-    // 胸前昇龍巨疤
-    ctx.lineWidth = 5; ctx.strokeStyle = "#991b1b";
-    ctx.beginPath(); ctx.moveTo(-22, -132); ctx.lineTo(22, -72); ctx.stroke();
-    // 藍底紅邊泰拳褲
+    ctx.fillRect(-9, -158, 10, 10);
+    ctx.lineWidth = 4; ctx.strokeStyle = "#991b1b";
+    ctx.beginPath(); ctx.moveTo(-20, -120); ctx.lineTo(20, -65); ctx.stroke();
     ctx.fillStyle = "#1d4ed8";
-    ctx.fillRect(-40, -50, 80, 42);
+    ctx.fillRect(-36, -45, 72, 38);
     ctx.fillStyle = "#ef4444";
-    ctx.fillRect(-40, -50, 80, 8);
+    ctx.fillRect(-36, -45, 72, 7);
     ctx.restore();
   }
 
