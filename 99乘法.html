@@ -61,7 +61,7 @@
       color: #d63031;
     }
 
-    /* 導航按鈕分頁 */
+    /* 導航分頁按鈕 */
     .tabs {
       display: flex;
       gap: 10px;
@@ -155,7 +155,6 @@
 
     .cookie {
       font-size: 2rem;
-      animation: pop 0.3s ease;
     }
 
     /* 分頁 2: 記憶卡片 */
@@ -196,7 +195,7 @@
       display: block;
     }
 
-    /* 分頁 3: 遊戲區 */
+    /* 分頁 3: 闖關遊戲與自訂範圍設定 */
     .game-box {
       text-align: center;
       padding: 20px;
@@ -204,8 +203,64 @@
       border-radius: 20px;
     }
 
+    .range-panel {
+      background: #ffffff;
+      padding: 15px;
+      border-radius: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+    }
+
+    .range-label {
+      font-size: 1rem;
+      font-weight: bold;
+      color: #57606f;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .range-chips {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .range-chip {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      border: 2px solid #a4b0be;
+      background: #f8f9fa;
+      color: #57606f;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .range-chip.selected {
+      background: #ff4757;
+      color: white;
+      border-color: #ff4757;
+      box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3);
+    }
+
+    .quick-btn {
+      padding: 6px 14px;
+      border-radius: 20px;
+      border: none;
+      background: #70a1ff;
+      color: white;
+      font-weight: bold;
+      font-size: 0.85rem;
+      cursor: pointer;
+      margin: 0 4px;
+    }
+
     .question-title {
-      font-size: 3rem;
+      font-size: 3.2rem;
       margin: 15px 0;
       color: #3742fa;
     }
@@ -236,7 +291,6 @@
       box-shadow: 0 1px 0 #ced6e0;
     }
 
-    /* 誇獎反饋區域 */
     .cheer-box {
       margin-top: 20px;
       min-height: 60px;
@@ -259,14 +313,14 @@
       </div>
     </header>
 
-    <!-- 主選單分頁 -->
+    <!-- 分頁按鈕 -->
     <div class="tabs">
       <button class="tab-btn active" onclick="switchTab(0)">🍎 概念：點點看</button>
       <button class="tab-btn" onclick="switchTab(1)">📖 背誦：神奇記憶卡</button>
       <button class="tab-btn" onclick="switchTab(2)">🎮 熟練：冒險闖關遊戲</button>
     </div>
 
-    <!-- 分頁 1: 概念理解 (看點點/圖案) -->
+    <!-- 分頁 1: 概念理解 -->
     <div class="content-section active" id="sec-visual">
       <div class="num-selector" id="visual-selector"></div>
       <div class="visual-box">
@@ -284,19 +338,29 @@
       <div class="cards-grid" id="cards-container"></div>
     </div>
 
-    <!-- 分頁 3: 闖關遊戲 -->
+    <!-- 分頁 3: 冒險闖關遊戲 (支援範圍自選) -->
     <div class="content-section" id="sec-game">
+      <div class="range-panel">
+        <span class="range-label">🎯 選擇今天想挑戰的乘法段落（可單選或多選）：</span>
+        <div class="range-chips" id="rangeChipsContainer"></div>
+        <div>
+          <button class="quick-btn" onclick="selectAllRanges(true)">全部勾選 (2~9)</button>
+          <button class="quick-btn" style="background:#57606f;" onclick="selectOnlySingle(2)">只練 2 的段落</button>
+          <button class="quick-btn" style="background:#2ed573;" onclick="selectEasy()">入門推薦 (2、5)</button>
+        </div>
+      </div>
+
       <div class="game-box">
-        <div>第 <span id="game-round">1</span> 題 / 10 題</div>
+        <div>第 <span id="game-round">1</span> 題</div>
         <div class="question-title" id="game-q">2 × 3 = ?</div>
         <div class="options-grid" id="game-options"></div>
-        <div class="cheer-box" id="cheer-msg">按一個答案試試看！你一定行！💪</div>
+        <div class="cheer-box" id="cheer-msg">點擊按鈕選答案！你超棒的，一定答得出來！🌟</div>
       </div>
     </div>
   </div>
 
   <script>
-    // 滿滿的情緒價值讚美詞庫
+    // 情緒價值滿滿讚美庫
     const PRAISES = [
       "太神了！簡直是數學小愛因斯坦！🌟",
       "哇！你的大腦運轉速度比火箭還快！🚀",
@@ -304,30 +368,30 @@
       "答對了！你怎麼會這麼聰明呀！🎉",
       "哇塞！你身上的數學光芒好耀眼！✨",
       "太優秀了！乘法小精靈都在為你跳舞！🧚‍♂️",
-      "答得漂亮！你就是今天最閃亮的小天才！💎"
+      "答得漂亮！今天最閃亮的小天才就是你！💎"
     ];
 
     const ENCOURAGEMENTS = [
-      "沒關係！離答案只差一小步，再試一次！🌱",
+      "沒關係！離答案只差一點點，再試一次！🌱",
       "別擔心，大腦正在升級中，超級棒！💡",
-      "這題有一點點狡猾，你一定能抓住它的！🐾",
-      "慢慢想，我相信你一定可以！💪"
+      "這題稍微狡猾了一點，你一定能征服它！🐾",
+      "慢慢想，我相信你一定能找到答案！💪"
     ];
 
     let currentStars = 0;
+    // 預設挑戰範圍 (2~9)
+    let selectedRanges = [2];
 
-    // 播放語音讚美（呼叫瀏覽器自帶語音合成）
     function speakText(text) {
       if ('speechSynthesis' in window) {
         const utter = new SpeechSynthesisUtterance(text);
         utter.lang = 'zh-TW';
         utter.rate = 1.0;
-        utter.pitch = 1.2; // 稍高一點，更有活力
+        utter.pitch = 1.2;
         window.speechSynthesis.speak(utter);
       }
     }
 
-    // 分頁切換
     function switchTab(index) {
       const tabs = document.querySelectorAll('.tab-btn');
       const secs = document.querySelectorAll('.content-section');
@@ -336,19 +400,67 @@
       if (index === 2) nextGameQuestion();
     }
 
-    // 初始化選單
-    function initSelectors() {
+    // 初始化選單與範圍標籤
+    function initApp() {
       const vSel = document.getElementById('visual-selector');
       const cSel = document.getElementById('card-selector');
+      const chips = document.getElementById('rangeChipsContainer');
+
       for (let i = 2; i <= 9; i++) {
         vSel.innerHTML += `<button class="num-btn ${i===2?'active':''}" onclick="renderVisual(${i}, this)">${i}</button>`;
         cSel.innerHTML += `<button class="num-btn ${i===2?'active':''}" onclick="renderCards(${i}, this)">${i}</button>`;
+        
+        // 闖關範圍晶片
+        const isDefault = selectedRanges.includes(i);
+        chips.innerHTML += `<button class="range-chip ${isDefault?'selected':''}" id="chip-${i}" onclick="toggleRange(${i})">${i}</button>`;
       }
       renderVisual(2, vSel.children[0]);
       renderCards(2, cSel.children[0]);
     }
 
-    // 分頁 1 渲染：用圖形理解乘法 (幾排、每排幾個)
+    // 範圍選擇切換
+    function toggleRange(num) {
+      if (selectedRanges.includes(num)) {
+        if (selectedRanges.length === 1) {
+          alert("至少要保留一個數字來練習喔！😊");
+          return;
+        }
+        selectedRanges = selectedRanges.filter(n => n !== num);
+      } else {
+        selectedRanges.push(num);
+      }
+      updateChipStyles();
+      nextGameQuestion();
+    }
+
+    function selectAllRanges(all) {
+      if (all) selectedRanges = [2, 3, 4, 5, 6, 7, 8, 9];
+      updateChipStyles();
+      nextGameQuestion();
+    }
+
+    function selectOnlySingle(num) {
+      selectedRanges = [num];
+      updateChipStyles();
+      nextGameQuestion();
+    }
+
+    function selectEasy() {
+      selectedRanges = [2, 5];
+      updateChipStyles();
+      nextGameQuestion();
+    }
+
+    function updateChipStyles() {
+      for (let i = 2; i <= 9; i++) {
+        const chip = document.getElementById(`chip-${i}`);
+        if (chip) {
+          chip.classList.toggle('selected', selectedRanges.includes(i));
+        }
+      }
+    }
+
+    // 分頁 1 渲染：看圖理解
     function renderVisual(num, btn) {
       document.querySelectorAll('#visual-selector .num-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -360,7 +472,6 @@
       title.innerText = `這是 ${num} 的世界：每次都多加 ${num} 個！`;
       container.innerHTML = '';
 
-      // 預設展示 num * 3
       const multiplier = 3;
       for (let r = 0; r < multiplier; r++) {
         const row = document.createElement('div');
@@ -370,11 +481,10 @@
         }
         container.appendChild(row);
       }
-
       explain.innerText = `${num} × ${multiplier} 代表有 ${multiplier} 排星星，每排有 ${num} 顆，總共有 ${num * multiplier} 顆！`;
     }
 
-    // 分頁 2 渲染：翻翻記憶卡
+    // 分頁 2 渲染：翻翻卡
     function renderCards(num, btn) {
       document.querySelectorAll('#card-selector .num-btn').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
@@ -400,29 +510,33 @@
       }
     }
 
-    // 分頁 3：冒險遊戲
+    // 分頁 3 闖關邏輯
     let currentGameA = 2;
     let currentGameB = 2;
     let round = 1;
 
     function nextGameQuestion() {
-      // 依序或隨機出題（2~9）
-      currentGameA = Math.floor(Math.random() * 8) + 2;
+      if (selectedRanges.length === 0) selectedRanges = [2];
+
+      // 從孩子勾選的範圍中隨機挑選 A
+      const randomIndex = Math.floor(Math.random() * selectedRanges.length);
+      currentGameA = selectedRanges[randomIndex];
+      // B 是 1~9 隨機
       currentGameB = Math.floor(Math.random() * 9) + 1;
       const correctAns = currentGameA * currentGameB;
 
       document.getElementById('game-round').innerText = round;
       document.getElementById('game-q').innerText = `${currentGameA} × ${currentGameB} = ?`;
 
-      // 產生 4 個選項（1 個正確，3 個干擾）
+      // 產生 4 個選項
       let options = [correctAns];
       while (options.length < 4) {
-        let fake = correctAns + (Math.floor(Math.random() * 7) - 3);
+        let delta = (Math.floor(Math.random() * 5) + 1) * (Math.random() > 0.5 ? 1 : -1);
+        let fake = correctAns + delta;
         if (fake > 0 && !options.includes(fake)) {
           options.push(fake);
         }
       }
-      // 打亂選項順序
       options.sort(() => Math.random() - 0.5);
 
       const optsContainer = document.getElementById('game-options');
@@ -440,35 +554,29 @@
       const cheerBox = document.getElementById('cheer-msg');
 
       if (chosen === correct) {
-        // 滿天彩帶
         confetti({
-          particleCount: 80,
+          particleCount: 90,
           spread: 70,
           origin: { y: 0.6 }
         });
 
-        // 加星光幣
         currentStars += 10;
         document.getElementById('starCount').innerText = currentStars;
 
-        // 滿滿的情緒價值反饋
         const praise = PRAISES[Math.floor(Math.random() * PRAISES.length)];
         cheerBox.innerText = praise;
         speakText(praise);
 
-        // 下一題
         round++;
-        setTimeout(nextGameQuestion, 1200);
+        setTimeout(nextGameQuestion, 1100);
       } else {
-        // 溫柔引導不扣分
         const encourage = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
         cheerBox.innerText = `${encourage}（提示：算算看 ${currentGameA} 加 ${currentGameB} 次喔！）`;
-        speakText("別氣餒，我們再試一次！");
+        speakText("別灰心，再算一次，你可以的！");
       }
     }
 
-    // 初始化啟動
-    window.onload = initSelectors;
+    window.onload = initApp;
   </script>
 </body>
 </html>
