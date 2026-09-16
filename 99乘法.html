@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🌟 乘法冒險島：你就是數學小天才！</title>
+  <!-- 引入彩帶特效庫 -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <style>
+    :root {
+      --primary: #ff6b81;
+      --secondary: #ffa502;
+      --accent: #2ed573;
+      --bg: #f1f2f6;
+      --card: #ffffff;
+      --text: #2f3542;
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Comic Sans MS', 'Microsoft JhengHei', sans-serif;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: linear-gradient(135deg, #ffeaa7 0%, #74b9ff 100%);
+      min-height: 100vh;
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: var(--card);
+      border-radius: 24px;
+      padding: 24px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      color: #ff4757;
+      margin: 0 0 10px 0;
+      font-size: 2rem;
+    }
+
+    .score-board {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      background: #ffeaa7;
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-weight: bold;
+      font-size: 1.2rem;
+      color: #d63031;
+    }
+
+    /* 導航按鈕分頁 */
+    .tabs {
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .tab-btn {
+      background: #dfe4ea;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 16px;
+      font-size: 1.1rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: white;
+      transform: scale(1.05);
+      box-shadow: 0 6px 15px rgba(255, 107, 129, 0.4);
+    }
+
+    .content-section {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .content-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* 數字選擇器 */
+    .num-selector {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .num-btn {
+      width: 45px;
+      height: 45px;
+      border-radius: 50%;
+      border: 2px solid var(--secondary);
+      background: white;
+      font-size: 1.2rem;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .num-btn.active {
+      background: var(--secondary);
+      color: white;
+    }
+
+    /* 分頁 1: 視覺理解 */
+    .visual-box {
+      text-align: center;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 16px;
+    }
+
+    .cookie-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-items: center;
+      margin: 20px 0;
+    }
+
+    .cookie-row {
+      display: flex;
+      gap: 10px;
+      background: white;
+      padding: 8px 14px;
+      border-radius: 30px;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.05);
+    }
+
+    .cookie {
+      font-size: 2rem;
+      animation: pop 0.3s ease;
+    }
+
+    /* 分頁 2: 記憶卡片 */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 15px;
+    }
+
+    .card {
+      background: #fff;
+      border: 3px solid #70a1ff;
+      border-radius: 16px;
+      padding: 20px 10px;
+      text-align: center;
+      cursor: pointer;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+    }
+
+    .card.revealed {
+      background: #eccc68;
+      border-color: #ffa502;
+    }
+
+    .card .ans {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #ff4757;
+      display: none;
+    }
+
+    .card.revealed .ans {
+      display: block;
+    }
+
+    /* 分頁 3: 遊戲區 */
+    .game-box {
+      text-align: center;
+      padding: 20px;
+      background: #f1f2f6;
+      border-radius: 20px;
+    }
+
+    .question-title {
+      font-size: 3rem;
+      margin: 15px 0;
+      color: #3742fa;
+    }
+
+    .options-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      max-width: 400px;
+      margin: 0 auto;
+    }
+
+    .opt-btn {
+      padding: 16px;
+      font-size: 1.6rem;
+      border-radius: 16px;
+      border: none;
+      background: white;
+      color: #2f3542;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 5px 0 #ced6e0;
+      transition: 0.1s;
+    }
+
+    .opt-btn:active {
+      transform: translateY(4px);
+      box-shadow: 0 1px 0 #ced6e0;
+    }
+
+    /* 誇獎反饋區域 */
+    .cheer-box {
+      margin-top: 20px;
+      min-height: 60px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #e84118;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>✨ 乘法冒險島 ✨</h1>
+      <div class="score-board">
+        🏆 星光徽章：<span id="starCount">0</span> 顆星
+      </div>
+    </header>
+
+    <!-- 主選單分頁 -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab(0)">🍎 概念：點點看</button>
+      <button class="tab-btn" onclick="switchTab(1)">📖 背誦：神奇記憶卡</button>
+      <button class="tab-btn" onclick="switchTab(2)">🎮 熟練：冒險闖關遊戲</button>
+    </div>
+
+    <!-- 分頁 1: 概念理解 (看點點/圖案) -->
+    <div class="content-section active" id="sec-visual">
+      <div class="num-selector" id="visual-selector"></div>
+      <div class="visual-box">
+        <h3 id="visual-title">點選上方數字開始探索！</h3>
+        <p style="color: #57606f;">看一看：乘法其實就是「好多排一樣的東西加在一起」喔！</p>
+        <div class="cookie-grid" id="cookie-container"></div>
+        <div id="visual-explain" style="font-size: 1.2rem; font-weight: bold; color: #2ed573;"></div>
+      </div>
+    </div>
+
+    <!-- 分頁 2: 記憶卡 -->
+    <div class="content-section" id="sec-cards">
+      <div class="num-selector" id="card-selector"></div>
+      <p style="text-align: center; color: #747d8c;">💡 點擊卡片翻開看答案，大聲念出來，記憶力超人就是你！</p>
+      <div class="cards-grid" id="cards-container"></div>
+    </div>
+
+    <!-- 分頁 3: 闖關遊戲 -->
+    <div class="content-section" id="sec-game">
+      <div class="game-box">
+        <div>第 <span id="game-round">1</span> 題 / 10 題</div>
+        <div class="question-title" id="game-q">2 × 3 = ?</div>
+        <div class="options-grid" id="game-options"></div>
+        <div class="cheer-box" id="cheer-msg">按一個答案試試看！你一定行！💪</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 滿滿的情緒價值讚美詞庫
+    const PRAISES = [
+      "太神了！簡直是數學小愛因斯坦！🌟",
+      "哇！你的大腦運轉速度比火箭還快！🚀",
+      "太厲害了吧！這題連大人都要想一下呢！👏",
+      "答對了！你怎麼會這麼聰明呀！🎉",
+      "哇塞！你身上的數學光芒好耀眼！✨",
+      "太優秀了！乘法小精靈都在為你跳舞！🧚‍♂️",
+      "答得漂亮！你就是今天最閃亮的小天才！💎"
+    ];
+
+    const ENCOURAGEMENTS = [
+      "沒關係！離答案只差一小步，再試一次！🌱",
+      "別擔心，大腦正在升級中，超級棒！💡",
+      "這題有一點點狡猾，你一定能抓住它的！🐾",
+      "慢慢想，我相信你一定可以！💪"
+    ];
+
+    let currentStars = 0;
+
+    // 播放語音讚美（呼叫瀏覽器自帶語音合成）
+    function speakText(text) {
+      if ('speechSynthesis' in window) {
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'zh-TW';
+        utter.rate = 1.0;
+        utter.pitch = 1.2; // 稍高一點，更有活力
+        window.speechSynthesis.speak(utter);
+      }
+    }
+
+    // 分頁切換
+    function switchTab(index) {
+      const tabs = document.querySelectorAll('.tab-btn');
+      const secs = document.querySelectorAll('.content-section');
+      tabs.forEach((t, i) => t.classList.toggle('active', i === index));
+      secs.forEach((s, i) => s.classList.toggle('active', i === index));
+      if (index === 2) nextGameQuestion();
+    }
+
+    // 初始化選單
+    function initSelectors() {
+      const vSel = document.getElementById('visual-selector');
+      const cSel = document.getElementById('card-selector');
+      for (let i = 2; i <= 9; i++) {
+        vSel.innerHTML += `<button class="num-btn ${i===2?'active':''}" onclick="renderVisual(${i}, this)">${i}</button>`;
+        cSel.innerHTML += `<button class="num-btn ${i===2?'active':''}" onclick="renderCards(${i}, this)">${i}</button>`;
+      }
+      renderVisual(2, vSel.children[0]);
+      renderCards(2, cSel.children[0]);
+    }
+
+    // 分頁 1 渲染：用圖形理解乘法 (幾排、每排幾個)
+    function renderVisual(num, btn) {
+      document.querySelectorAll('#visual-selector .num-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const title = document.getElementById('visual-title');
+      const container = document.getElementById('cookie-container');
+      const explain = document.getElementById('visual-explain');
+      
+      title.innerText = `這是 ${num} 的世界：每次都多加 ${num} 個！`;
+      container.innerHTML = '';
+
+      // 預設展示 num * 3
+      const multiplier = 3;
+      for (let r = 0; r < multiplier; r++) {
+        const row = document.createElement('div');
+        row.className = 'cookie-row';
+        for (let c = 0; c < num; c++) {
+          row.innerHTML += `<span class="cookie">⭐</span>`;
+        }
+        container.appendChild(row);
+      }
+
+      explain.innerText = `${num} × ${multiplier} 代表有 ${multiplier} 排星星，每排有 ${num} 顆，總共有 ${num * multiplier} 顆！`;
+    }
+
+    // 分頁 2 渲染：翻翻記憶卡
+    function renderCards(num, btn) {
+      document.querySelectorAll('#card-selector .num-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      const container = document.getElementById('cards-container');
+      container.innerHTML = '';
+
+      for (let i = 1; i <= 9; i++) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div style="font-size: 1.2rem; font-weight: bold;">${num} × ${i}</div>
+          <div style="color: #a4b0be; font-size: 0.9rem; margin: 4px 0;">點我看答案</div>
+          <div class="ans">${num * i}</div>
+        `;
+        card.onclick = () => {
+          card.classList.toggle('revealed');
+          if (card.classList.contains('revealed')) {
+            speakText(`${num} 乘以 ${i} 等於 ${num * i}`);
+          }
+        };
+        container.appendChild(card);
+      }
+    }
+
+    // 分頁 3：冒險遊戲
+    let currentGameA = 2;
+    let currentGameB = 2;
+    let round = 1;
+
+    function nextGameQuestion() {
+      // 依序或隨機出題（2~9）
+      currentGameA = Math.floor(Math.random() * 8) + 2;
+      currentGameB = Math.floor(Math.random() * 9) + 1;
+      const correctAns = currentGameA * currentGameB;
+
+      document.getElementById('game-round').innerText = round;
+      document.getElementById('game-q').innerText = `${currentGameA} × ${currentGameB} = ?`;
+
+      // 產生 4 個選項（1 個正確，3 個干擾）
+      let options = [correctAns];
+      while (options.length < 4) {
+        let fake = correctAns + (Math.floor(Math.random() * 7) - 3);
+        if (fake > 0 && !options.includes(fake)) {
+          options.push(fake);
+        }
+      }
+      // 打亂選項順序
+      options.sort(() => Math.random() - 0.5);
+
+      const optsContainer = document.getElementById('game-options');
+      optsContainer.innerHTML = '';
+      options.forEach(opt => {
+        const b = document.createElement('button');
+        b.className = 'opt-btn';
+        b.innerText = opt;
+        b.onclick = () => checkAnswer(opt, correctAns);
+        optsContainer.appendChild(b);
+      });
+    }
+
+    function checkAnswer(chosen, correct) {
+      const cheerBox = document.getElementById('cheer-msg');
+
+      if (chosen === correct) {
+        // 滿天彩帶
+        confetti({
+          particleCount: 80,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+
+        // 加星光幣
+        currentStars += 10;
+        document.getElementById('starCount').innerText = currentStars;
+
+        // 滿滿的情緒價值反饋
+        const praise = PRAISES[Math.floor(Math.random() * PRAISES.length)];
+        cheerBox.innerText = praise;
+        speakText(praise);
+
+        // 下一題
+        round++;
+        setTimeout(nextGameQuestion, 1200);
+      } else {
+        // 溫柔引導不扣分
+        const encourage = ENCOURAGEMENTS[Math.floor(Math.random() * ENCOURAGEMENTS.length)];
+        cheerBox.innerText = `${encourage}（提示：算算看 ${currentGameA} 加 ${currentGameB} 次喔！）`;
+        speakText("別氣餒，我們再試一次！");
+      }
+    }
+
+    // 初始化啟動
+    window.onload = initSelectors;
+  </script>
+</body>
+</html>
