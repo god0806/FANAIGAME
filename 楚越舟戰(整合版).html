@@ -652,7 +652,7 @@
         <!-- 觀戰裁判面板 -->
         <div id="spectatorAdminPanel" class="card-box" style="display:none; background:#fffaf0; border:2px solid #d69e2e;">
             <h4 style="margin:0 0 6px 0; color:#b7791f;">⚖️ 軍師法旨・裁判特權控盤（僅觀戰者可見）</h4>
-            <div style="font-size: 0.82rem; color: #718096;">輸入裁判密碼（預設 9999）後，可指定楚國或越國下一輪必定抽得「順風疾行（點數 ×2）」翻倍卡！</div>
+            <div style="font-size: 0.82rem; color: #718096;">輸入裁判密碼（預設 ----）後，可指定楚國或越國下一輪必定抽得「順風疾行（點數 ×2）」翻倍卡！</div>
             <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px;">
                 <input type="password" id="refereeSecret" class="name-input" style="max-width:130px; margin:0; padding:6px;" maxlength="4" placeholder="裁判密碼" value="">
                 <button class="btn btn-gold" style="min-height:36px; padding:6px 14px; font-size:0.85rem;" onclick="requestForcedBuff('chu')">賜令：楚國下回翻倍(×2)</button>
@@ -791,7 +791,7 @@
     const MIN_BOUND = -25;
     const MAX_BOUND = 25;
     const P2P_PREFIX = "chuyue_aligned_v7_";
-    const REFEREE_PWD = "9999";
+    const REFEREE_PWD = "0806";
 
     let gameMode = 'ai';
 
