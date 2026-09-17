@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>撲克正負神算手 - 全分頁點數花色版</title>
+
+<style>
+/* =====================================================
+   全域基礎設定
+===================================================== */
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at top, #0b6b50 0%, #06382b 55%, #022018 100%);
+    color: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px;
+}
+
+.app-container {
+    width: min(1180px, 100%);
+    background: rgba(20, 35, 30, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 22px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =====================================================
+   主分頁切換導覽 (Main Tab Bar)
+===================================================== */
+.main-tab-bar {
+    display: flex;
+    background: #101f19;
+    border-bottom: 2px solid rgba(245, 197, 66, 0.35);
+    padding: 8px 12px 0;
+    gap: 8px;
+}
+
+.main-tab-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-bottom: none;
+    color: #cbd5e1;
+    padding: 12px 24px;
+    border-radius: 12px 12px 0 0;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.main-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    color: #ffffff;
+}
+
+.main-tab-btn.active {
+    background: #0b795b;
+    color: #f5c542;
+    border-color: rgba(245, 197, 66, 0.5);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.main-panel {
+    display: none;
+    flex-direction: column;
+}
+
+.main-panel.active {
+    display: flex;
+}
+
+/* =====================================================
+   撲克牌面與花色陣列樣式 (Pips Layout)
+===================================================== */
+.poker-stage {
+    background: radial-gradient(ellipse at center, #0b795b 0%, #075c45 55%, #043d2e 100%);
+    border: 8px solid #4a2b16;
+    border-radius: 20px;
+    box-shadow: inset 0 0 35px rgba(0,0,0,0.4), 0 10px 25px rgba(0,0,0,0.3);
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.card {
+    position: relative;
+    width: clamp(86px, 13vw, 130px);
+    height: clamp(130px, 20vw, 185px);
+    background: linear-gradient(145deg, #ffffff, #f1f5f9);
+    border-radius: 14px;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.18s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.18s ease;
+    overflow: hidden;
+    border: 2px solid transparent;
+}
+
+.card.red { color: #e53935; }
+.card.black { color: #0f172a; }
+
+/* 牌角：僅保留數字 */
+.card-corner {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    line-height: 1;
+    z-index: 3;
+}
+
+.card-number {
+    font-size: clamp(16px, 2.5vw, 23px);
+    font-weight: 900;
+    letter-spacing: -0.5px;
+}
+
+/* 牌中央花色矩陣 */
+.card-pips {
+    position: absolute;
+    inset: 22px 6px 8px 6px;
+    display: grid;
+    justify-content: center;
+    align-content: center;
+    justify-items: center;
+    align-items: center;
+    pointer-events: none;
+    user-select: none;
+}
+
+.pip {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    line-height: 1;
+}
+
+.pips-1 { grid-template-columns: 1fr; font-size: clamp(34px, 5.2vw, 50px); }
+.pips-2 { grid-template-columns: 1fr; gap: 14px; font-size: clamp(22px, 3.2vw, 30px); }
+.pips-3 { grid-template-columns: 1fr; gap: 8px; font-size: clamp(18px, 2.8vw, 24px); }
+.pips-4 { grid-template-columns: repeat(2, 1fr); gap: 12px 16px; font-size: clamp(18px, 2.6vw, 24px); }
+.pips-5 { grid-template-columns: repeat(2, 1fr); gap: 6px 14px; font-size: clamp(16px, 2.3vw, 21px); }
+.pips-5 .pip:last-child { grid-column: span 2; }
+.pips-6 { grid-template-columns: repeat(2, 1fr); gap: 6px 14px; font-size: clamp(15px, 2.2vw, 20px); }
+.pips-7 { grid-template-columns: repeat(2, 1fr); gap: 4px 12px; font-size: clamp(14px, 2vw, 18px); }
+.pips-7 .pip:last-child { grid-column: span 2; }
+.pips-8 { grid-template-columns: repeat(2, 1fr); gap: 4px 12px; font-size: clamp(13px, 1.9vw, 17px); }
+.pips-9 { grid-template-columns: repeat(3, 1fr); gap: 4px 6px; font-size: clamp(13px, 1.8vw, 17px); }
+.pips-10 { grid-template-columns: repeat(2, 1fr); gap: 2px 14px; font-size: clamp(13px, 1.7vw, 16px); }
+
+/* =====================================================
+   主分頁一：兩張加總心算版樣式
+===================================================== */
+#mainTabDirect {
+    padding: 20px 22px 24px;
+    gap: 16px;
+}
+
+.stats-bar {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.stat-box {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 10px;
+    text-align: center;
+}
+
+.stat-box .label {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 2px;
+}
+
+.stat-box .value {
+    font-size: 26px;
+    font-weight: 900;
+    color: #ffffff;
+}
+
+.duel-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(12px, 3vw, 32px);
+    margin: 10px 0 22px;
+    width: 100%;
+}
+
+.math-symbol {
+    font-size: clamp(36px, 5.5vw, 54px);
+    font-weight: 900;
+    color: #f5c542;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.target-result-box {
+    font-size: clamp(34px, 5vw, 48px);
+    font-weight: 900;
+    color: #38bdf8;
+    background: rgba(15, 23, 42, 0.85);
+    border: 2px dashed #38bdf8;
+    padding: 10px 22px;
+    border-radius: 14px;
+    min-width: 95px;
+    text-align: center;
+}
+
+.options-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    width: min(850px, 100%);
+}
+
+.option-btn {
+    background: linear-gradient(145deg, #ffffff, #f1f5f9);
+    color: #0f172a;
+    border: 3px solid transparent;
+    border-radius: 16px;
+    padding: 18px 8px;
+    font-size: clamp(24px, 3.5vw, 36px);
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+    transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+    text-align: center;
+}
+
+.option-btn:hover {
+    transform: translateY(-5px) scale(1.03);
+    border-color: #f5c542;
+    box-shadow: 0 14px 26px rgba(0, 0, 0, 0.35);
+}
+
+.option-btn.correct {
+    background: #4ade80 !important;
+    color: #052e16 !important;
+    border-color: #22c55e !important;
+}
+
+.option-btn.wrong {
+    background: #f87171 !important;
+    color: #450a0a !important;
+    border-color: #ef4444 !important;
+}
+
+.explainer-strip {
+    background: rgba(15, 23, 42, 0.92);
+    border-left: 5px solid #38bdf8;
+    border-radius: 10px;
+    padding: 12px 18px;
+    width: min(850px, 100%);
+    font-size: 15px;
+    margin-top: 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+/* =====================================================
+   主分頁二：五卡湊數子分頁樣式 (Sub-Tabs)
+===================================================== */
+#mainTabTarget {
+    padding: 16px 20px 24px;
+    gap: 12px;
+}
+
+.sub-tab-bar {
+    display: flex;
+    gap: 8px;
+    background: rgba(0, 0, 0, 0.25);
+    padding: 6px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sub-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+}
+
+.sub-tab-btn:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.sub-tab-btn.active {
+    background: #f5c542;
+    color: #1a2721;
+    box-shadow: 0 2px 8px rgba(245, 197, 66, 0.35);
+}
+
+.target-toolbar {
+    background: linear-gradient(90deg, #162a22 0%, #1f3b30 100%);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 10px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    border-radius: 14px;
+}
+
+.tool-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    color: #ffffff;
+    padding: 6px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.tool-btn:hover { background: rgba(255, 255, 255, 0.22); }
+.tool-btn.blue-btn { background: #0284c7; border-color: #38bdf8; color: #fff; }
+.tool-btn.blue-btn:hover { background: #0369a1; }
+
+.target-num-banner {
+    font-size: clamp(44px, 6vw, 62px);
+    font-weight: 900;
+    line-height: 1;
+    color: #e53935;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.target-num-banner.negative {
+    color: #18181b;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.target-formula-box {
+    background: rgba(255, 255, 255, 0.96);
+    color: #162e26;
+    padding: 10px 24px;
+    border-radius: 14px;
+    font-size: clamp(20px, 3vw, 30px);
+    font-weight: 900;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.five-cards-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(8px, 1.8vw, 18px);
+    padding: 18px 5px;
+    flex-wrap: nowrap;
+}
+
+.card.selected {
+    transform: translateY(-22px) scale(1.03);
+    box-shadow: 0 0 0 5px #f5c542, 0 20px 30px rgba(0, 0, 0, 0.4);
+    border-color: #f5c542;
+}
+
+.btn {
+    border: none;
+    padding: 12px 28px;
+    border-radius: 999px;
+    font-size: 17px;
+    font-weight: 900;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: transform 0.15s;
+}
+
+.btn:hover { transform: translateY(-2px); }
+.btn-primary { background: #f5c542; color: #3b2a00; box-shadow: 0 4px 0 #bd9418; }
+.btn-secondary { background: #ffffff; color: #063b2d; }
+
+.hint-drawer {
+    margin-top: 14px;
+    background: rgba(15, 23, 42, 0.94);
+    border: 1px solid #38bdf8;
+    border-radius: 14px;
+    padding: 14px 18px;
+    display: none;
+    width: 100%;
+}
+
+.hint-drawer.show { display: block; }
+
+.solution-row {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: 14.5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-family: monospace, sans-serif;
+}
+
+/* 視覺回饋與抖動 */
+.feedback {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.6);
+    font-size: clamp(32px, 6vw, 64px);
+    font-weight: 900;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 100;
+}
+
+.feedback.show { animation: feedbackAnim 0.85s ease forwards; }
+.feedback.correct { color: #ffe45c; text-shadow: 0 5px 20px rgba(0, 0, 0, 0.6); }
+.feedback.wrong { color: #ff6b6b; text-shadow: 0 5px 20px rgba(0, 0, 0, 0.6); }
+
+@keyframes feedbackAnim {
+    0% { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    30% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+    70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+    100% { opacity: 0; transform: translate(-50%, -60%) scale(1); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-9px); }
+    40% { transform: translateX(9px); }
+    60% { transform: translateX(-7px); }
+    80% { transform: translateX(7px); }
+}
+.shake { animation: shake 0.4s ease; }
+
+@media (max-width: 768px) {
+    .options-container { grid-template-columns: repeat(2, 1fr); }
+    .duel-container { gap: 10px; }
+    .sub-tab-btn { font-size: 13px; padding: 8px 6px; }
+    .main-tab-btn { padding: 10px 14px; font-size: 14px; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app-container">
+
+    <!-- 主分頁導覽列 -->
+    <nav class="main-tab-bar">
+        <button id="mainTabBtnDirect" class="main-tab-btn active" onclick="switchMainTab('direct')">
+            <span>🎴 兩張牌加總版 (看牌選答案)</span>
+        </button>
+        <button id="mainTabBtnTarget" class="main-tab-btn" onclick="switchMainTab('target')">
+            <span>🎯 五卡湊數模式 (分頁切換)</span>
+        </button>
+    </nav>
+
+    <!-- =====================================================
+         主分頁一：兩張牌加總心算
+    ===================================================== -->
+    <section id="mainTabDirect" class="main-panel active">
+        <div class="stats-bar">
+            <div class="stat-box">
+                <div class="label">🎯 累計得分</div>
+                <div id="directScore" class="value">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">🔥 連對 Combo</div>
+                <div id="directCombo" class="value" style="color:#f5c542;">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">📊 答題總數</div>
+                <div id="directTotal" class="value">0</div>
+            </div>
+        </div>
+
+        <div id="directStage" class="poker-stage">
+            <div class="duel-container">
+                <div id="cardAContainer"></div>
+                <div class="math-symbol">+</div>
+                <div id="cardBContainer"></div>
+                <div class="math-symbol">=</div>
+                <div id="directTargetBox" class="target-result-box">?</div>
+            </div>
+
+            <div class="options-container" id="choicesGrid"></div>
+
+            <div class="explainer-strip">
+                <div id="explainerText">💡 請點選上方正確的加總數字！</div>
+                <button class="tool-btn" onclick="generateDirectRound()" style="padding:4px 10px; font-size:12px;">⏭️ 換下一題</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================
+         主分頁二：五卡湊數模式 (內建三子分頁)
+    ===================================================== -->
+    <section id="mainTabTarget" class="main-panel">
+        
+        <!-- 五卡湊數三階分頁選單 -->
+        <div class="sub-tab-bar">
+            <button id="subTabBtn_basic" class="sub-tab-btn active" onclick="switchTargetSubTab('basic')">
+                <span>1. 兩張牌卡 (基礎入門)</span>
+            </button>
+            <button id="subTabBtn_three" class="sub-tab-btn" onclick="switchTargetSubTab('three')">
+                <span>2. 隨機 2～3 張牌卡 (進階練習)</span>
+            </button>
+            <button id="subTabBtn_teach" class="sub-tab-btn" onclick="switchTargetSubTab('teach')">
+                <span>3. 教學模式 (全解法分析)</span>
+            </button>
+        </div>
+
+        <div class="target-toolbar">
+            <div style="font-weight:bold; color:#f5c542; display:flex; align-items:center; gap:8px;">
+                <span>規則規範：</span>
+                <span id="targetModeRuleDescription" style="color:#e2e8f0; font-size:14px;">正負不論，請精確挑選 2 張手牌加總</span>
+            </div>
+            <div style="display:flex; gap:8px; align-items:center;">
+                <button class="tool-btn" onclick="generateTargetRound()">
+                    <span>⏭️ 換新題目</span>
+                </button>
+                <button id="hintToggleBtn" class="tool-btn blue-btn" onclick="toggleHintDrawer()">
+                    <span>💡 解題分析 (<span id="solutionCountBadge">0</span>)</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="stats-bar">
+            <div class="stat-box">
+                <div class="label">🎮 當前模式</div>
+                <div id="targetModeTitle" class="value" style="font-size:20px; color:#f5c542;">兩張牌卡 (基礎)</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">🎯 目標值 (TARGET)</div>
+                <div id="targetNumber" class="target-num-banner">+6</div>
+            </div>
+            <div class="stat-box">
+                <div class="label">⭐ 答對累計</div>
+                <div id="targetScore" class="value">0</div>
+            </div>
+        </div>
+
+        <div id="targetTable" class="poker-stage" style="min-height:430px; justify-content:space-between;">
+            <div class="target-formula-box" id="targetFormula">請挑選 2 張牌進行運算</div>
+
+            <div class="five-cards-container" id="fiveCardsRow"></div>
+
+            <div style="width:100%; text-align:center;">
+                <div style="margin-bottom:8px; font-size:14px; opacity:0.9;">
+                    已選取：<strong id="targetSelectedCount" style="color:#f5c542; font-size:18px;">0</strong> / <span id="targetMaxCards">2</span> 張牌
+                </div>
+                <div style="display:flex; justify-content:center; gap:12px;">
+                    <button class="btn btn-primary" onclick="submitTargetAnswer()">✓ 驗證答案</button>
+                    <button class="btn btn-secondary" onclick="clearTargetSelection()">↺ 清除重選</button>
+                </div>
+            </div>
+
+            <!-- 教師解法分析抽屜 -->
+            <div id="hintDrawer" class="hint-drawer">
+                <div style="display:flex; justify-content:space-between; margin-bottom:8px; color:#38bdf8; font-weight:bold;">
+                    <span>💡 當前牌盤可行解法清單</span>
+                    <span style="cursor:pointer;" onclick="toggleHintDrawer(false)">✕ 關閉</span>
+                </div>
+                <div id="solutionsList"></div>
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<div id="globalFeedback" class="feedback"></div>
+
+<script>
+/* =====================================================
+   花色、牌組與音效
+===================================================== */
+const suits = [
+    { symbol: "♥", type: "positive", color: "red" },
+    { symbol: "♦", type: "positive", color: "red" },
+    { symbol: "♠", type: "negative", color: "black" },
+    { symbol: "♣", type: "negative", color: "black" }
+];
+
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playTone(freq, dur, type = "sine", vol = 0.08) {
+    try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
+}
+function playClick() { playTone(520, 0.06, "square", 0.03); }
+function playCorrect() {
+    playTone(660, 0.12, "sine", 0.08);
+    setTimeout(() => playTone(880, 0.18, "sine", 0.08), 100);
+}
+function playWrong() { playTone(200, 0.22, "sawtooth", 0.06); }
+
+function formatNumber(num) {
+    return num > 0 ? `+${num}` : `${num}`;
+}
+
+function showFeedback(text, type) {
+    const el = document.getElementById("globalFeedback");
+    el.textContent = text;
+    el.className = `feedback ${type}`;
+    void el.offsetWidth;
+    el.classList.add("show");
+}
+
+function createRandomCard() {
+    const s = suits[Math.floor(Math.random() * suits.length)];
+    const mag = Math.floor(Math.random() * 10) + 1;
+    return {
+        id: "c_" + Math.random().toString(36).substr(2, 9),
+        suit: s.symbol,
+        color: s.color,
+        type: s.type,
+        value: s.type === "positive" ? mag : -mag
+    };
+}
+
+/* 核心：依據點數產生對應數量的花色，數字下花色已取消 */
+function renderCardDOM(card) {
+    const count = Math.abs(card.value);
+    let pipsHtml = "";
+    for (let i = 0; i < count; i++) {
+        pipsHtml += `<span class="pip">${card.suit}</span>`;
+    }
+
+    const el = document.createElement("div");
+    el.className = `card ${card.color}`;
+    el.innerHTML = `
+        <div class="card-corner">
+            <div class="card-number">${formatNumber(card.value)}</div>
+        </div>
+        <div class="card-pips pips-${count}">
+            ${pipsHtml}
+        </div>
+    `;
+    return el;
+}
+
+/* =====================================================
+   主分頁切換邏輯
+===================================================== */
+function switchMainTab(tab) {
+    playClick();
+    document.getElementById("mainTabBtnDirect").classList.toggle("active", tab === "direct");
+    document.getElementById("mainTabBtnTarget").classList.toggle("active", tab === "target");
+    document.getElementById("mainTabDirect").classList.toggle("active", tab === "direct");
+    document.getElementById("mainTabTarget").classList.toggle("active", tab === "target");
+
+    if (tab === "direct" && !directCardA) {
+        generateDirectRound();
+    } else if (tab === "target" && targetHand.length === 0) {
+        generateTargetRound();
+    }
+}
+
+/* =====================================================
+   分頁一：兩張加總版邏輯
+===================================================== */
+let directCardA = null;
+let directCardB = null;
+let directScore = 0;
+let directCombo = 0;
+let directTotal = 0;
+let directLocked = false;
+
+function generateDirectRound() {
+    directLocked = false;
+    const targetBox = document.getElementById("directTargetBox");
+    targetBox.textContent = "?";
+    targetBox.style.color = "#38bdf8";
+
+    directCardA = createRandomCard();
+    directCardB = createRandomCard();
+
+    const boxA = document.getElementById("cardAContainer");
+    const boxB = document.getElementById("cardBContainer");
+    boxA.innerHTML = "";
+    boxB.innerHTML = "";
+    boxA.appendChild(renderCardDOM(directCardA));
+    boxB.appendChild(renderCardDOM(directCardB));
+
+    const correctSum = directCardA.value + directCardB.value;
+
+    const optionsSet = new Set([correctSum]);
+    const distractors = [
+        -correctSum,
+        directCardA.value - directCardB.value,
+        directCardB.value - directCardA.value,
+        Math.abs(directCardA.value) + Math.abs(directCardB.value),
+        -(Math.abs(directCardA.value) + Math.abs(directCardB.value)),
+        correctSum + 1,
+        correctSum - 1
+    ];
+
+    for (let d of distractors) {
+        if (optionsSet.size >= 4) break;
+        if (!isNaN(d)) optionsSet.add(d);
+    }
+    while (optionsSet.size < 4) {
+        optionsSet.add(correctSum + (Math.floor(Math.random() * 7) - 3));
+    }
+
+    const grid = document.getElementById("choicesGrid");
+    grid.innerHTML = "";
+    const shuffled = Array.from(optionsSet).sort(() => Math.random() - 0.5);
+
+    shuffled.forEach(val => {
+        const btn = document.createElement("button");
+        btn.className = "option-btn";
+        btn.textContent = formatNumber(val);
+        btn.onclick = () => checkDirectChoice(val, correctSum, btn);
+        grid.appendChild(btn);
+    });
+
+    document.getElementById("explainerText").textContent = "💡 請點選上方正確的加總數字！";
+}
+
+function checkDirectChoice(chosen, correct, btn) {
+    if (directLocked) return;
+    directLocked = true;
+    directTotal++;
+    document.getElementById("directTotal").textContent = directTotal;
+
+    const targetBox = document.getElementById("directTargetBox");
+    targetBox.textContent = formatNumber(correct);
+
+    let ruleText = "";
+    if ((directCardA.value > 0 && directCardB.value > 0) || (directCardA.value < 0 && directCardB.value < 0)) {
+        ruleText = "【同號數相加】符號相同，直接將絕對值相加，保留原本符號。";
+    } else {
+        const signText = Math.abs(directCardA.value) > Math.abs(directCardB.value)
+            ? (directCardA.value > 0 ? "正號" : "負號")
+            : (directCardB.value > 0 ? "正號" : "負號");
+        ruleText = `【異號數相加】正負相消！以絕對值較大者的符號為主（${signText}），兩數相減。`;
+    }
+
+    if (chosen === correct) {
+        directScore += 100;
+        directCombo++;
+        btn.classList.add("correct");
+        targetBox.style.color = "#4ade80";
+        showFeedback("🎉 算對了！ +100", "correct");
+        playCorrect();
+        document.getElementById("explainerText").textContent = `✓ 答對！ (${formatNumber(directCardA.value)}) + (${formatNumber(directCardB.value)}) = ${formatNumber(correct)}。${ruleText}`;
+        setTimeout(generateDirectRound, 1100);
+    } else {
+        directCombo = 0;
+        btn.classList.add("wrong");
+        targetBox.style.color = "#f87171";
+        document.getElementById("directStage").classList.add("shake");
+        setTimeout(() => document.getElementById("directStage").classList.remove("shake"), 400);
+        showFeedback("答錯囉！", "wrong");
+        playWrong();
+
+        document.querySelectorAll(".option-btn").forEach(b => {
+            if (b.textContent === formatNumber(correct)) b.classList.add("correct");
+        });
+        document.getElementById("explainerText").textContent = `✕ 答錯！ 正解為 ${formatNumber(correct)}。${ruleText}`;
+    }
+
+    document.getElementById("directScore").textContent = directScore;
+    document.getElementById("directCombo").textContent = directCombo;
+}
+
+/* =====================================================
+   主分頁二：五卡湊數子分頁切換與運算
+===================================================== */
+let currentTargetSubTab = "basic"; // "basic" (2張) | "three" (隨機2~3張) | "teach" (教學分析)
+let targetHand = [];
+let targetSelected = [];
+let targetSumGoal = 0;
+let targetSolutions = [];
+let targetScore = 0;
+
+function switchTargetSubTab(subTab) {
+    playClick();
+    currentTargetSubTab = subTab;
+
+    document.getElementById("subTabBtn_basic").classList.toggle("active", subTab === "basic");
+    document.getElementById("subTabBtn_three").classList.toggle("active", subTab === "three");
+    document.getElementById("subTabBtn_teach").classList.toggle("active", subTab === "teach");
+
+    const modeTitles = {
+        basic: "兩張牌卡 (基礎入門)",
+        three: "隨機 2～3 張牌卡 (進階練習)",
+        teach: "綜合教學模式 (全解法分析)"
+    };
+
+    const modeRules = {
+        basic: "正負不論，請精確挑選 2 張手牌加總等於目標值",
+        three: "正負不論，請挑選 2 或 3 張手牌加總等於目標值",
+        teach: "正負不論，可挑選 2 或 3 張手牌加總等於目標值"
+    };
+
+    document.getElementById("targetModeTitle").textContent = modeTitles[subTab];
+    document.getElementById("targetModeRuleDescription").textContent = modeRules[subTab];
+
+    const maxCards = subTab === "basic" ? 2 : 3;
+    document.getElementById("targetMaxCards").textContent = maxCards;
+
+    toggleHintDrawer(false);
+    generateTargetRound();
+}
+
+function generateTargetRound() {
+    targetSelected = [];
+    targetHand = [];
+
+    for (let i = 0; i < 5; i++) {
+        targetHand.push(createRandomCard());
+    }
+
+    // 基礎模式固定 2 張；進階模式與教學模式隨機 2 或 3 張
+    let count = 2;
+    if (currentTargetSubTab === "basic") {
+        count = 2;
+    } else {
+        count = Math.random() < 0.5 ? 2 : 3;
+    }
+
+    const chosen = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, count);
+    targetSumGoal = chosen.reduce((sum, i) => sum + targetHand[i].value, 0);
+
+    if (targetSumGoal === 0 || targetSumGoal < -20 || targetSumGoal > 20) {
+        generateTargetRound();
+        return;
+    }
+
+    targetSolutions = [];
+
+    // 檢驗 2 張牌組合（所有模式均檢查）
+    for (let i = 0; i < 5; i++) {
+        for (let j = i + 1; j < 5; j++) {
+            if (targetHand[i].value + targetHand[j].value === targetSumGoal) {
+                targetSolutions.push({
+                    count: 2,
+                    cards: [targetHand[i], targetHand[j]],
+                    text: `(${formatNumber(targetHand[i].value)}) + (${formatNumber(targetHand[j].value)}) = ${formatNumber(targetSumGoal)}`
+                });
+            }
+        }
+    }
+
+    // 檢驗 3 張牌組合（基礎模式除外）
+    if (currentTargetSubTab !== "basic") {
+        for (let i = 0; i < 5; i++) {
+            for (let j = i + 1; j < 5; j++) {
+                for (let k = j + 1; k < 5; k++) {
+                    if (targetHand[i].value + targetHand[j].value + targetHand[k].value === targetSumGoal) {
+                        targetSolutions.push({
+                            count: 3,
+                            cards: [targetHand[i], targetHand[j], targetHand[k]],
+                            text: `(${formatNumber(targetHand[i].value)}) + (${formatNumber(targetHand[j].value)}) + (${formatNumber(targetHand[k].value)}) = ${formatNumber(targetSumGoal)}`
+                        });
+                    }
+                }
+            }
+        }
+    }
+
+    renderTargetStage();
+}
+
+function renderTargetStage() {
+    const targetEl = document.getElementById("targetNumber");
+    targetEl.textContent = formatNumber(targetSumGoal);
+    targetEl.className = `target-num-banner ${targetSumGoal < 0 ? 'negative' : ''}`;
+
+    document.getElementById("solutionCountBadge").textContent = targetSolutions.length;
+    const solList = document.getElementById("solutionsList");
+    solList.innerHTML = "";
+    targetSolutions.forEach((s, idx) => {
+        const d = document.createElement("div");
+        d.className = "solution-row";
+        d.innerHTML = `
+            <span>解法 ${idx+1} [${s.count}張]: ${s.text}</span>
+            <button class="tool-btn" style="padding:2px 8px; font-size:11px;" onclick="applyTargetSolution(${idx})">帶入</button>
+        `;
+        solList.appendChild(d);
+    });
+
+    const row = document.getElementById("fiveCardsRow");
+    row.innerHTML = "";
+    targetHand.forEach(card => {
+        const c = renderCardDOM(card);
+        if (targetSelected.includes(card.id)) c.classList.add("selected");
+        c.onclick = () => toggleTargetCard(card.id);
+        row.appendChild(c);
+    });
+
+    updateTargetFormula();
+}
+
+function toggleTargetCard(id) {
+    const maxAllowed = currentTargetSubTab === "basic" ? 2 : 3;
+    const idx = targetSelected.indexOf(id);
+
+    if (idx !== -1) {
+        targetSelected.splice(idx, 1);
+        playClick();
+    } else {
+        if (targetSelected.length >= maxAllowed) {
+            showFeedback(`此模式最多只能選 ${maxAllowed} 張牌！`, "wrong");
+            playWrong();
+            return;
+        }
+        targetSelected.push(id);
+        playClick();
+    }
+    renderTargetStage();
+}
+
+function updateTargetFormula() {
+    const selectedCards = targetHand.filter(c => targetSelected.includes(c.id));
+    document.getElementById("targetSelectedCount").textContent = selectedCards.length;
+    const formulaEl = document.getElementById("targetFormula");
+
+    if (selectedCards.length === 0) {
+        formulaEl.textContent = currentTargetSubTab === "basic"
+            ? "請挑選 2 張牌進行加總"
+            : "請挑選 2～3 張牌進行加總";
+        return;
+    }
+
+    const sum = selectedCards.reduce((acc, c) => acc + c.value, 0);
+    formulaEl.textContent = `${selectedCards.map(c => `(${formatNumber(c.value)})`).join(" + ")} = ${formatNumber(sum)}`;
+}
+
+function clearTargetSelection() {
+    targetSelected = [];
+    playClick();
+    renderTargetStage();
+}
+
+function submitTargetAnswer() {
+    if (currentTargetSubTab === "basic" && targetSelected.length !== 2) {
+        showFeedback("基礎入門模式必須剛好選 2 張牌！", "wrong");
+        playWrong();
+        return;
+    }
+    if (currentTargetSubTab !== "basic" && (targetSelected.length < 2 || targetSelected.length > 3)) {
+        showFeedback("此模式請挑選 2 或 3 張牌！", "wrong");
+        playWrong();
+        return;
+    }
+
+    const selectedCards = targetHand.filter(c => targetSelected.includes(c.id));
+    const sum = selectedCards.reduce((acc, c) => acc + c.value, 0);
+
+    if (sum === targetSumGoal) {
+        targetScore += 100;
+        document.getElementById("targetScore").textContent = targetScore;
+        showFeedback("🎉 湊數成功！ +100", "correct");
+        playCorrect();
+        setTimeout(generateTargetRound, 850);
+    } else {
+        showFeedback(`當前總和為 ${formatNumber(sum)}，與目標值不符！`, "wrong");
+        playWrong();
+        document.getElementById("targetTable").classList.add("shake");
+        setTimeout(() => document.getElementById("targetTable").classList.remove("shake"), 400);
+    }
+}
+
+function toggleHintDrawer(force) {
+    const d = document.getElementById("hintDrawer");
+    const isShow = force !== undefined ? force : !d.classList.contains("show");
+    d.classList.toggle("show", isShow);
+}
+
+function applyTargetSolution(idx) {
+    const sol = targetSolutions[idx];
+    if (!sol) return;
+    targetSelected = sol.cards.map(c => c.id);
+    renderTargetStage();
+    toggleHintDrawer(false);
+}
+
+// 預設載入首頁題型
+window.onload = () => {
+    generateDirectRound();
+};
+</script>
+
+</body>
+</html>
