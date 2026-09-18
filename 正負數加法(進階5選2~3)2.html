@@ -1,0 +1,1483 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>撲克正負神算手 - 30人連線搶答賽 (全員成績榜版)</title>
+
+<!-- MQTT.js 公共通訊庫 -->
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+/* =====================================================
+   全域基礎設定
+===================================================== */
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    font-family: "Noto Sans TC", "Microsoft JhengHei", -apple-system, BlinkMacSystemFont, sans-serif;
+    background: radial-gradient(circle at top, #0b6b50 0%, #06382b 55%, #022018 100%);
+    color: #ffffff;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 12px;
+}
+
+.app-wrapper {
+    width: min(1180px, 100%);
+    background: rgba(20, 35, 30, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    border-radius: 20px;
+    backdrop-filter: blur(12px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* =====================================================
+   角色選擇門戶 (Portal View)
+===================================================== */
+#viewPortal {
+    padding: 40px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.portal-title {
+    font-size: clamp(32px, 6vw, 50px);
+    font-weight: 900;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, #ffffff 40%, #f5c542 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.portal-sub {
+    font-size: 16px;
+    color: #cbd5e1;
+    margin-bottom: 36px;
+}
+
+.role-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    width: min(780px, 100%);
+}
+
+.role-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 2px solid rgba(255, 255, 255, 0.18);
+    border-radius: 18px;
+    padding: 26px 20px;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.role-card:hover {
+    transform: translateY(-4px);
+    border-color: #f5c542;
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.role-icon {
+    font-size: 50px;
+    margin-bottom: 12px;
+}
+
+/* =====================================================
+   撲克牌面視覺 (點數花色矩陣)
+===================================================== */
+.card {
+    position: relative;
+    width: clamp(80px, 11.5vw, 120px);
+    height: clamp(120px, 17.5vw, 175px);
+    background: linear-gradient(145deg, #ffffff, #f1f5f9);
+    border-radius: 12px;
+    user-select: none;
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+}
+
+.card.red { color: #e53935; }
+.card.black { color: #0f172a; }
+
+.card-corner {
+    position: absolute;
+    top: 6px;
+    left: 8px;
+    line-height: 1;
+    z-index: 3;
+}
+
+.card-number {
+    font-size: clamp(15px, 2.2vw, 22px);
+    font-weight: 900;
+}
+
+.card-pips {
+    position: absolute;
+    inset: 20px 4px 6px 4px;
+    display: grid;
+    justify-content: center;
+    align-content: center;
+    justify-items: center;
+    align-items: center;
+    pointer-events: none;
+}
+
+.pip { line-height: 1; display: inline-flex; }
+.pips-1 { grid-template-columns: 1fr; font-size: clamp(32px, 4.6vw, 44px); }
+.pips-2 { grid-template-columns: 1fr; gap: 10px; font-size: clamp(18px, 2.6vw, 25px); }
+.pips-3 { grid-template-columns: 1fr; gap: 5px; font-size: clamp(15px, 2.2vw, 20px); }
+.pips-4 { grid-template-columns: repeat(2, 1fr); gap: 8px 12px; font-size: clamp(15px, 2.1vw, 20px); }
+.pips-5 { grid-template-columns: repeat(2, 1fr); gap: 5px 10px; font-size: clamp(14px, 1.9vw, 18px); }
+.pips-5 .pip:last-child { grid-column: span 2; }
+.pips-6 { grid-template-columns: repeat(2, 1fr); gap: 5px 10px; font-size: clamp(13px, 1.8vw, 17px); }
+.pips-7 { grid-template-columns: repeat(2, 1fr); gap: 3px 8px; font-size: clamp(12px, 1.6vw, 15px); }
+.pips-7 .pip:last-child { grid-column: span 2; }
+.pips-8 { grid-template-columns: repeat(2, 1fr); gap: 3px 8px; font-size: clamp(12px, 1.6vw, 15px); }
+.pips-9 { grid-template-columns: repeat(3, 1fr); gap: 3px 5px; font-size: clamp(11px, 1.5vw, 14px); }
+.pips-10 { grid-template-columns: repeat(2, 1fr); gap: 2px 10px; font-size: clamp(11px, 1.4vw, 14px); }
+
+.card.selected {
+    transform: translateY(-16px) scale(1.04);
+    box-shadow: 0 0 0 4px #f5c542, 0 16px 26px rgba(0, 0, 0, 0.4);
+    border-color: #f5c542;
+}
+
+/* =====================================================
+   大螢幕裁判端 (Host View)
+===================================================== */
+#viewHost {
+    display: none;
+    padding: 18px 24px;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.host-top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #102019;
+    padding: 10px 18px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.room-tag {
+    font-size: 26px;
+    font-weight: 900;
+    color: #f5c542;
+    letter-spacing: 2px;
+}
+
+.countdown-badge {
+    background: rgba(0, 0, 0, 0.4);
+    border: 2px solid #38bdf8;
+    color: #38bdf8;
+    font-size: 16px;
+    font-weight: 900;
+    padding: 6px 14px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.countdown-badge.danger {
+    border-color: #ef4444;
+    color: #ef4444;
+    animation: pulseWarn 0.8s infinite alternate;
+}
+
+@keyframes pulseWarn {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.05); }
+}
+
+.host-arena-layout {
+    display: grid;
+    grid-template-columns: 2.3fr 1fr;
+    gap: 18px;
+}
+
+.arena-main {
+    background: radial-gradient(ellipse at center, #0b795b 0%, #075c45 55%, #043d2e 100%);
+    border: 8px solid #4a2b16;
+    border-radius: 20px;
+    padding: 20px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 480px;
+    box-shadow: inset 0 0 35px rgba(0,0,0,0.4);
+}
+
+.target-header-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.target-number {
+    font-size: clamp(48px, 6.5vw, 68px);
+    font-weight: 900;
+    line-height: 1;
+    color: #e53935;
+    text-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+
+.target-number.negative {
+    color: #18181b;
+    text-shadow: 0 0 12px rgba(255, 255, 255, 0.5), 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+.cards-stage-row {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: clamp(8px, 1.8vw, 16px);
+    margin: 16px 0;
+    flex-wrap: nowrap;
+}
+
+.winner-banner {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.95);
+    border: 2px solid #f5c542;
+    border-radius: 12px;
+    padding: 10px 16px;
+    text-align: center;
+    font-size: 19px;
+    font-weight: 900;
+    color: #f5c542;
+    min-height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.solutions-drawer {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid #38bdf8;
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-top: 10px;
+    max-height: 130px;
+    overflow-y: auto;
+    font-size: 14px;
+    font-family: monospace, sans-serif;
+}
+
+.host-sidebar {
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar-title {
+    font-size: 17px;
+    font-weight: 800;
+    color: #f5c542;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.leaderboard-list {
+    flex-grow: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 420px;
+}
+
+.leader-item {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.leader-item:nth-child(1) { background: rgba(245, 197, 66, 0.25); font-weight: bold; }
+
+.lobby-roster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-height: 180px;
+    overflow-y: auto;
+    margin: 16px 0;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 10px;
+    width: 100%;
+}
+
+.roster-chip {
+    background: #0284c7;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* =====================================================
+   彈出式全員成績榜視窗 (Modal)
+===================================================== */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.78);
+    backdrop-filter: blur(6px);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 999;
+    padding: 16px;
+}
+
+.modal-overlay.show {
+    display: flex;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    background: #13241d;
+    border: 2px solid rgba(245, 197, 66, 0.4);
+    border-radius: 20px;
+    width: min(720px, 100%);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6);
+}
+
+.modal-header {
+    background: linear-gradient(90deg, #1b352a 0%, #254b3c 100%);
+    padding: 16px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #f5c542;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.modal-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 15px;
+}
+
+.ranking-table th {
+    background: rgba(0, 0, 0, 0.35);
+    color: #94a3b8;
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 700;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.ranking-table td {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ranking-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.rank-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    font-weight: 900;
+    font-size: 13px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.rank-1 .rank-pill { background: #f5c542; color: #1a2721; box-shadow: 0 0 10px rgba(245, 197, 66, 0.4); }
+.rank-2 .rank-pill { background: #e2e8f0; color: #1e293b; }
+.rank-3 .rank-pill { background: #d97706; color: #ffffff; }
+
+.modal-footer {
+    padding: 12px 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* =====================================================
+   學生選手作答端 (Player View)
+===================================================== */
+#viewPlayer {
+    display: none;
+    padding: 16px;
+    flex-direction: column;
+    align-items: center;
+}
+
+.player-login-card {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 18px;
+    padding: 24px;
+    width: min(380px, 100%);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.form-input {
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(0, 0, 0, 0.4);
+    color: #ffffff;
+    font-size: 18px;
+    text-align: center;
+    font-weight: bold;
+}
+
+.form-input:focus { outline: none; border-color: #f5c542; }
+
+.player-game-area {
+    display: none;
+    width: min(540px, 100%);
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
+.player-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    background: rgba(0, 0, 0, 0.35);
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+}
+
+.net-status-badge {
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #10b981;
+    color: white;
+}
+
+.net-status-badge.reconnecting {
+    background: #f59e0b;
+    animation: pulseWarn 1s infinite alternate;
+}
+
+.mobile-target-banner {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    width: 100%;
+    background: rgba(15, 23, 42, 0.85);
+    border: 2px solid #38bdf8;
+    border-radius: 12px;
+    padding: 8px 12px;
+}
+
+.player-formula-display {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    color: #162e26;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 18px;
+    font-weight: 900;
+    text-align: center;
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-cards-rack {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 0;
+}
+
+.mobile-cards-rack .card {
+    width: clamp(58px, 17.5vw, 84px);
+    height: clamp(88px, 26vw, 126px);
+    border-radius: 8px;
+}
+
+.mobile-cards-rack .card-number {
+    font-size: clamp(13px, 3.5vw, 16px);
+}
+
+/* 按鈕與通用元件 */
+.btn {
+    border: none;
+    padding: 12px 24px;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 900;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.15s;
+}
+
+.btn-primary { background: #f5c542; color: #3b2a00; box-shadow: 0 4px 0 #bd9418; }
+.btn-primary:hover { transform: translateY(-2px); }
+.btn-primary:disabled { background: #64748b; color: #cbd5e1; box-shadow: none; cursor: not-allowed; }
+.btn-secondary { background: rgba(255, 255, 255, 0.15); color: #ffffff; }
+.btn-block { width: 100%; padding: 14px; font-size: 18px; }
+
+.btn-small {
+    padding: 6px 14px;
+    font-size: 13px;
+    border-radius: 8px;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@media (max-width: 820px) {
+    .host-arena-layout { grid-template-columns: 1fr; }
+    .arena-main { min-height: auto; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="app-wrapper">
+
+    <!-- =====================================================
+         1. 角色選擇門戶
+    ===================================================== -->
+    <section id="viewPortal">
+        <h1 class="portal-title">撲克正負神算手</h1>
+        <p class="portal-sub">⚡ 30 人連線搶答賽【進階版 5選2~3】</p>
+
+        <div class="role-cards">
+            <div class="role-card" onclick="startHostView()">
+                <div class="role-icon">🖥️</div>
+                <h3 style="margin:0 0 6px;">我是主持人 (投影大螢幕)</h3>
+                <p style="font-size:13px; color:#cbd5e1; margin:0 0 16px;">隨機出 5 張牌與目標值、掌控 15 秒搶答與隨時查閱全員總排名</p>
+                <button class="btn btn-primary">建立對決房間</button>
+            </div>
+
+            <div class="role-card" onclick="startPlayerView()">
+                <div class="role-icon">📱</div>
+                <h3 style="margin:0 0 6px;">我是參賽學生 (手機/平板)</h3>
+                <p style="font-size:13px; color:#cbd5e1; margin:0 0 16px;">看 5 張牌選 2~3 張湊出目標值，搶當全班第一名！</p>
+                <button class="btn btn-primary" style="background:#38bdf8; color:#0f172a; box-shadow:0 4px 0 #0284c7;">加入搶答戰局</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================
+         2. 主持人 / 大螢幕裁判端
+    ===================================================== -->
+    <section id="viewHost">
+        <div class="host-top-bar">
+            <div>
+                <span style="font-size:14px; opacity:0.8;">房間邀請號：</span>
+                <span id="hostRoomCodeDisplay" class="room-tag">----</span>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+                <div id="hostTimerBadge" class="countdown-badge">⏱️ 搶答倒數：15s</div>
+                <button class="btn btn-primary btn-small" onclick="openFullLeaderboardModal()" style="background:#38bdf8; color:#0f172a; box-shadow:0 3px 0 #0284c7;">
+                    📊 查看全員成績總榜
+                </button>
+                <span style="font-size:14px;">👥 參賽人數：<strong id="hostPlayerCount" style="color:#f5c542;">0</strong> / 30 人</span>
+                <button class="btn btn-secondary btn-small" onclick="location.reload()">離開</button>
+            </div>
+        </div>
+
+        <div class="host-arena-layout">
+            <div class="arena-main">
+                <!-- 房主等待大廳 -->
+                <div id="hostLobbyPanel" style="text-align:center; width:100%;">
+                    <h2 style="font-size:26px; margin:10px 0 4px;">等待參賽者加入...</h2>
+                    <p style="color:#cbd5e1; font-size:14px; margin:0;">請學生在手機輸入上方 4 位數房間號進入等待區</p>
+                    <div class="lobby-roster" id="hostLobbyRoster"></div>
+                    <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="hostStartBattle()" style="padding:14px 36px; font-size:20px;">
+                            🚀 開始【5選2~3】全班搶答！
+                        </button>
+                        <button class="btn btn-secondary" onclick="openFullLeaderboardModal()" style="font-size:16px;">
+                            📊 查看選手名冊
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 戰鬥搶答畫面 -->
+                <div id="hostBattlePanel" style="display:none; width:100%; flex-direction:column; align-items:center;">
+                    <div class="target-header-banner">
+                        <span style="font-size:15px; color:#f5c542; font-weight:bold;">🎯 本題目標值 (TARGET)</span>
+                        <div id="hostTargetNumber" class="target-number">+0</div>
+                    </div>
+
+                    <!-- 5 張牌大螢幕展示 -->
+                    <div class="cards-stage-row" id="hostCardsRow"></div>
+
+                    <div class="winner-banner" id="hostWinnerBanner">⚡ 請挑選 2～3 張手牌加總等於目標值！</div>
+
+                    <!-- 流局或結算時展示之全解法 -->
+                    <div id="hostSolutionsDrawer" class="solutions-drawer" style="display:none;"></div>
+
+                    <div style="margin-top:10px;">
+                        <button class="btn btn-primary" id="hostNextBtn" onclick="hostNextRound()" style="display:none; padding:10px 28px; font-size:17px;">
+                            ⏭️ 下一題搶答
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右側即時積分榜 -->
+            <div class="host-sidebar">
+                <div class="sidebar-title">
+                    <span>🏆 即時榮譽榜 (TOP 10)</span>
+                    <button onclick="openFullLeaderboardModal()" style="background:none; border:none; color:#38bdf8; font-size:12px; cursor:pointer; text-decoration:underline;">
+                        展開全榜 ↗
+                    </button>
+                </div>
+                <div class="leaderboard-list" id="hostLeaderboard">
+                    <div style="text-align:center; color:#64748b; margin-top:20px;">尚無比賽得分</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- =====================================================
+         彈出式全員成績總榜視窗 (Modal)
+    ===================================================== -->
+    <div class="modal-overlay" id="fullLeaderboardModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <span>📊 全班選手成績總排名</span>
+                    <span id="modalPlayerTotalCount" style="font-size:13px; color:#94a3b8; font-weight:normal;">(共 0 人參賽)</span>
+                </div>
+                <button onclick="closeFullLeaderboardModal()" style="background:none; border:none; color:#cbd5e1; font-size:22px; cursor:pointer; line-height:1;">✕</button>
+            </div>
+            <div class="modal-body">
+                <table class="ranking-table">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">名次</th>
+                            <th>選手暱稱</th>
+                            <th style="width:110px;">累計得分</th>
+                            <th style="width:100px;">搶答勝出</th>
+                            <th style="width:80px;">狀態</th>
+                        </tr>
+                    </thead>
+                    <tbody id="modalRankingTableBody">
+                        <!-- 動態填入所有人成績 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-small" onclick="copyLeaderboardText()">📋 複製成績文字清單</button>
+                <button class="btn btn-primary btn-small" onclick="closeFullLeaderboardModal()">關閉視窗</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- =====================================================
+         3. 學生選手作答端
+    ===================================================== -->
+    <section id="viewPlayer">
+        <!-- 登入卡片 -->
+        <div class="player-login-card" id="playerLoginCard">
+            <h2 style="margin:0; text-align:center;">進入【5選2~3】對決</h2>
+            <div>
+                <label style="font-size:13px; opacity:0.8;">4 位數房間號：</label>
+                <input type="number" id="inputRoomCode" class="form-input" placeholder="例如 6825" maxlength="4">
+            </div>
+            <div>
+                <label style="font-size:13px; opacity:0.8;">參賽者暱稱：</label>
+                <input type="text" id="inputNickname" class="form-input" placeholder="你的名字或座號" maxlength="8">
+            </div>
+            <button class="btn btn-primary btn-block" onclick="playerJoinRoom()">加入比賽</button>
+            <button class="btn btn-secondary btn-block" onclick="location.reload()" style="padding:8px;">返回</button>
+        </div>
+
+        <!-- 學生戰鬥作答區 -->
+        <div class="player-game-area" id="playerGameArea">
+            <div class="player-hud">
+                <span>👤 <strong id="playerHudName" style="color:#f5c542;">--</strong> <span id="playerNetStatus" class="net-status-badge">連線良好</span></span>
+                <span>⏱️ <strong id="playerTimerDisplay" style="color:#38bdf8;">15s</strong></span>
+                <span>⭐ 得分：<strong id="playerHudScore" style="color:#4ade80;">0</strong></span>
+            </div>
+
+            <div class="mobile-target-banner">
+                <span style="font-size:14px;">🎯 目標值：<strong id="playerTargetNumber" style="font-size:24px; color:#f5c542;">+0</strong></span>
+                <span style="font-size:12px; color:#cbd5e1;">(請挑選 2～3 張牌)</span>
+            </div>
+
+            <div class="player-formula-display" id="playerFormulaDisplay">請點選下方卡牌進行組合</div>
+
+            <!-- 手機 5 張牌自適應排列 -->
+            <div class="mobile-cards-rack" id="playerCardsRack"></div>
+
+            <button class="btn btn-primary btn-block" id="playerSubmitBtn" onclick="submitPlayerCards()" disabled>
+                🚀 搶答送出 (需選2~3張)
+            </button>
+
+            <div id="playerStatusNotice" style="text-align:center; font-size:13px; color:#94a3b8;">
+                ⏳ 等待搶答開始...
+            </div>
+        </div>
+    </section>
+
+</div>
+
+<script>
+/* =====================================================
+   花色、牌組與音效
+===================================================== */
+const suits = [
+    { symbol: "♥", type: "positive", color: "red" },
+    { symbol: "♦", type: "positive", color: "red" },
+    { symbol: "♠", type: "negative", color: "black" },
+    { symbol: "♣", type: "negative", color: "black" }
+];
+
+let audioCtx = null;
+function initAudio() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+}
+function playTone(freq, dur, type = "sine") {
+    try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
+}
+
+function formatNumber(num) {
+    return num > 0 ? `+${num}` : `${num}`;
+}
+
+function createRandomCard() {
+    const s = suits[Math.floor(Math.random() * suits.length)];
+    const mag = Math.floor(Math.random() * 10) + 1;
+    return {
+        id: "c_" + Math.random().toString(36).substr(2, 9),
+        suit: s.symbol,
+        color: s.color,
+        type: s.type,
+        value: s.type === "positive" ? mag : -mag
+    };
+}
+
+function renderCardDOM(card) {
+    const count = Math.abs(card.value);
+    let pipsHtml = "";
+    for (let i = 0; i < count; i++) {
+        pipsHtml += `<span class="pip">${card.suit}</span>`;
+    }
+    const el = document.createElement("div");
+    el.className = `card ${card.color}`;
+    el.innerHTML = `
+        <div class="card-corner">
+            <div class="card-number">${formatNumber(card.value)}</div>
+        </div>
+        <div class="card-pips pips-${count}">
+            ${pipsHtml}
+        </div>
+    `;
+    return el;
+}
+
+function calculateAllSolutions(hand, target) {
+    const sols = [];
+    // 2 張牌
+    for (let i = 0; i < 5; i++) {
+        for (let j = i + 1; j < 5; j++) {
+            if (hand[i].value + hand[j].value === target) {
+                sols.push({ count: 2, text: `(${formatNumber(hand[i].value)}) + (${formatNumber(hand[j].value)}) = ${formatNumber(target)}` });
+            }
+        }
+    }
+    // 3 張牌
+    for (let i = 0; i < 5; i++) {
+        for (let j = i + 1; j < 5; j++) {
+            for (let k = j + 1; k < 5; k++) {
+                if (hand[i].value + hand[j].value + hand[k].value === target) {
+                    sols.push({ count: 3, text: `(${formatNumber(hand[i].value)}) + (${formatNumber(hand[j].value)}) + (${formatNumber(hand[k].value)}) = ${formatNumber(target)}` });
+                }
+            }
+        }
+    }
+    return sols;
+}
+
+/* =====================================================
+   MQTT 通訊層與持久身分管理
+===================================================== */
+let mqttClient = null;
+const BROKER_URL = "wss://broker.emqx.io:8084/mqtt";
+let currentRoomCode = "";
+let isHost = false;
+
+function getPersistentClientId() {
+    let id = localStorage.getItem("poker_math_client_id_v2");
+    if (!id) {
+        id = "stu_" + Math.random().toString(36).substr(2, 8);
+        localStorage.setItem("poker_math_client_id_v2", id);
+    }
+    return id;
+}
+
+function initMQTTConnection(onConnected) {
+    mqttClient = mqtt.connect(BROKER_URL, {
+        clientId: (isHost ? "host_" : "cli_") + Math.random().toString(16).substr(2, 8),
+        keepalive: 30,
+        clean: true,
+        reconnectPeriod: 1500
+    });
+
+    mqttClient.on("connect", () => {
+        updateNetworkBadge(true);
+        onConnected();
+    });
+    mqttClient.on("reconnect", () => updateNetworkBadge(false));
+    mqttClient.on("offline", () => updateNetworkBadge(false));
+}
+
+function updateNetworkBadge(online) {
+    const badge = document.getElementById("playerNetStatus");
+    if (!badge) return;
+    if (online) {
+        badge.textContent = "連線良好";
+        badge.className = "net-status-badge";
+    } else {
+        badge.textContent = "重連中...";
+        badge.className = "net-status-badge reconnecting";
+    }
+}
+
+/* =====================================================
+   主持人 (Host) 核心邏輯【全員排名與數據追蹤】
+===================================================== */
+let hostPlayers = {}; // { clientId: { name, score, wins, online } }
+let currentRoundData = null;
+let roundResolved = false;
+let hostTimerId = null;
+let hostSecondsLeft = 15;
+let answeredPlayersThisRound = new Set();
+
+function startHostView() {
+    document.getElementById("viewPortal").style.display = "none";
+    document.getElementById("viewHost").style.display = "flex";
+    isHost = true;
+
+    currentRoomCode = Math.floor(1000 + Math.random() * 9000).toString();
+    document.getElementById("hostRoomCodeDisplay").textContent = currentRoomCode;
+
+    initMQTTConnection(() => {
+        mqttClient.subscribe(`poker-math-2026/room/${currentRoomCode}/player_action`);
+        mqttClient.on("message", (topic, message) => {
+            handleHostIncomingMessage(JSON.parse(message.toString()));
+        });
+    });
+}
+
+function handleHostIncomingMessage(msg) {
+    if (msg.type === "JOIN_OR_RECONNECT") {
+        const pId = msg.clientId;
+        if (!hostPlayers[pId]) {
+            if (Object.keys(hostPlayers).length >= 30) return;
+            hostPlayers[pId] = { name: msg.nickname, score: 0, wins: 0, online: true };
+        } else {
+            hostPlayers[pId].name = msg.nickname;
+            hostPlayers[pId].online = true;
+        }
+
+        updateHostLobbyRoster();
+        renderHostLeaderboard();
+        if (document.getElementById("fullLeaderboardModal").classList.contains("show")) {
+            renderFullLeaderboard();
+        }
+
+        broadcastToRoom({
+            type: "SYNC_PLAYER_STATE",
+            targetClientId: pId,
+            score: hostPlayers[pId].score,
+            inBattle: document.getElementById("hostBattlePanel").style.display !== "none",
+            roundResolved: roundResolved,
+            roundData: currentRoundData,
+            secondsLeft: hostSecondsLeft,
+            alreadyAnswered: answeredPlayersThisRound.has(pId)
+        });
+    } 
+    else if (msg.type === "SUBMIT_ANSWER") {
+        if (!roundResolved && currentRoundData && msg.roundId === currentRoundData.roundId) {
+            answeredPlayersThisRound.add(msg.clientId);
+
+            const chosenIndices = msg.selectedIndices || [];
+            const count = chosenIndices.length;
+            const computedSum = chosenIndices.reduce((sum, idx) => sum + currentRoundData.hand[idx].value, 0);
+
+            if ((count === 2 || count === 3) && computedSum === currentRoundData.targetSum) {
+                roundResolved = true;
+                clearInterval(hostTimerId);
+
+                const winner = hostPlayers[msg.clientId];
+                if (winner) {
+                    winner.score += 100;
+                    winner.wins = (winner.wins || 0) + 1;
+                }
+
+                playTone(587, 0.1);
+                setTimeout(() => playTone(880, 0.25), 100);
+
+                const winningFormula = chosenIndices.map(idx => `(${formatNumber(currentRoundData.hand[idx].value)})`).join(" + ") + ` = ${formatNumber(currentRoundData.targetSum)}`;
+                document.getElementById("hostWinnerBanner").innerHTML = `👑 恭喜 <span style="color:#4ade80;">【${msg.nickname}】</span> 最快搶答成功！<br><span style="font-size:15px; color:#cbd5e1;">算式：${winningFormula} (+100分)</span>`;
+                document.getElementById("hostNextBtn").style.display = "inline-flex";
+                document.getElementById("hostTimerBadge").textContent = "⏱️ 本回合已結算";
+                document.getElementById("hostTimerBadge").classList.remove("danger");
+
+                renderHostLeaderboard();
+                if (document.getElementById("fullLeaderboardModal").classList.contains("show")) {
+                    renderFullLeaderboard();
+                }
+
+                broadcastToRoom({
+                    type: "ROUND_RESULT",
+                    roundId: currentRoundData.roundId,
+                    winnerName: msg.nickname,
+                    winningFormula: winningFormula,
+                    targetSum: currentRoundData.targetSum,
+                    reason: "correct"
+                });
+            } else {
+                const totalJoined = Object.keys(hostPlayers).length;
+                if (totalJoined > 0 && answeredPlayersThisRound.size >= totalJoined) {
+                    hostEndRoundNoWinner("all_wrong");
+                }
+            }
+        }
+    }
+}
+
+function hostEndRoundNoWinner(reason) {
+    if (roundResolved) return;
+    roundResolved = true;
+    clearInterval(hostTimerId);
+
+    playTone(220, 0.35, "sawtooth");
+
+    document.getElementById("hostTimerBadge").textContent = "⏱️ 回合結束";
+    document.getElementById("hostTimerBadge").classList.remove("danger");
+
+    const reasonText = (reason === "timeout") ? "⏰ 超過 15 秒未有人答出！" : "💥 全體參賽者皆已作答但無人答對！";
+    document.getElementById("hostWinnerBanner").innerHTML = `${reasonText} 本題流局`;
+    document.getElementById("hostNextBtn").style.display = "inline-flex";
+
+    renderHostSolutions();
+
+    broadcastToRoom({
+        type: "ROUND_RESULT",
+        roundId: currentRoundData.roundId,
+        winnerName: null,
+        targetSum: currentRoundData.targetSum,
+        reason: reason
+    });
+}
+
+function renderHostSolutions() {
+    const drawer = document.getElementById("hostSolutionsDrawer");
+    drawer.style.display = "block";
+    drawer.innerHTML = `<div style="color:#38bdf8; font-weight:bold; margin-bottom:4px;">💡 本題可行湊法：</div>`;
+    currentRoundData.solutions.forEach((s, idx) => {
+        drawer.innerHTML += `<div>解法 ${idx+1} [${s.count}張]: ${s.text}</div>`;
+    });
+}
+
+function updateHostLobbyRoster() {
+    const rosterEl = document.getElementById("hostLobbyRoster");
+    rosterEl.innerHTML = "";
+    const playersArr = Object.values(hostPlayers);
+    document.getElementById("hostPlayerCount").textContent = playersArr.length;
+
+    playersArr.forEach(p => {
+        const chip = document.createElement("span");
+        chip.className = "roster-chip";
+        chip.textContent = p.name;
+        rosterEl.appendChild(chip);
+    });
+}
+
+function renderHostLeaderboard() {
+    const boardEl = document.getElementById("hostLeaderboard");
+    boardEl.innerHTML = "";
+    const sorted = Object.values(hostPlayers).sort((a, b) => b.score - a.score).slice(0, 10);
+    sorted.forEach((p, idx) => {
+        const row = document.createElement("div");
+        row.className = "leader-item";
+        row.innerHTML = `
+            <span>#${idx + 1} ${p.name}</span>
+            <span style="color:#4ade80;">${p.score} 分</span>
+        `;
+        boardEl.appendChild(row);
+    });
+}
+
+/* =====================================================
+   彈出式全員成績排行清單處理 (Full Leaderboard Modal)
+===================================================== */
+function openFullLeaderboardModal() {
+    renderFullLeaderboard();
+    document.getElementById("fullLeaderboardModal").classList.add("show");
+}
+
+function closeFullLeaderboardModal() {
+    document.getElementById("fullLeaderboardModal").classList.remove("show");
+}
+
+function renderFullLeaderboard() {
+    const tableBody = document.getElementById("modalRankingTableBody");
+    tableBody.innerHTML = "";
+
+    const playersArr = Object.values(hostPlayers);
+    document.getElementById("modalPlayerTotalCount").textContent = `(共 ${playersArr.length} 人參賽)`;
+
+    if (playersArr.length === 0) {
+        tableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:#94a3b8; padding:30px;">尚無參賽學生加入房間</td></tr>`;
+        return;
+    }
+
+    // 依分數遞減排序；同分者依答對題數排序
+    const sorted = [...playersArr].sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return (b.wins || 0) - (a.wins || 0);
+    });
+
+    sorted.forEach((p, index) => {
+        const rank = index + 1;
+        const row = document.createElement("tr");
+        if (rank <= 3) row.className = `rank-${rank}`;
+
+        let rankBadge = `<span class="rank-pill">${rank}</span>`;
+        if (rank === 1) rankBadge = `<span class="rank-pill">🥇</span>`;
+        else if (rank === 2) rankBadge = `<span class="rank-pill">🥈</span>`;
+        else if (rank === 3) rankBadge = `<span class="rank-pill">🥉</span>`;
+
+        const statusTag = p.online 
+            ? `<span style="color:#4ade80; font-size:12px;">● 連線中</span>`
+            : `<span style="color:#f87171; font-size:12px;">○ 離線</span>`;
+
+        row.innerHTML = `
+            <td>${rankBadge}</td>
+            <td style="font-weight:bold; color:${rank <= 3 ? '#f5c542' : '#ffffff'};">${p.name}</td>
+            <td style="font-weight:900; color:#4ade80; font-size:16px;">${p.score} 分</td>
+            <td style="color:#cbd5e1;">${p.wins || 0} 題</td>
+            <td>${statusTag}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+function copyLeaderboardText() {
+    const playersArr = Object.values(hostPlayers);
+    if (playersArr.length === 0) {
+        alert("目前尚無參賽者資料可複製！");
+        return;
+    }
+
+    const sorted = [...playersArr].sort((a, b) => b.score - a.score);
+    let text = `🏆【撲克正負神算手】全班成績榜 (房號: ${currentRoomCode})\n`;
+    text += `==============================\n`;
+    sorted.forEach((p, idx) => {
+        text += `第 ${idx + 1} 名: ${p.name} - ${p.score}分 (搶對 ${p.wins || 0} 題)\n`;
+    });
+    text += `==============================\n統計時間: ${new Date().toLocaleTimeString()}`;
+
+    navigator.clipboard.writeText(text).then(() => {
+        alert("✅ 成績文字清單已成功複製到剪貼簿！");
+    }).catch(() => {
+        alert("複製失敗，請手動選取複製。");
+    });
+}
+
+function hostStartBattle() {
+    if (Object.keys(hostPlayers).length === 0) {
+        alert("至少需要 1 位參賽者加入才能開始！");
+        return;
+    }
+    document.getElementById("hostLobbyPanel").style.display = "none";
+    document.getElementById("hostBattlePanel").style.display = "flex";
+    hostNextRound();
+}
+
+function hostNextRound() {
+    roundResolved = false;
+    answeredPlayersThisRound.clear();
+    clearInterval(hostTimerId);
+
+    document.getElementById("hostNextBtn").style.display = "none";
+    document.getElementById("hostSolutionsDrawer").style.display = "none";
+    document.getElementById("hostWinnerBanner").textContent = "⚡ 請在 15 秒內挑選 2～3 張牌湊出目標值！";
+
+    const hand = [];
+    for (let i = 0; i < 5; i++) hand.push(createRandomCard());
+
+    const count = Math.random() < 0.5 ? 2 : 3;
+    const chosen = [0, 1, 2, 3, 4].sort(() => Math.random() - 0.5).slice(0, count);
+    const targetSum = chosen.reduce((sum, idx) => sum + hand[idx].value, 0);
+
+    if (targetSum === 0 || targetSum < -20 || targetSum > 20) {
+        hostNextRound();
+        return;
+    }
+
+    const solutions = calculateAllSolutions(hand, targetSum);
+
+    currentRoundData = {
+        roundId: Date.now().toString(),
+        hand,
+        targetSum,
+        solutions
+    };
+
+    const targetEl = document.getElementById("hostTargetNumber");
+    targetEl.textContent = formatNumber(targetSum);
+    targetEl.className = `target-number ${targetSum < 0 ? 'negative' : ''}`;
+
+    const stageRow = document.getElementById("hostCardsRow");
+    stageRow.innerHTML = "";
+    hand.forEach(c => stageRow.appendChild(renderCardDOM(c)));
+
+    hostSecondsLeft = 15;
+    const timerBadge = document.getElementById("hostTimerBadge");
+    timerBadge.textContent = `⏱️ 搶答倒數：${hostSecondsLeft}s`;
+    timerBadge.classList.remove("danger");
+
+    hostTimerId = setInterval(() => {
+        hostSecondsLeft--;
+        timerBadge.textContent = `⏱️ 搶答倒數：${hostSecondsLeft}s`;
+        if (hostSecondsLeft <= 5) timerBadge.classList.add("danger");
+
+        if (hostSecondsLeft <= 0) {
+            clearInterval(hostTimerId);
+            hostEndRoundNoWinner("timeout");
+        }
+    }, 1000);
+
+    broadcastToRoom({
+        type: "NEW_ROUND",
+        ...currentRoundData
+    });
+}
+
+function broadcastToRoom(payload) {
+    if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`poker-math-2026/room/${currentRoomCode}/host_broadcast`, JSON.stringify(payload));
+    }
+}
+
+/* =====================================================
+   學生選手 (Player) 核心邏輯【進階版 5選2~3】
+===================================================== */
+let myClientId = getPersistentClientId();
+let myNickname = "";
+let myScore = 0;
+let currentClientRoundId = "";
+let playerTimerId = null;
+let playerSecondsLeft = 15;
+let playerCurrentHand = [];
+let playerSelectedIndices = [];
+let playerCurrentTarget = 0;
+
+function startPlayerView() {
+    document.getElementById("viewPortal").style.display = "none";
+    document.getElementById("viewPlayer").style.display = "flex";
+
+    const savedRoom = localStorage.getItem("poker_math_room");
+    const savedName = localStorage.getItem("poker_math_name");
+    if (savedRoom) document.getElementById("inputRoomCode").value = savedRoom;
+    if (savedName) document.getElementById("inputNickname").value = savedName;
+}
+
+function playerJoinRoom() {
+    const code = document.getElementById("inputRoomCode").value.trim();
+    const name = document.getElementById("inputNickname").value.trim();
+
+    if (code.length !== 4) {
+        alert("請輸入正確的 4 位數房間號！");
+        return;
+    }
+    if (!name) {
+        alert("請輸入參賽暱稱！");
+        return;
+    }
+
+    myNickname = name;
+    currentRoomCode = code;
+
+    localStorage.setItem("poker_math_room", currentRoomCode);
+    localStorage.setItem("poker_math_name", myNickname);
+
+    initMQTTConnection(() => {
+        mqttClient.subscribe(`poker-math-2026/room/${currentRoomCode}/host_broadcast`);
+        mqttClient.on("message", (topic, message) => {
+            handlePlayerIncomingBroadcast(JSON.parse(message.toString()));
+        });
+
+        sendPlayerAction({
+            type: "JOIN_OR_RECONNECT",
+            clientId: myClientId,
+            nickname: myNickname
+        });
+
+        document.getElementById("playerLoginCard").style.display = "none";
+        document.getElementById("playerGameArea").style.display = "flex";
+        document.getElementById("playerHudName").textContent = myNickname;
+    });
+}
+
+function handlePlayerIncomingBroadcast(msg) {
+    if (msg.type === "SYNC_PLAYER_STATE" && msg.targetClientId === myClientId) {
+        myScore = msg.score;
+        document.getElementById("playerHudScore").textContent = myScore;
+
+        if (msg.inBattle && !msg.roundResolved && msg.roundData) {
+            currentClientRoundId = msg.roundData.roundId;
+            renderPlayerRoundUI(msg.roundData);
+            startPlayerCountdown(msg.secondsLeft);
+
+            if (msg.alreadyAnswered) {
+                document.getElementById("playerSubmitBtn").disabled = true;
+                document.getElementById("playerStatusNotice").textContent = "⚡ 你已提交過答案，等待裁判判定中...";
+            }
+        } else if (msg.inBattle && msg.roundResolved) {
+            document.getElementById("playerStatusNotice").textContent = "⌛ 本題已結束，等待下一回合出題...";
+        } else {
+            document.getElementById("playerStatusNotice").textContent = "⏳ 已連線至房間，等待老師開局...";
+        }
+    }
+    else if (msg.type === "NEW_ROUND") {
+        currentClientRoundId = msg.roundId;
+        renderPlayerRoundUI(msg);
+        startPlayerCountdown(15);
+    } 
+    else if (msg.type === "ROUND_RESULT") {
+        clearInterval(playerTimerId);
+        document.getElementById("playerTimerDisplay").textContent = "0s";
+        document.getElementById("playerSubmitBtn").disabled = true;
+
+        if (msg.winnerName) {
+            if (msg.winnerName === myNickname) {
+                myScore += 100;
+                document.getElementById("playerHudScore").textContent = myScore;
+                document.getElementById("playerStatusNotice").innerHTML = `🎉 <b>太神啦！你是全班最快湊出目標值的！(+100分)</b>`;
+                playTone(880, 0.2);
+            } else {
+                document.getElementById("playerStatusNotice").innerHTML = `⌛ 慢了一步！由 <b>【${msg.winnerName}】</b> 率先搶答成功！<br><span style="font-size:12px;">正解：${msg.winningFormula}</span>`;
+            }
+        } else {
+            const reasonNotice = msg.reason === "timeout" ? "⏰ 時間到（15 秒未有人湊出）！本題流局。" : "💥 全員答錯！本題流局。";
+            document.getElementById("playerStatusNotice").innerHTML = `${reasonNotice} 目標為 【${formatNumber(msg.targetSum)}】`;
+        }
+    }
+}
+
+function renderPlayerRoundUI(data) {
+    playerCurrentHand = data.hand;
+    playerCurrentTarget = data.targetSum;
+    playerSelectedIndices = [];
+
+    document.getElementById("playerTargetNumber").textContent = formatNumber(data.targetSum);
+    document.getElementById("playerStatusNotice").textContent = "🔥 請在 15 秒內點選 2～3 張牌湊數：";
+    document.getElementById("playerSubmitBtn").disabled = true;
+    updatePlayerFormula();
+
+    const rack = document.getElementById("playerCardsRack");
+    rack.innerHTML = "";
+    data.hand.forEach((card, idx) => {
+        const cDom = renderCardDOM(card);
+        cDom.onclick = () => togglePlayerCardSelect(idx, cDom);
+        rack.appendChild(cDom);
+    });
+}
+
+function togglePlayerCardSelect(index, domEl) {
+    playTone(520, 0.04);
+    const existingIdx = playerSelectedIndices.indexOf(index);
+
+    if (existingIdx !== -1) {
+        playerSelectedIndices.splice(existingIdx, 1);
+        domEl.classList.remove("selected");
+    } else {
+        if (playerSelectedIndices.length >= 3) {
+            playTone(200, 0.1, "sawtooth");
+            return;
+        }
+        playerSelectedIndices.push(index);
+        domEl.classList.add("selected");
+    }
+
+    updatePlayerFormula();
+}
+
+function updatePlayerFormula() {
+    const count = playerSelectedIndices.length;
+    const formulaBox = document.getElementById("playerFormulaDisplay");
+    const submitBtn = document.getElementById("playerSubmitBtn");
+
+    if (count === 0) {
+        formulaBox.textContent = "請點選卡牌 (需選2~3張)";
+        submitBtn.disabled = true;
+        return;
+    }
+
+    const sum = playerSelectedIndices.reduce((acc, idx) => acc + playerCurrentHand[idx].value, 0);
+    const formulaStr = playerSelectedIndices.map(idx => `(${formatNumber(playerCurrentHand[idx].value)})`).join(" + ") + ` = ${formatNumber(sum)}`;
+    formulaBox.textContent = formulaStr;
+
+    submitBtn.disabled = (count < 2 || count > 3);
+}
+
+function submitPlayerCards() {
+    if (playerSelectedIndices.length < 2 || playerSelectedIndices.length > 3) return;
+
+    playTone(660, 0.08);
+    document.getElementById("playerSubmitBtn").disabled = true;
+    document.getElementById("playerStatusNotice").textContent = "⚡ 答案已送出，等待裁判判定中...";
+
+    sendPlayerAction({
+        type: "SUBMIT_ANSWER",
+        clientId: myClientId,
+        nickname: myNickname,
+        roundId: currentClientRoundId,
+        selectedIndices: playerSelectedIndices
+    });
+}
+
+function startPlayerCountdown(seconds) {
+    clearInterval(playerTimerId);
+    playerSecondsLeft = seconds;
+    const timerDisplay = document.getElementById("playerTimerDisplay");
+    timerDisplay.textContent = `${playerSecondsLeft}s`;
+    timerDisplay.style.color = "#38bdf8";
+
+    playerTimerId = setInterval(() => {
+        playerSecondsLeft--;
+        timerDisplay.textContent = `${playerSecondsLeft}s`;
+        if (playerSecondsLeft <= 5) timerDisplay.style.color = "#ef4444";
+        if (playerSecondsLeft <= 0) clearInterval(playerTimerId);
+    }, 1000);
+}
+
+function sendPlayerAction(payload) {
+    if (mqttClient && mqttClient.connected) {
+        mqttClient.publish(`poker-math-2026/room/${currentRoomCode}/player_action`, JSON.stringify(payload));
+    }
+}
+
+/* =====================================================
+   休眠喚醒與網路切換事件監聽
+===================================================== */
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && currentRoomCode && !isHost) {
+        if (!mqttClient || !mqttClient.connected) {
+            updateNetworkBadge(false);
+            if (mqttClient) mqttClient.reconnect();
+        } else {
+            sendPlayerAction({
+                type: "JOIN_OR_RECONNECT",
+                clientId: myClientId,
+                nickname: myNickname
+            });
+        }
+    }
+});
+
+window.addEventListener("online", () => {
+    if (currentRoomCode && !isHost && mqttClient) {
+        mqttClient.reconnect();
+    }
+});
+</script>
+
+</body>
+</html>
