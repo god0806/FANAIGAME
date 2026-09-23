@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>桌迷藏：楚越舟戰 - 終極無界連線版</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        :root {
+            --chu-color: #2b6cb0;
+            --yue-color: #c53030;
+            --water-bg: #ebf8fa;
+            --board-border: #bee3f8;
+            --gold-event: #b7791f;
+        }
+        * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { margin: 0; padding: 8px 12px; background-color: #f7fafc; color: #2d3748; }
+        header { text-align: center; margin-bottom: 10px; }
+        h1 { color: #1a365d; margin: 0 0 4px 0; font-size: 1.3rem; }
+        .subtitle { font-size: 0.8rem; color: #4a5568; }
+        
+        .container { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+        .tab-nav { display: flex; background: #edf2f7; border-radius: 10px; padding: 4px; gap: 6px; }
+        .tab-btn { flex: 1; padding: 8px; font-size: 0.9rem; font-weight: bold; border: none; background: transparent; color: #4a5568; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-align: center; }
+        .tab-btn.active { background: white; color: #2b6cb0; box-shadow: 0 2px 4px rgba(0,0,0,0.08); }
+        .tab-content { display: none; }
+        .tab-content.active { display: flex; flex-direction: column; gap: 10px; }
+        
+        .card-box { background: white; padding: 12px; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.06); border: 1px solid #e2e8f0; }
+        .name-input, .select-input { width: 100%; max-width: 200px; padding: 6px 10px; font-size: 0.9rem; text-align: center; border: 1.5px solid #cbd5e0; border-radius: 6px; margin: 4px auto; display: block; font-weight: 600; }
+        .code-display { font-size: 1.6rem; letter-spacing: 4px; font-weight: 900; color: #2b6cb0; background: #edf2f7; padding: 4px 12px; border-radius: 6px; margin: 6px auto; width: fit-content; border: 2px dashed #cbd5e0; }
+        .passcode-input { width: 130px; padding: 6px; font-size: 1.3rem; text-align: center; letter-spacing: 4px; border: 2px solid #cbd5e0; border-radius: 6px; margin: 6px auto; display: block; font-weight: bold; }
+        
+        .role-badge { display: inline-block; padding: 3px 8px; border-radius: 16px; font-size: 0.75rem; font-weight: bold; }
+        .role-host { background: #bee3f8; color: #2b6cb0; }
+        .role-guest { background: #fed7d7; color: #c53030; }
+        .role-spectator { background: #e2e8f0; color: #4a5568; }
+        
+        .event-toggle-label { display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-size: 0.85rem; font-weight: bold; color: #4a5568; cursor: pointer; user-select: none; width: 100%; margin-bottom: 6px;}
+        
+        .toggle-header { cursor: pointer; display: flex; justify-content: space-between; align-items: center; user-select: none; }
+        .toggle-icon { font-size: 0.8rem; color: #a0aec0; transition: transform 0.2s; font-weight: bold; padding: 0 4px; }
+        .toggle-content { margin-top: 10px; transition: all 0.3s; }
+        .toggle-content.collapsed { display: none !important; }
+
+        #myIdentityBanner { text-align:center; padding:8px; border-radius:8px; font-size:1.05rem; font-weight:900; background:#edf2f7; color:#2d3748; border: 2px dashed #cbd5e0; margin-bottom: 4px; transition: all 0.3s ease; }
+        
+        .game-stage { background: white; padding: 12px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.06); display: flex; flex-direction: column; gap: 10px; position: relative; scroll-margin-top: 10px; }
+        .turn-banner { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; font-weight: bold; color: white; gap: 6px; margin-bottom: 8px; }
+        .turn-chu { background: linear-gradient(90deg, var(--chu-color), #4299e1); }
+        .turn-yue { background: linear-gradient(90deg, #e53e3e, var(--yue-color)); }
+        
+        .number-line-container { background: var(--water-bg); border: 2px solid var(--board-border); border-radius: 8px; padding: 45px 10px 50px 10px; position: relative; overflow-x: auto; scroll-behavior: smooth; }
+        .number-line { display: flex; justify-content: space-between; align-items: center; position: relative; min-width: 1050px; padding: 0 25px; height: 30px; }
+        .number-line::before { content: ""; position: absolute; left: 20px; right: 20px; top: 50%; height: 4px; background: #718096; transform: translateY(-50%); z-index: 1; border-radius: 2px; }
+        .tick-item { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 20px; height: 100%; z-index: 2; }
+        .tick { position: absolute; top: 50%; left: 50%; width: 2px; height: 12px; background: #718096; transform: translate(-50%, -50%); }
+        .tick.major { width: 3px; height: 20px; background: #1a202c; }
+        .tick-label { position: absolute; top: 26px; left: 50%; transform: translateX(-50%); font-size: 0.7rem; color: #4a5568; font-weight: bold; }
+        
+        .boat { position: absolute; transition: all 0.6s cubic-bezier(0.34, 1.3, 0.64, 1); font-size: 1.35rem; z-index: 20; user-select: none; white-space: nowrap; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.35)); display: flex; align-items: center; gap: 2px; }
+        .boat-nametag { font-size: 9px; font-weight: bold; padding: 2px 4px; border-radius: 3px; color: white; box-shadow: 0 1px 3px rgba(0,0,0,0.25); }
+        .nametag-chu { background: var(--chu-color); }
+        .nametag-yue { background: var(--yue-color); }
+        #boatChu { top: 12px; } #boatYue { top: 96px; }
+        
+        .mistake-marker { position: absolute; z-index: 50; display: flex; flex-direction: column; align-items: center; animation: mistakeFloat 1.4s ease-out forwards; }
+        .mistake-icon { font-size: 2rem; filter: drop-shadow(0 2px 5px rgba(229, 62, 62, 0.6)); }
+        .mistake-text { background: #e53e3e; color: white; font-size: 0.7rem; font-weight: bold; padding: 2px 6px; border-radius: 10px; }
+        @keyframes mistakeFloat { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 20% { transform: translateY(-10px) scale(1.15); opacity: 1; } 70% { transform: translateY(-24px) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(0.85); opacity: 0; } }
+        
+        .event-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .event-modal-card { background: linear-gradient(145deg, #ffffff, #fffaf0); border: 3px solid #d69e2e; border-radius: 14px; max-width: 400px; width: 100%; padding: 20px; text-align: center; animation: popModal 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        @keyframes popModal { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .event-modal-title { color: #b7791f; font-size: 1.25rem; font-weight: 900; margin: 0 0 6px 0; }
+        .event-modal-desc { font-size: 0.95rem; color: #2d3748; line-height: 1.4; margin: 8px 0 14px 0; font-weight: 500; }
+        
+        .control-grid-layout { display: grid; grid-template-columns: auto 1fr; gap: 15px; align-items: center; }
+        @media (max-width: 500px) { .control-grid-layout { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
+        
+        .card-and-status { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .card-display { width: 65px; height: 95px; border-radius: 6px; border: 2px solid #cbd5e0; background: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; font-size: 1.4rem; font-weight: bold; position: relative; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .card-red { color: #e53e3e; border-color: #feb2b2; background: #fff5f5; }
+        .card-black { color: #1a202c; border-color: #cbd5e0; background: #edf2f7; }
+        .card-badge { position: absolute; top: -6px; right: -6px; background: #e53e3e; color: white; font-size: 0.6rem; padding: 2px 5px; border-radius: 8px; font-weight: bold; }
+        
+        .actions-and-formula { display: flex; flex-direction: column; width: 100%; gap: 8px; }
+        .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn { min-height: 42px; padding: 8px 12px; font-size: 0.95rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn-primary { background-color: #3182ce; color: white; width: 100%; }
+        .btn-fwd { background-color: #38a169; color: white; }
+        .btn-back { background-color: #dd6b20; color: white; }
+        .btn-pass { background-color: #718096; color: white; grid-column: span 2; min-height: 36px; font-size: 0.85rem; }
+        
+        .formula-box { background: white; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e0; text-align: center; }
+        .formula-text { font-size: 1.15rem; font-weight: bold; color: #2b6cb0; margin: 2px 0; min-height: 24px; }
+        
+        .split-log-container { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 2px; }
+        @media (min-width: 768px) { .split-log-container { grid-template-columns: 1fr 1fr; } }
+        .log-panel { background: white; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; }
+        .log-panel-header { padding: 6px 10px; font-weight: bold; font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center; color: white; }
+        .header-chu { background: var(--chu-color); }
+        .header-yue { background: var(--yue-color); }
+        .log-table { width: 100%; border-collapse: collapse; font-size: 0.78rem; }
+        .log-table th, .log-table td { padding: 4px 4px; border-bottom: 1px solid #edf2f7; text-align: center; }
+        .log-scroll { max-height: 140px; overflow-y: auto; }
+        
+        .slot-row { display: flex; justify-content: space-between; padding: 6px 8px; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem; align-items: center;}
+        .slot-chu { background: #ebf8ff; } .slot-yue { background: #fff5f5; }
+        .status-dot { height: 8px; width: 8px; border-radius: 50%; display: inline-block; margin-right: 4px;}
+        .dot-on { background-color: #48bb78; } .dot-off { background-color: #a0aec0; }
+        
+        .review-table-container { overflow-x: auto; max-height: 60vh; border: 1px solid #cbd5e0; border-radius: 6px; margin-top: 10px; background: white; }
+        .review-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 600px; }
+        .review-table th, .review-table td { padding: 8px; border-bottom: 1px solid #e2e8f0; text-align: center; }
+        .review-table th { background: #f8fafc; color: #4a5568; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        .wrong-row { background-color: #fff5f5; }
+    </style>
+</head>
+<body>
+
+<div id="eventModal" class="event-modal-overlay">
+    <div class="event-modal-card">
+        <div style="display:inline-block; background:#fefcbf; color:#975a16; border:1px solid #ecc94b; padding:3px 12px; border-radius:20px; font-size:0.75rem; font-weight:bold; margin-bottom: 6px;">歷史風雲事件</div>
+        <h3 id="modalEventTitle" class="event-modal-title"></h3>
+        <p id="modalEventDesc" class="event-modal-desc"></p>
+        <button class="btn btn-primary" style="background:#b7791f; width:auto; padding:6px 20px; margin:0 auto;" onclick="closeEventModal()">整軍備戰</button>
+    </div>
+</div>
+
+<div id="victoryModal" class="event-modal-overlay" style="z-index: 200;">
+    <div id="victoryCard" class="event-modal-card" style="border-width: 4px; padding: 30px 20px;">
+        <div style="font-size: 3.5rem; margin-bottom: 5px; animation: popModal 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);">🏆</div>
+        <h2 id="victoryTitle" style="margin: 0 0 8px 0; font-size: 1.6rem;">遊戲結束</h2>
+        <p id="victoryDesc" style="font-size: 1rem; color: #4a5568; font-weight: bold; margin-bottom: 18px;"></p>
+        <button class="btn btn-primary" style="width: auto; padding: 8px 30px; margin: 0 auto; background: #4a5568;" onclick="closeVictoryModal()">關閉並前往戰後檢討</button>
+    </div>
+</div>
+
+<div id="reviewModal" class="event-modal-overlay" style="z-index: 150;">
+    <div class="event-modal-card" style="max-width: 850px; width: 95%; padding: 20px; text-align: left;">
+        <h2 id="reviewTitle" style="margin: 0 0 5px 0; font-size: 1.4rem;">戰後檢討室</h2>
+        <div style="font-size: 0.85rem; color: #718096;">系統已標記出錯誤（反方向）的決策，並標示您的專屬出牌紀錄。</div>
+        <div class="review-table-container">
+            <table class="review-table">
+                <thead><tr><th style="width:50px;">回</th><th style="width:90px;">將領</th><th style="width:60px;">起點</th><th style="width:70px;">抽牌</th><th style="width:100px;">決策</th><th style="width:90px;">計算結果</th><th>系統智能檢討</th></tr></thead>
+                <tbody id="reviewTableBody"></tbody>
+            </table>
+        </div>
+        <button class="btn btn-primary" style="margin-top: 15px; width: 100%; background: #4a5568;" onclick="closeReviewModal()">關閉檢討室</button>
+    </div>
+</div>
+
+<header>
+    <h1>桌迷藏：楚越舟戰</h1>
+    <div class="subtitle">無界無限連線版 (沉浸式自動收合)</div>
+</header>
+
+<div class="container">
+    <div class="tab-nav">
+        <button class="tab-btn active" onclick="switchTab('aiTab')">🤖 單機對抗</button>
+        <button class="tab-btn" onclick="switchTab('onlineTab')">🌐 動態連線</button>
+        <button class="tab-btn" onclick="switchTab('ruleTab')">📖 規則戰略</button>
+    </div>
+
+    <!-- 單機模式 -->
+    <div id="aiTab" class="tab-content active">
+        <div class="card-box" id="aiSetupCard">
+            <div class="toggle-header" onclick="toggleBlock(this)">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #1a365d;">🤖 單機對抗模式 (1v1)</h3>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="toggle-content" style="text-align: center;">
+                <input type="text" id="aiPlayerName" class="name-input" maxlength="8" placeholder="留空自動生成名號" value="">
+                <select id="aiRoleSelect" class="select-input">
+                    <option value="random" selected>🎲 隨機分配陣營</option>
+                    <option value="chu">扮演 楚軍 (藍方)</option>
+                    <option value="yue">扮演 越軍 (紅方)</option>
+                </select>
+                <label class="event-toggle-label"><input type="checkbox" id="aiEventToggle"> 啟用長江風雲特殊劇情</label>
+                <button class="btn btn-primary" style="width: auto; padding: 8px 24px; margin-top: 4px;" onclick="startAiGame()">開始對局</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 線上連線 -->
+    <div id="onlineTab" class="tab-content">
+        <div class="card-box" id="lobbyCard">
+            <div class="toggle-header" onclick="toggleBlock(this)">
+                <h3 style="margin: 0; font-size: 1.1rem; color: #1a365d;">🌐 線上連線大廳設定</h3>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="roleIndicator" class="role-badge role-spectator">未連線</span>
+                    <span class="toggle-icon">▼</span>
+                </div>
+            </div>
+            
+            <div class="toggle-content" id="onlineLobbyGrid" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
+                <div style="padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
+                    <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">🏠 建立房間 (房主)</h4>
+                    <input type="text" id="hostPlayerName" class="name-input" maxlength="8" placeholder="留空自動生成名號" value="">
+                    <select id="hostFactionSelect" class="select-input">
+                        <option value="random" selected>🎲 隨機分配陣營</option>
+                        <option value="chu">建立並加入 楚軍</option>
+                        <option value="yue">建立並加入 越軍</option>
+                        <option value="spectator">👁️ 以上帝視角建立 (純主機)</option>
+                    </select>
+                    <label class="event-toggle-label"><input type="checkbox" id="onlineEventToggle"> 啟用長江風雲劇情</label>
+                    <div id="generatedCodeBox" class="code-display" style="display:none;">----</div>
+                    <button id="btnHostCreate" class="btn btn-primary" onclick="startHost()">產生 4 碼並開啟大廳</button>
+                </div>
+
+                <div>
+                    <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">🚪 挑戰者加入</h4>
+                    <input type="text" id="joinPasscode" class="passcode-input" maxlength="4" placeholder="輸入 4 碼">
+                    <input type="text" id="joinPlayerName" class="name-input" maxlength="8" placeholder="留空自動生成名號" value="">
+                    
+                    <div style="margin-bottom: 6px;">
+                        <label class="event-toggle-label" style="font-size: 0.8rem;">
+                            <input type="checkbox" id="spectatorCheck" onchange="toggleJoinFaction()"> 以上帝視角加入 (無須選營)
+                        </label>
+                    </div>
+                    <select id="joinFactionSelect" class="select-input">
+                        <option value="random" selected>🎲 智慧平衡隨機陣營</option>
+                        <option value="chu">期望加入 楚軍</option>
+                        <option value="yue">期望加入 越軍</option>
+                    </select>
+                    <button id="btnJoin" class="btn btn-primary" style="background-color: #38a169;" onclick="clientJoin()">加入房間</button>
+                </div>
+                <div id="connectionStatus" style="margin-top: 2px; font-size: 0.8rem; text-align: center; color: #4a5568;"></div>
+            </div>
+        </div>
+
+        <!-- 獨立的戰局名單與連線狀態區塊 -->
+        <div id="lobbyStatusBox" class="card-box" style="display:none; background: #fffaf0; border: 1px dashed #d69e2e;">
+            <div class="toggle-header" onclick="toggleBlock(this)">
+                <h4 style="margin: 0; color: #b7791f; font-size: 1rem;">📋 戰局連線名單與狀態</h4>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="toggle-content">
+                <div id="lobbySlotsDisplay" style="margin-bottom: 10px; border: 1px solid #cbd5e0; border-radius: 6px; overflow: hidden; background: white;"></div>
+                <button id="btnHostStart" class="btn btn-primary" style="display:none; background-color: #d69e2e; font-size: 1.05rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="hostStartGame()">🚀 人數到齊，鎖定並開戰！</button>
+                <button id="btnSpectatorStart" class="btn btn-primary" style="display:none; background-color: #d69e2e; font-size: 1.05rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" onclick="reqStartGame()">🚀 代理開戰 (上帝權限)</button>
+            </div>
+        </div>
+
+        <!-- 上帝法旨面板 -->
+        <div id="spectatorAdminPanel" class="card-box" style="display:none; background:#fffaf0; border:2px solid #d69e2e;">
+            <div class="toggle-header" onclick="toggleBlock(this)">
+                <h4 style="margin: 0; color: #b7791f; font-size: 1rem;">🔮 上帝指令・全事件自選控盤</h4>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="toggle-content">
+                <div style="font-size: 0.75rem; color: #718096; margin-bottom: 6px; text-align: center;">輸入認證碼獲取權限。該陣營下次行動必觸發指令！</div>
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;">
+                    <input type="password" id="refereeSecret" class="name-input" style="max-width:90px; margin:0; padding:4px;" maxlength="4" placeholder="認證碼">
+                    <select id="tianshiTargetSelect" class="select-input" style="margin:0; max-width: 100px; font-size:0.8rem; padding: 4px;">
+                        <option value="chu">指派楚軍</option>
+                        <option value="yue">指派越軍</option>
+                    </select>
+                    <select id="tianshiEventSelect" class="select-input" style="margin:0; max-width: 130px; font-size:0.8rem; padding: 4px;">
+                        <option value="DOUBLE_WIND">💨 順風疾行 (x2)</option>
+                        <option value="REEF_ROCK">🌊 巨石暗礁 (÷2)</option>
+                        <option value="STRATEGY_BOOST">⚡ 軍師借風 (+3格)</option>
+                        <option value="RIVER_SURGE">🌀 江心急流 (-2格)</option>
+                        <option value="MIST_SWAP">🌫️ 水寨迷霧 (互換)</option>
+                    </select>
+                    <button class="btn" style="min-height:30px; padding:4px 12px; font-size:0.8rem; background:#b7791f; color:white;" onclick="applyTianshi()">下達</button>
+                </div>
+                <div id="refereeStatusMsg" style="font-size:0.75rem; color:#b7791f; margin-top:4px; font-weight:bold; text-align: center;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 規則 -->
+    <div id="ruleTab" class="tab-content">
+        <div class="card-box">
+            <h3 style="margin:0 0 8px 0; color:#2b6cb0; font-size: 1.1rem;">📖 規則與戰略手冊</h3>
+            <p style="font-size:0.85rem; line-height: 1.5;">
+                <b>楚國 (目標 -25)：</b>紅牌(正)選後退(減)，黑牌(負)選前進(加)。<br>
+                <b>越國 (目標 +25)：</b>黑牌(負)按後退(減去負數向右)。<br>
+                <b>防掛網機制：</b>輪到您出牌時會有 30 秒倒數，超時未點選將強制判定為離線，並瞬間由同陣營下一順位遞補出戰！斷線者重連後只能乖乖排到隊伍最後面。<br>
+            </p>
+        </div>
+    </div>
+
+    <!-- 遊戲舞台 -->
+    <div class="game-stage card-box" id="mainGameStage">
+        <div class="toggle-header" onclick="toggleBlock(this)">
+            <h4 style="margin: 0; color: #1a365d; font-size: 1.1rem;">🌊 舟戰舞台</h4>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content">
+            <div id="myIdentityBanner">👤 您尚未加入戰局</div>
+
+            <div id="turnBanner" class="turn-banner turn-chu">
+                <span id="turnLabel">等待開局...</span>
+                <span id="playerRoleStatus" style="font-size: 0.75rem; font-weight: normal; background: rgba(0,0,0,0.2); padding: 2px 6px; border-radius: 4px;">戰況大廳</span>
+            </div>
+
+            <div class="number-line-container" id="lineWrapper">
+                <div id="mistakeLayer" style="position: absolute; top:0; left:0; right:0; bottom:0; pointer-events: none; z-index: 40;"></div>
+                <div id="boatChu" class="boat">⛵<span id="boatNameChu" class="boat-nametag nametag-chu">楚軍</span></div>
+                <div id="boatYue" class="boat">🛶<span id="boatNameYue" class="boat-nametag nametag-yue">越軍</span></div>
+                <div class="number-line" id="numberLine"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-box" style="padding: 10px 14px; background: #edf2f7;">
+        <div class="toggle-header" onclick="toggleBlock(this)">
+            <h4 style="margin: 0; color: #1a365d; font-size: 1rem;">🎮 戰術控制台</h4>
+            <span class="toggle-icon">▼</span>
+        </div>
+        <div class="toggle-content control-grid-layout">
+            <div class="card-and-status">
+                <div id="cardView" class="card-display"><span id="cardValSpan">？</span><span id="cardTypeSpan" style="font-size:0.65rem"></span><span id="cardBadge" class="card-badge" style="display:none;"></span></div>
+                <span style="font-size: 0.7rem; color: #718096; font-weight: bold;">本輪卡牌</span>
+            </div>
+
+            <div class="actions-and-formula">
+                <div class="formula-box">
+                    <div id="formulaDisplay" class="formula-text">等待開局...</div>
+                    <div id="hintText" style="font-size: 0.75rem; color: #4a5568;">請設定對戰模式</div>
+                </div>
+                
+                <div id="playButtonsArea" class="action-buttons">
+                    <button id="btnForward" class="btn btn-fwd" disabled onclick="reqMove('add')">前進（＋）</button>
+                    <button id="btnBackward" class="btn btn-back" disabled onclick="reqMove('sub')">後退（－）</button>
+                    <button id="btnPass" class="btn btn-pass" disabled onclick="reqPass()">🔄 退居隊尾 (讓位給同國候補)</button>
+                    <button id="btnHostReconnect" class="btn btn-primary" style="display:none; grid-column: span 2; background-color:#38a169;" onclick="hostReconnect()">🔄 恢復連線 (房主專用)</button>
+                </div>
+                
+                <div id="reviewButtonsArea" class="action-buttons" style="display:none;">
+                    <button class="btn btn-primary" style="background:var(--chu-color);" onclick="openReviewModal('chu')">📊 檢討楚軍戰報</button>
+                    <button class="btn btn-primary" style="background:var(--yue-color);" onclick="openReviewModal('yue')">📊 檢討越軍戰報</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="split-log-container">
+        <div class="log-panel card-box" style="padding: 0; border: 1px solid #e2e8f0;">
+            <div class="log-panel-header header-chu toggle-header" onclick="toggleBlock(this)">
+                <span id="logHeaderChu">🔵 楚軍 [等待中]</span>
+                <div style="display:flex; align-items:center;">
+                    <span id="posChuBadge">位置：0</span>
+                    <span class="toggle-icon" style="color:white;">▼</span>
+                </div>
+            </div>
+            <div class="log-scroll toggle-content" style="margin-top:0;">
+                <table class="log-table"><thead><tr><th>回</th><th>將領</th><th>原位</th><th>牌/事件</th><th>令</th><th>算式</th><th>新位</th></tr></thead><tbody id="logBodyChu"></tbody></table>
+            </div>
+        </div>
+        <div class="log-panel card-box" style="padding: 0; border: 1px solid #e2e8f0;">
+            <div class="log-panel-header header-yue toggle-header" onclick="toggleBlock(this)">
+                <span id="logHeaderYue">🔴 越軍 [等待中]</span>
+                <div style="display:flex; align-items:center;">
+                    <span id="posYueBadge">位置：0</span>
+                    <span class="toggle-icon" style="color:white;">▼</span>
+                </div>
+            </div>
+            <div class="log-scroll toggle-content" style="margin-top:0;">
+                <table class="log-table"><thead><tr><th>回</th><th>將領</th><th>原位</th><th>牌/事件</th><th>令</th><th>算式</th><th>新位</th></tr></thead><tbody id="logBodyYue"></tbody></table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleBlock(headerEl) {
+        let content = headerEl.nextElementSibling;
+        let icon = headerEl.querySelector('.toggle-icon');
+        if (!content || !icon) return;
+        if (content.classList.contains('collapsed')) {
+            content.classList.remove('collapsed');
+            icon.innerText = '▼';
+        } else {
+            content.classList.add('collapsed');
+            icon.innerText = '▶';
+        }
+    }
+
+    const MIN_BOUND = -25, MAX_BOUND = 25, P2P_PREFIX = "chuyue_dyn_inf_v11_", REFEREE_PWD = "0806";
+    
+    let myUid = sessionStorage.getItem('chuyue_uid');
+    if (!myUid) { myUid = Math.random().toString(36).substring(2, 10); sessionStorage.setItem('chuyue_uid', myUid); }
+
+    let gameMode = 'ai'; 
+    let net = { peer: null, isHost: false, role: 'local', hostConn: null, myName: '' }; 
+    let hostPlayers = {}; 
+    let turnTimer = null; 
+    let hasAutoScrolled = false; // 控制是否已經平滑捲動過了
+
+    let gameState = {
+        posChu: 0, posYue: 0, turnTeam: 'chu', roundChu: 1, roundYue: 1, 
+        drawnCard: null, activeEvent: null, enableEvents: false,
+        gameStarted: false, gameOver: false, mistTriggered: false,
+        tianshiEventPayload: null, isEventModalOpen: false, 
+        chuQueue: [], yueQueue: [], history: { chu: [], yue: [] }, spectators: []
+    };
+
+    function getUniqueName(baseName, playersObj) {
+        let nameList = Object.values(playersObj).map(p => p.name);
+        let finalName = baseName, counter = 1;
+        while (nameList.includes(finalName)) {
+            counter++; finalName = `${baseName} #${counter}`;
+        }
+        return finalName;
+    }
+
+    function getFairRandomFaction() {
+        let last = sessionStorage.getItem('chuyue_last_random_faction');
+        let pick;
+        if (last === 'chu') pick = Math.random() < 0.8 ? 'yue' : 'chu';
+        else if (last === 'yue') pick = Math.random() < 0.8 ? 'chu' : 'yue';
+        else pick = Math.random() < 0.5 ? 'chu' : 'yue';
+        sessionStorage.setItem('chuyue_last_random_faction', pick);
+        return pick;
+    }
+
+    function getRandomName(faction, isSpectator = false) {
+        if (isSpectator) {
+            const specNames = ['造物主', '全知者', '隱形守護者', '時空旅者', '上帝之眼', '神秘力量'];
+            return specNames[Math.floor(Math.random() * specNames.length)];
+        }
+        const team = faction.startsWith('chu') ? 'chu' : 'yue';
+        if (team === 'chu') {
+            const chuNames = ['項羽', '項燕', '屈原', '景差', '昭陽', '春申君', '楚軍猛將', '藍營都督', '江東子弟'];
+            return chuNames[Math.floor(Math.random() * chuNames.length)];
+        } else {
+            const yueNames = ['勾踐', '范蠡', '文種', '靈姑浮', '無彊', '歐冶子', '越軍猛將', '紅營都督', '百越勇士'];
+            return yueNames[Math.floor(Math.random() * yueNames.length)];
+        }
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-btn, .tab-content').forEach(el => el.classList.remove('active'));
+        event.target.classList.add('active');
+        document.getElementById(tabId).classList.add('active');
+        gameMode = (tabId === 'aiTab') ? 'ai' : 'online';
+        if (gameMode === 'ai') { net.role = 'local'; updateControlsAvailability(); }
+    }
+
+    function toggleJoinFaction() { document.getElementById('joinFactionSelect').style.display = document.getElementById('spectatorCheck').checked ? 'none' : 'block'; }
+    function setStatus(text) { document.getElementById('connectionStatus').innerText = text; }
+    function updateRoleBadge(text, className) { const b = document.getElementById('roleIndicator'); b.innerText = text; b.className = 'role-badge ' + className; }
+
+    function updateMyIdentityUI() {
+        const banner = document.getElementById('myIdentityBanner');
+        if (!banner) return;
+        
+        if (gameMode === 'ai') {
+            const isChu = net.role === 'chu';
+            const teamName = isChu ? '楚軍 (藍方)' : '越軍 (紅方)';
+            const color = isChu ? 'var(--chu-color)' : 'var(--yue-color)';
+            banner.innerHTML = `👤 本機身分：<span style="color:${color}; font-size:1.25rem;">${teamName} - ${net.myName}</span>`;
+            banner.style.background = isChu ? '#ebf8ff' : '#fff5f5'; banner.style.borderColor = color;
+        } else if (gameMode === 'online') {
+            if (!net.role || net.role === 'local') {
+                banner.innerHTML = `👤 您尚未加入戰局`; banner.style.background = '#edf2f7'; banner.style.borderColor = '#cbd5e0';
+            } else if (net.role === 'spectator') {
+                banner.innerHTML = `👁️ 本機身分：<span style="color:#718096; font-size:1.25rem;">上帝視角 (觀戰) - ${net.myName}</span>`;
+                banner.style.background = '#f7fafc'; banner.style.borderColor = '#a0aec0';
+            } else {
+                const isChu = net.role === 'chu';
+                const teamName = isChu ? '楚軍 (藍方)' : '越軍 (紅方)';
+                const color = isChu ? 'var(--chu-color)' : 'var(--yue-color)';
+                banner.innerHTML = `👤 本機身分：<span style="color:${color}; font-size:1.25rem;">${teamName} - ${net.myName}</span>`;
+                banner.style.background = isChu ? '#ebf8ff' : '#fff5f5'; banner.style.borderColor = color;
+            }
+        }
+    }
+
+    // ★ 新增：遊戲開始自動隱藏設定區塊並平滑捲動
+    function transitionToGameView() {
+        if (hasAutoScrolled) return;
+        hasAutoScrolled = true;
+        
+        const aiSetup = document.getElementById('aiSetupCard');
+        if (aiSetup) aiSetup.style.display = 'none';
+        
+        const lobbyCard = document.getElementById('lobbyCard');
+        if (lobbyCard) lobbyCard.style.display = 'none';
+
+        const statusBoxContent = document.querySelector('#lobbyStatusBox .toggle-content');
+        const statusBoxIcon = document.querySelector('#lobbyStatusBox .toggle-icon');
+        if (statusBoxContent && !statusBoxContent.classList.contains('collapsed')) {
+            statusBoxContent.classList.add('collapsed');
+            if (statusBoxIcon) statusBoxIcon.innerText = '▶';
+        }
+        
+        const gameStage = document.getElementById('mainGameStage');
+        if (gameStage) {
+            setTimeout(() => {
+                gameStage.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 150);
+        }
+    }
+
+    function startAiGame() {
+        let uTeam = document.getElementById('aiRoleSelect').value;
+        if (uTeam === 'random') {
+            uTeam = getFairRandomFaction();
+            alert(`🎲 系統天命指派：您將以【${uTeam === 'chu' ? '楚軍 (藍方)' : '越軍 (紅方)'}】身分迎戰電腦！`);
+        }
+        net.role = uTeam; 
+        gameState.enableEvents = document.getElementById('aiEventToggle').checked;
+        resetGameState();
+        
+        let userName = document.getElementById('aiPlayerName').value.trim() || getRandomName(uTeam);
+        if (userName === 'AI 電腦') userName = '玩家_AI電腦';
+        net.myName = userName;
+        
+        if (uTeam === 'chu') {
+            gameState.chuQueue = [{ uid: myUid, name: userName }];
+            gameState.yueQueue = [{ uid: 'ai_yue', name: 'AI 電腦' }];
+        } else {
+            gameState.yueQueue = [{ uid: myUid, name: userName }];
+            gameState.chuQueue = [{ uid: 'ai_chu', name: 'AI 電腦' }];
+        }
+        
+        gameState.gameStarted = true;
+        transitionToGameView();
+        updateMyIdentityUI(); refreshUI(); executeAutoDraw();
+    }
+
+    function startHost() {
+        let faction = document.getElementById('hostFactionSelect').value;
+        let isSpectator = false;
+        
+        if (faction === 'spectator') { isSpectator = true; faction = 'spectator'; } 
+        else if (faction === 'random') { 
+            faction = getFairRandomFaction(); 
+            alert(`🎲 系統天命指派：您將以【${faction === 'chu' ? '楚軍 (藍方)' : '越軍 (紅方)'}】身分建立戰局！`);
+        }
+        
+        let hostName = document.getElementById('hostPlayerName').value.trim() || getRandomName(faction, isSpectator);
+
+        gameState.enableEvents = document.getElementById('onlineEventToggle').checked;
+        gameMode = 'online';
+        document.getElementById('btnHostCreate').disabled = true; document.getElementById('btnJoin').disabled = true;
+        
+        const code = Math.floor(1000 + Math.random() * 9000).toString();
+        net.currentCode = code; setStatus(`開啟中... 房號 [${code}]`);
+        
+        if (net.peer) net.peer.destroy();
+        net.peer = new Peer(P2P_PREFIX + code);
+        
+        net.peer.on('open', () => {
+            net.isHost = true;
+            document.getElementById('generatedCodeBox').innerText = code; document.getElementById('generatedCodeBox').style.display = 'block';
+            setStatus(`✅ 大廳開啟成功！等待玩家加入...`);
+            
+            hostPlayers = {}; resetGameState();
+            net.role = isSpectator ? 'spectator' : faction;
+            net.myName = hostName; 
+            
+            hostPlayers[myUid] = { uid: myUid, name: hostName, faction: faction, asSpectator: isSpectator, connected: true, conn: null };
+            
+            if (isSpectator) {
+                updateRoleBadge('上帝視角 (房主)', 'role-spectator');
+                document.getElementById('spectatorAdminPanel').style.display = 'block';
+            } else {
+                gameState[faction + 'Queue'].push({ uid: myUid, name: hostName });
+                updateRoleBadge(`房主大廳`, 'role-host');
+            }
+            updateMyIdentityUI(); updateLobbyUI();
+        });
+
+        net.peer.on('connection', (conn) => {
+            conn.on('data', (data) => {
+                if (data.type === 'JOIN') { handleClientJoin(conn, data); }
+                else if (data.type === 'REQ_MOVE') { 
+                    const q = gameState.turnTeam === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+                    if (q.length > 0 && q[0].uid === conn.uid) processMove(data.op); 
+                }
+                else if (data.type === 'REQ_PASS') { 
+                    const q = gameState.turnTeam === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+                    if (q.length > 0 && q[0].uid === conn.uid) processPass(); 
+                }
+                else if (data.type === 'REQ_START_GAME' && conn.role === 'spectator') { 
+                    hostStartGame(conn);
+                }
+                else if (data.type === 'TIANSHI_CMD') { handleTianshi(data); }
+            });
+            conn.on('close', () => { handleClientDrop(conn); });
+        });
+        
+        net.peer.on('error', (err) => {
+            if (err.type === 'unavailable-id') startHost();
+            else { setStatus('開局失敗。'); document.getElementById('btnHostCreate').disabled = false; document.getElementById('btnJoin').disabled = false; }
+        });
+    }
+
+    function reqStartGame() {
+        if (net.isHost) hostStartGame();
+        else if (net.hostConn) net.hostConn.send({ type: 'REQ_START_GAME' });
+    }
+
+    function handleClientJoin(conn, data) {
+        if (!data.asSpectator && data.requestedFaction === 'random') {
+            const cLen = gameState.chuQueue.length; const yLen = gameState.yueQueue.length;
+            if (cLen < yLen) data.requestedFaction = 'chu';
+            else if (yLen < cLen) data.requestedFaction = 'yue';
+            else data.requestedFaction = getFairRandomFaction();
+            if (data.isRandomName) data.name = getRandomName(data.requestedFaction);
+        }
+
+        let p = hostPlayers[data.uid];
+        if (p && p.connected && p.conn) { try { p.conn.close(); } catch(e){} }
+
+        if (!p) {
+            let finalName = getUniqueName(data.name, hostPlayers);
+            p = { uid: data.uid, name: finalName, faction: data.requestedFaction, asSpectator: data.asSpectator, connected: true, conn: conn };
+            hostPlayers[data.uid] = p;
+        } else {
+            p.connected = true; p.conn = conn; 
+        }
+
+        conn.role = p.asSpectator ? 'spectator' : p.faction;
+        conn.uid = data.uid; 
+
+        if (!p.asSpectator) {
+            let q = p.faction === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+            let existingIdx = q.findIndex(x => x.uid === p.uid);
+            if (existingIdx !== -1) q.splice(existingIdx, 1);
+            q.push({ uid: p.uid, name: p.name });
+        }
+
+        conn.send({ type: 'WELCOME', role: conn.role, state: gameState, finalName: p.name });
+        syncAll(); updateLobbyUI();
+        if (gameState.gameStarted) { checkTurn(); }
+    }
+
+    function handleClientDrop(conn) {
+        for (let uid in hostPlayers) {
+            if (hostPlayers[uid].conn === conn) {
+                hostPlayers[uid].connected = false;
+                syncAll(); updateLobbyUI();
+                if (gameState.gameStarted) { setTimeout(checkTurn, 1000); }
+                break;
+            }
+        }
+    }
+
+    function updateLobbyUI() {
+        document.getElementById('lobbyStatusBox').style.display = 'block';
+        
+        let cHtml = gameState.chuQueue.map(p => {
+            let isMe = p.uid === myUid ? '<span style="color:#e53e3e; font-weight:bold;">(您)</span> ' : '';
+            let status = hostPlayers[p.uid] && hostPlayers[p.uid].connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線(跳過)';
+            return `<div>${isMe}${p.name} ${status}</div>`;
+        }).join('') || '<div style="color:#a0aec0;">無玩家加入</div>';
+        
+        let yHtml = gameState.yueQueue.map(p => {
+            let isMe = p.uid === myUid ? '<span style="color:#e53e3e; font-weight:bold;">(您)</span> ' : '';
+            let status = hostPlayers[p.uid] && hostPlayers[p.uid].connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線(跳過)';
+            return `<div>${isMe}${p.name} ${status}</div>`;
+        }).join('') || '<div style="color:#a0aec0;">無玩家加入</div>';
+
+        let sHtml = (gameState.spectators || []).map(p => {
+            let isMe = p.uid === myUid ? '<span style="color:#e53e3e; font-weight:bold;">(您)</span> ' : '';
+            let status = p.connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線';
+            return `<div>${isMe}${p.name} ${status}</div>`;
+        }).join('') || '<div style="color:#a0aec0;">無觀戰者</div>';
+        
+        let html = `
+            <div class="slot-row slot-chu" style="display:block;"><b>楚軍陣列 (${gameState.chuQueue.length}人)</b> <div style="margin-top:4px; font-size:0.8rem; color:#4a5568;">${cHtml}</div></div>
+            <div class="slot-row slot-yue" style="display:block;"><b>越軍陣列 (${gameState.yueQueue.length}人)</b> <div style="margin-top:4px; font-size:0.8rem; color:#4a5568;">${yHtml}</div></div>
+            <div class="slot-row" style="background:#f7fafc; display:block;"><b>上帝視角 (${(gameState.spectators || []).length}人)</b> <div style="margin-top:4px; font-size:0.8rem; color:#4a5568;">${sHtml}</div></div>
+        `;
+        document.getElementById('lobbySlotsDisplay').innerHTML = html;
+        
+        if (!gameState.gameStarted) {
+            if (net.isHost) {
+                document.getElementById('btnHostStart').style.display = 'block';
+                document.getElementById('btnSpectatorStart').style.display = 'none';
+            } else if (net.role === 'spectator') {
+                document.getElementById('btnHostStart').style.display = 'none';
+                document.getElementById('btnSpectatorStart').style.display = 'block';
+            } else {
+                document.getElementById('btnHostStart').style.display = 'none';
+                document.getElementById('btnSpectatorStart').style.display = 'none';
+            }
+        } else {
+            document.getElementById('btnHostStart').style.display = 'none';
+            document.getElementById('btnSpectatorStart').style.display = 'none';
+        }
+    }
+
+    function hostStartGame(triggeredByConn = null) {
+        if (gameState.chuQueue.length === 0 || gameState.yueQueue.length === 0) {
+            const msg = '【開戰失敗】\n雙方陣營皆需至少有一名玩家！\n請等待玩家加入，或請觀戰者更換陣營。';
+            if (triggeredByConn) triggeredByConn.send({ type: 'ALERT', message: msg });
+            else alert(msg);
+            return;
+        }
+        gameState.gameStarted = true; gameState.turnTeam = 'chu';
+        transitionToGameView();
+        syncAll(); refreshUI(); executeAutoDraw(); updateLobbyUI();
+    }
+
+    function syncAll(specificConn = null) {
+        if (!net.isHost) return;
+        
+        gameState.spectators = Object.values(hostPlayers).filter(p => p.asSpectator).map(p => ({uid: p.uid, name: p.name, connected: p.connected}));
+        
+        const payload = { type: 'SYNC', state: gameState };
+        if (specificConn) specificConn.send(payload);
+        else {
+            for(let uid in hostPlayers) {
+                let p = hostPlayers[uid];
+                if (p.connected && p.conn) p.conn.send(payload);
+            }
+        }
+    }
+
+    function clientJoin() {
+        const code = document.getElementById('joinPasscode').value.trim();
+        if (!/^\d{4}$/.test(code)) return alert('請輸入 4 碼！');
+        
+        const asSpectator = document.getElementById('spectatorCheck').checked;
+        const faction = document.getElementById('joinFactionSelect').value;
+        let rawName = document.getElementById('joinPlayerName').value.trim();
+        let isRandomName = false;
+        
+        if (!rawName) { rawName = getRandomName(faction, asSpectator); isRandomName = true; }
+
+        gameMode = 'online';
+        document.getElementById('btnJoin').disabled = true;
+        if (net.peer) net.peer.destroy();
+        net.peer = new Peer();
+
+        net.peer.on('open', () => {
+            const conn = net.peer.connect(P2P_PREFIX + code);
+            net.hostConn = conn;
+            
+            conn.on('open', () => { 
+                conn.send({ type: 'JOIN', uid: myUid, name: rawName, isRandomName: isRandomName, asSpectator: asSpectator, requestedFaction: faction }); 
+            });
+
+            conn.on('data', (data) => {
+                if (data.type === 'WELCOME') {
+                    net.role = data.role; gameState = data.state;
+                    net.myName = data.finalName; 
+                    
+                    if (net.role === 'spectator') {
+                        updateRoleBadge('上帝視角', 'role-spectator');
+                        document.getElementById('spectatorAdminPanel').style.display = gameState.gameStarted ? 'block' : 'none';
+                    } else updateRoleBadge(`本機: ${net.role === 'chu'?'楚':'越'}軍`, net.role === 'chu'?'role-host':'role-guest');
+                    
+                    setStatus(`連線成功！身分：${net.role === 'spectator' ? '上帝視角' : '將領'}`);
+                    updateMyIdentityUI(); updateLobbyUI(); refreshUI();
+                    if (gameState.gameStarted) transitionToGameView();
+                } else if (data.type === 'SYNC') {
+                    gameState = data.state;
+                    if (net.role === 'spectator' && gameState.gameStarted) document.getElementById('spectatorAdminPanel').style.display = 'block';
+                    if (gameState.gameStarted) transitionToGameView();
+                    updateLobbyUI(); refreshUI(); 
+                    if (gameState.activeEvent && gameState.isEventModalOpen) {
+                        document.getElementById('modalEventTitle').innerHTML = `⚡ ${gameState.activeEvent.name}`;
+                        document.getElementById('modalEventDesc').innerHTML = gameState.activeEvent.desc;
+                        document.getElementById('eventModal').style.display = 'flex';
+                    } else if (!gameState.isEventModalOpen) document.getElementById('eventModal').style.display = 'none';
+                } else if (data.type === 'LOG') { addLog(data.target, data.r, data.a, data.s, data.c, data.act, data.f, data.e); }
+                else if (data.type === 'CLOSE_MODAL') { document.getElementById('eventModal').style.display = 'none'; gameState.isEventModalOpen = false; updateControlsAvailability(); }
+                else if (data.type === 'MISTAKE') { spawnMistakeMarker(data.isChu, data.pos); }
+                else if (data.type === 'VICTORY') { showVictoryModal(data.team); }
+                else if (data.type === 'KICK_TIMEOUT') {
+                    alert('您已超過 30 秒未動作，系統已將您標記為離線並換人。\n若要繼續遊玩，請重新點擊「加入房間」！');
+                }
+                else if (data.type === 'ALERT') { alert(data.message); }
+            });
+            conn.on('close', () => { setStatus('斷線，請重新加入'); document.getElementById('btnJoin').disabled = false; });
+        });
+        net.peer.on('error', () => { setStatus('找不到房間！'); document.getElementById('btnJoin').disabled = false; });
+    }
+
+    // --- 遊戲邏輯與超時處理 ---
+    function resetGameState() {
+        if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+        if (window.localCountdown) { clearInterval(window.localCountdown); window.localCountdown = null; }
+        gameState.posChu = 0; gameState.posYue = 0;
+        gameState.turnTeam = 'chu';
+        gameState.roundChu = 1; gameState.roundYue = 1;
+        gameState.drawnCard = null; gameState.activeEvent = null; gameState.mistTriggered = false;
+        gameState.gameOver = false; gameState.tianshiEventPayload = null; gameState.isEventModalOpen = false;
+        gameState.chuQueue = []; gameState.yueQueue = []; gameState.spectators = [];
+        gameState.history = { chu: [], yue: [] }; 
+        document.getElementById('logBodyChu').innerHTML = ''; document.getElementById('logBodyYue').innerHTML = '';
+        closeVictoryModal(); closeReviewModal();
+        
+        hasAutoScrolled = false;
+        
+        const aiSetup = document.getElementById('aiSetupCard');
+        if (aiSetup) aiSetup.style.display = '';
+        const lobbyCard = document.getElementById('lobbyCard');
+        if (lobbyCard) lobbyCard.style.display = '';
+        
+        const statusBoxContent = document.querySelector('#lobbyStatusBox .toggle-content');
+        const statusBoxIcon = document.querySelector('#lobbyStatusBox .toggle-icon');
+        if (statusBoxContent && statusBoxContent.classList.contains('collapsed')) {
+            statusBoxContent.classList.remove('collapsed');
+            if (statusBoxIcon) statusBoxIcon.innerText = '▼';
+        }
+        
+        updateMyIdentityUI();
+    }
+
+    function handlePlayerTimeout(uid) {
+        if (!net.isHost || gameState.gameOver || gameState.isEventModalOpen || !gameState.gameStarted) return;
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        if (q.length === 0 || q[0].uid !== uid) return; 
+
+        let p = hostPlayers[uid];
+        if (p) {
+            p.connected = false; 
+            if (p.conn) {
+                try { p.conn.send({ type: 'KICK_TIMEOUT' }); p.conn.close(); } catch(e) {}
+                p.conn = null;
+            }
+            
+            const start = team === 'chu' ? gameState.posChu : gameState.posYue;
+            const rNum = team === 'chu' ? gameState.roundChu : gameState.roundYue;
+            const actName = '⌛ 超時離線';
+            
+            addLog(team === 'chu' ? 'logBodyChu' : 'logBodyYue', rNum, p.name, start, {color:'black', value:'-'}, actName, '自動換人', start);
+            
+            const msg = { type: 'LOG', target: team === 'chu' ? 'logBodyChu' : 'logBodyYue', r: rNum, a: p.name, s: start, c: {color:'black', value:'-'}, act: actName, f: '自動換人', e: start };
+            for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send(msg);
+
+            syncAll(); updateLobbyUI(); checkTurn(); 
+        }
+    }
+
+    function hostReconnect() {
+        if (hostPlayers[myUid]) {
+            hostPlayers[myUid].connected = true;
+            const team = hostPlayers[myUid].faction;
+            if (team === 'chu' || team === 'yue') {
+                let q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+                let idx = q.findIndex(x => x.uid === myUid);
+                if (idx !== -1) q.push(q.splice(idx, 1)[0]);
+            }
+            syncAll(); updateLobbyUI(); checkTurn();
+        }
+    }
+
+    function checkTurn() {
+        if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+        if (gameState.gameOver || gameState.isEventModalOpen || (!gameState.gameStarted && gameMode==='online')) return;
+        
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        
+        if (q.length === 0) { updateControlsAvailability(); return; }
+
+        if (gameMode === 'online' && net.isHost) {
+            let shifted = false; let checked = 0;
+            while (checked < q.length) {
+                let p = hostPlayers[q[0].uid];
+                if (p && p.connected) break; 
+                q.push(q.shift()); 
+                shifted = true; checked++;
+            }
+            if (shifted) { syncAll(); refreshUI(); } 
+            
+            let isOnline = hostPlayers[q[0].uid] && hostPlayers[q[0].uid].connected;
+            if (!isOnline) { updateControlsAvailability(); return; } 
+        }
+
+        const curUid = q[0].uid;
+        let isAi = false;
+        if (gameMode === 'ai' && (curUid === 'ai_chu' || curUid === 'ai_yue')) isAi = true;
+
+        if (isAi) {
+            document.getElementById('hintText').innerText = `🤖 ${q[0].name} 正在盤算...`;
+            setTimeout(() => { if (!gameState.gameOver && !gameState.isEventModalOpen) processMove(getAiBestMove()); }, 1200);
+        } else {
+            updateControlsAvailability();
+            if (gameMode === 'online' && net.isHost) {
+                turnTimer = setTimeout(() => { handlePlayerTimeout(curUid); }, 30000);
+            }
+        }
+    }
+
+    function getAiBestMove() {
+        const team = gameState.turnTeam;
+        const cur = team === 'chu' ? gameState.posChu : gameState.posYue;
+        const v = gameState.drawnCard.signedVal;
+        return team === 'chu' ? (cur+v < cur-v ? 'add' : 'sub') : (cur+v > cur-v ? 'add' : 'sub');
+    }
+
+    function executeAutoDraw() {
+        if (gameState.gameOver) return;
+        const team = gameState.turnTeam;
+        let val = Math.floor(Math.random() * 8) + 1, isRed = Math.random() < 0.5;
+        let card = { color: isRed?'red':'black', value: val, signedVal: isRed?val:-val };
+        
+        let evtDef = triggerEvent(team);
+        if (evtDef) {
+            gameState.activeEvent = { name: evtDef.name, desc: evtDef.desc, hasPre: evtDef.hasPre };
+            if (evtDef.type === 'pos') evtDef.exec(team); else evtDef.exec(card);
+            gameState.isEventModalOpen = true;
+        } else { gameState.activeEvent = null; gameState.isEventModalOpen = false; }
+        
+        gameState.drawnCard = card;
+        
+        if (evtDef) {
+            document.getElementById('modalEventTitle').innerHTML = `⚡ ${evtDef.name}`;
+            document.getElementById('modalEventDesc').innerHTML = evtDef.desc;
+            document.getElementById('eventModal').style.display = 'flex';
+        }
+        syncAll(); refreshUI();
+        if (!evtDef) checkTurn();
+    }
+
+    function triggerEvent(team) {
+        if (gameState.tianshiEventPayload && gameState.tianshiEventPayload.target === team) {
+            let eId = gameState.tianshiEventPayload.eventId; gameState.tianshiEventPayload = null;
+            return getEvtDef(eId, true);
+        }
+        if (!gameState.enableEvents || Math.random() >= 0.20) return null;
+        if (Math.random() < 0.10 && !gameState.mistTriggered) { gameState.mistTriggered = true; return getEvtDef('MIST_SWAP', false); }
+        const pool = ['DOUBLE_WIND', 'REEF_ROCK', 'STRATEGY_BOOST', 'RIVER_SURGE'];
+        return getEvtDef(pool[Math.floor(Math.random() * pool.length)], false);
+    }
+
+    function getEvtDef(id, isT) {
+        const p = isT ? '上帝指令・' : '';
+        switch(id) {
+            case 'DOUBLE_WIND': return { name: p+'順風疾行', desc: '牌面點數效果翻倍(x2)！', type: 'card', exec: (c) => { c.value*=2; c.signedVal*=2;} };
+            case 'REEF_ROCK': return { name: p+'巨石暗礁', desc: '牌面點數減半(最小1)！', type: 'card', exec: (c) => { c.value=Math.max(1,Math.floor(c.value/2)); c.signedVal=c.color==='red'?c.value:-c.value;} };
+            case 'STRATEGY_BOOST': return { name: p+'軍師借風', desc: '直接向目標營地躍進 3 格！', type: 'pos', hasPre: true, exec: (t) => { if(t==='chu') gameState.posChu=Math.max(MIN_BOUND,gameState.posChu-3); else gameState.posYue=Math.min(MAX_BOUND,gameState.posYue+3);} };
+            case 'RIVER_SURGE': return { name: p+'江心急流', desc: '強行遠離營地 2 格！', type: 'pos', hasPre: true, exec: (t) => { if(t==='chu') gameState.posChu=Math.min(MAX_BOUND,gameState.posChu+2); else gameState.posYue=Math.max(MIN_BOUND,gameState.posYue-2);} };
+            case 'MIST_SWAP': return { name: p+'水寨迷霧', desc: '楚越兩船座標瞬間互換！', type: 'pos', hasPre: true, exec: () => { let tmp=gameState.posChu; gameState.posChu=gameState.posYue; gameState.posYue=tmp;} };
+        }
+    }
+
+    function reqMove(op) {
+        if (gameMode === 'online' && !net.isHost) { net.hostConn.send({ type: 'REQ_MOVE', op }); document.getElementById('btnForward').disabled = true; document.getElementById('btnBackward').disabled = true; document.getElementById('btnPass').disabled = true; }
+        else processMove(op);
+    }
+    
+    function reqPass() {
+        if (gameMode === 'online' && !net.isHost) { net.hostConn.send({ type: 'REQ_PASS' }); document.getElementById('btnPass').disabled = true; document.getElementById('btnForward').disabled = true; document.getElementById('btnBackward').disabled = true; }
+        else processPass();
+    }
+
+    function processPass() {
+        if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        if (q.length > 1) { 
+            q.push(q.shift()); 
+            syncAll(); refreshUI(); checkTurn(); 
+        }
+    }
+
+    function processMove(op) {
+        if (!gameState.drawnCard || gameState.gameOver) return;
+        if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+        
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        if (q.length === 0) return;
+        
+        let actor = q.shift(); 
+        q.push(actor); 
+        
+        const start = team === 'chu' ? gameState.posChu : gameState.posYue;
+        const cv = gameState.drawnCard.signedVal, cs = cv >= 0 ? `(+${cv})` : `(${cv})`;
+        let nPos = op === 'add' ? start + cv : start - cv;
+        nPos = Math.max(MIN_BOUND, Math.min(MAX_BOUND, nPos));
+        
+        let isWrong = team === 'chu' ? (nPos > start) : (nPos < start);
+        if (team === 'chu') gameState.posChu = nPos; else gameState.posYue = nPos;
+        
+        const fStr = `${start} ${op==='add'?'+':'-'} ${cs} = ${nPos}`;
+        const actName = (op==='add'?'前進(+)':'後退(-)') + (gameState.activeEvent ? ` [${gameState.activeEvent.name}]` : '');
+        const rNum = team === 'chu' ? gameState.roundChu : gameState.roundYue;
+        
+        gameState.history[team].push({ r: rNum, actor: actor.name, start: start, card: gameState.drawnCard, op: op, actName: actName, fStr: fStr, end: nPos, isWrong: isWrong });
+        addLog(team === 'chu' ? 'logBodyChu' : 'logBodyYue', rNum, actor.name, start, gameState.drawnCard, actName, fStr, nPos);
+        
+        if (net.isHost) {
+            const msg = { type: 'LOG', target: team === 'chu' ? 'logBodyChu' : 'logBodyYue', r: rNum, a: actor.name, s: start, c: gameState.drawnCard, act: actName, f: fStr, e: nPos };
+            for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send(msg);
+        }
+        
+        if (isWrong) { 
+            spawnMistakeMarker(team==='chu', nPos); 
+            if (net.isHost) {
+                const mst = { type: 'MISTAKE', isChu: team==='chu', pos: nPos };
+                for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send(mst);
+            }
+        }
+
+        if ((team === 'chu' && nPos <= MIN_BOUND) || (team === 'yue' && nPos >= MAX_BOUND)) {
+            gameState.gameOver = true;
+            syncAll(); refreshUI();
+            showVictoryModal(team);
+            
+            if (net.isHost) {
+                const vMsg = { type: 'VICTORY', team: team };
+                for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send(vMsg);
+            }
+            return;
+        }
+
+        if (team === 'chu') gameState.roundChu++; else gameState.roundYue++;
+        gameState.turnTeam = team === 'chu' ? 'yue' : 'chu'; 
+        
+        syncAll(); executeAutoDraw();
+    }
+
+    // --- 勝利結算與戰後檢討系統 ---
+    function showVictoryModal(team) {
+        const teamName = team === 'chu' ? '楚軍 (藍方)' : '越軍 (紅方)';
+        const teamColor = team === 'chu' ? '#2b6cb0' : '#c53030';
+        const bgGrad = team === 'chu' ? 'linear-gradient(145deg, #ebf8ff, #ffffff)' : 'linear-gradient(145deg, #fff5f5, #ffffff)';
+        
+        document.getElementById('victoryCard').style.background = bgGrad;
+        document.getElementById('victoryCard').style.borderColor = teamColor;
+        document.getElementById('victoryTitle').style.color = teamColor;
+        document.getElementById('victoryTitle').innerText = `🎉 ${teamName} 獲勝！`;
+        document.getElementById('victoryDesc').innerText = `率先抵達終點，贏得了這場萬人舟戰的最終勝利！`;
+        document.getElementById('victoryModal').style.display = 'flex';
+    }
+    
+    function closeVictoryModal() { document.getElementById('victoryModal').style.display = 'none'; refreshUI(); }
+
+    function getReviewReason(team, card, op, isWrong) {
+        if (!isWrong) return '<span style="color:#38a169;">✅ 決策正確 (朝目標推進)</span>';
+        const cType = card.color === 'red' ? '正數(紅牌)' : '負數(黑牌)';
+        if (team === 'chu') {
+            const correctOp = card.color === 'red' ? '後退(－)' : '前進(＋)';
+            return `<span style="color:#e53e3e;">❌ 楚軍需向左(減小)。抽到${cType}，應選【${correctOp}】。</span>`;
+        } else {
+            const correctOp = card.color === 'red' ? '前進(＋)' : '後退(－)';
+            return `<span style="color:#e53e3e;">❌ 越軍需向右(增大)。抽到${cType}，應選【${correctOp}】。</span>`;
+        }
+    }
+
+    function openReviewModal(team) {
+        const title = document.getElementById('reviewTitle');
+        const tBody = document.getElementById('reviewTableBody');
+        
+        title.innerText = team === 'chu' ? '🔵 楚軍 (目標-25) 戰後檢討室' : '🔴 越軍 (目標+25) 戰後檢討室';
+        title.style.color = team === 'chu' ? 'var(--chu-color)' : 'var(--yue-color)';
+        
+        let html = '';
+        const data = gameState.history[team] || [];
+        if (data.length === 0) {
+            html = '<tr><td colspan="7">尚無任何行動紀錄。</td></tr>';
+        } else {
+            data.forEach(log => {
+                const isRed = log.card.color === 'red';
+                const cardStr = `<span style="color:${isRed?'red':'black'}; font-weight:bold;">${isRed?'紅':'黑'}${log.card.value}</span>`;
+                const reason = getReviewReason(team, log.card, log.op, log.isWrong);
+                const rowBg = log.isWrong ? 'background-color: #fff5f5;' : '';
+                
+                const isMe = log.actor === net.myName;
+                const actorStr = isMe ? `<span style="color:#e53e3e; font-weight:900;">${log.actor} (您)</span>` : `<b>${log.actor}</b>`;
+                
+                html += `
+                <tr class="${log.isWrong ? 'wrong-row' : ''}" style="${rowBg}">
+                    <td>#${log.r}</td><td>${actorStr}</td><td>${log.start}</td><td>${cardStr}</td><td>${log.actName}</td><td><code>${log.fStr}</code> ➔ <b>${log.end}</b></td><td style="text-align:left;">${reason}</td>
+                </tr>`;
+            });
+        }
+        tBody.innerHTML = html;
+        document.getElementById('reviewModal').style.display = 'flex';
+    }
+
+    function closeReviewModal() { document.getElementById('reviewModal').style.display = 'none'; }
+
+    // --- UI 更新與畫面同步 ---
+    function getQueueStr(q) {
+        if (q.length === 0) return '無玩家';
+        if (q.length === 1) return `戰: ${q[0].name}`;
+        return `戰: ${q[0].name} | 備: ${q.slice(1).map(p=>p.name).join(', ')}`;
+    }
+
+    function refreshUI() {
+        const tChu = document.getElementById(`tick-${gameState.posChu}`), tYue = document.getElementById(`tick-${gameState.posYue}`);
+        if (tChu) document.getElementById('boatChu').style.left = (tChu.offsetLeft - 8) + 'px';
+        if (tYue) document.getElementById('boatYue').style.left = (tYue.offsetLeft - 8) + 'px';
+        document.getElementById('posChuBadge').innerText = `位置：${gameState.posChu}`;
+        document.getElementById('posYueBadge').innerText = `位置：${gameState.posYue}`;
+        
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        document.getElementById('turnBanner').className = 'turn-banner ' + (team === 'chu' ? 'turn-chu' : 'turn-yue');
+        
+        if (q.length > 0) { document.getElementById('turnLabel').innerText = `當前回合：${team==='chu'?'楚':'越'}軍將領 (${q[0].name}) 出牌`; } 
+        else { document.getElementById('turnLabel').innerText = `當前回合：等待${team==='chu'?'楚':'越'}軍玩家加入...`; }
+        
+        document.getElementById('logHeaderChu').innerText = `🔵 楚軍 [${getQueueStr(gameState.chuQueue)}]`;
+        document.getElementById('logHeaderYue').innerText = `🔴 越軍 [${getQueueStr(gameState.yueQueue)}]`;
+
+        const cd = gameState.drawnCard, cv = document.getElementById('cardView'), bdg = document.getElementById('cardBadge');
+        if (!cd) { cv.className = 'card-display'; document.getElementById('cardValSpan').innerText='？'; document.getElementById('cardTypeSpan').innerText=''; bdg.style.display='none'; }
+        else {
+            cv.className = 'card-display ' + (cd.color==='red'?'card-red':'card-black');
+            document.getElementById('cardValSpan').innerText = `${cd.color==='red'?'+':'-'}${cd.value}`;
+            document.getElementById('cardTypeSpan').innerText = cd.color==='red'?'紅牌':'黑牌';
+            if (gameState.activeEvent && gameState.activeEvent.name.includes('順風')) { bdg.style.display='block'; bdg.innerText='x2 順風'; bdg.style.background='#d69e2e'; }
+            else if (gameState.activeEvent && gameState.activeEvent.name.includes('暗礁')) { bdg.style.display='block'; bdg.innerText='÷2 減半'; bdg.style.background='#4a5568'; }
+            else bdg.style.display='none';
+            
+            let cur = team === 'chu' ? gameState.posChu : gameState.posYue;
+            document.getElementById('formulaDisplay').innerText = `${cur} [＋ 或 －] ${cd.signedVal>=0?`(+${cd.signedVal})`:`(${cd.signedVal})`}`;
+        }
+        updateControlsAvailability();
+    }
+
+    function updateControlsAvailability() {
+        if (window.localCountdown) { clearInterval(window.localCountdown); window.localCountdown = null; }
+
+        const playArea = document.getElementById('playButtonsArea');
+        const reviewArea = document.getElementById('reviewButtonsArea');
+        const fwd = document.getElementById('btnForward'), back = document.getElementById('btnBackward'), passBtn = document.getElementById('btnPass');
+        const hint = document.getElementById('hintText');
+        
+        if (net.isHost && hostPlayers[myUid] && !hostPlayers[myUid].connected && !hostPlayers[myUid].asSpectator) {
+            document.getElementById('btnHostReconnect').style.display = 'block';
+        } else {
+            document.getElementById('btnHostReconnect').style.display = 'none';
+        }
+
+        if (gameState.gameOver) {
+            playArea.style.display = 'none'; reviewArea.style.display = 'grid';
+            hint.innerText = "🏆 遊戲結束！請點擊上方按鈕檢討雙方戰報。";
+            return; 
+        } else {
+            playArea.style.display = 'grid'; reviewArea.style.display = 'none';
+        }
+        
+        if (gameState.isEventModalOpen || (gameMode==='online' && !gameState.gameStarted)) {
+            fwd.disabled = true; back.disabled = true; passBtn.disabled = true;
+            if (!gameState.gameStarted) hint.innerText = "等待開局...";
+            return;
+        }
+        if (net.role === 'spectator') { fwd.disabled = true; back.disabled = true; passBtn.disabled = true; hint.innerText = "👁️ 上帝視角觀戰中..."; return; }
+        
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        
+        if (q.length === 0) {
+            fwd.disabled = true; back.disabled = true; passBtn.disabled = true;
+            hint.innerText = `⏳ 嚴格等待 ${team === 'chu' ? '楚軍' : '越軍'} 玩家加入/重連中...`;
+            return;
+        }
+        
+        const curPlayer = q[0];
+        if (curPlayer.uid === myUid) { 
+            fwd.disabled = false; back.disabled = false; 
+            passBtn.disabled = q.length <= 1; 
+
+            if (gameMode === 'online') {
+                let timeLeft = 30;
+                hint.innerText = `🎯 輪到您出牌！請在 ${timeLeft} 秒內選擇！`; 
+                window.localCountdown = setInterval(() => {
+                    timeLeft--;
+                    if (timeLeft > 0) { hint.innerText = `🎯 輪到您出牌！請在 ${timeLeft} 秒內選擇！`; } 
+                    else {
+                        clearInterval(window.localCountdown);
+                        hint.innerText = `⏳ 時間到！系統強制判定離線...`;
+                        fwd.disabled = true; back.disabled = true; passBtn.disabled = true;
+                    }
+                }, 1000);
+            } else {
+                hint.innerText = `🎯 輪到您出牌了！請選擇前進或後退！`; 
+            }
+        } else { 
+            fwd.disabled = true; back.disabled = true; passBtn.disabled = true;
+            hint.innerText = `⏳ 等待將領 (${curPlayer.name}) 決策中...`; 
+        }
+    }
+
+    function closeEventModal() {
+        document.getElementById('eventModal').style.display = 'none'; gameState.isEventModalOpen = false;
+        if (net.isHost) {
+            syncAll(); 
+            for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send({ type: 'CLOSE_MODAL' });
+            if (gameState.activeEvent && gameState.activeEvent.hasPre) { refreshUI(); setTimeout(checkTurn, 1000); } 
+            else checkTurn();
+        } else updateControlsAvailability();
+    }
+
+    function applyTianshi() {
+        const pwd = document.getElementById('refereeSecret').value.trim();
+        const tar = document.getElementById('tianshiTargetSelect').value, ev = document.getElementById('tianshiEventSelect').value;
+        if (pwd !== REFEREE_PWD) return alert('上帝認證碼錯誤！');
+        document.getElementById('refereeStatusMsg').innerText = `🔮 上帝指令已下達：${tar==='chu'?'楚軍':'越軍'} 下次必觸發！`;
+        if (net.isHost) gameState.tianshiEventPayload = { target: tar, eventId: ev };
+        else net.hostConn.send({ type: 'TIANSHI_CMD', target: tar, eventId: ev, password: pwd });
+    }
+
+    function handleTianshi(data) { if (data.password === REFEREE_PWD) gameState.tianshiEventPayload = { target: data.target, eventId: data.eventId }; }
+
+    function addLog(tId, r, a, s, c, act, f, e) {
+        const isMe = a === net.myName;
+        const actorNameStr = isMe ? `<span style="color:#e53e3e; font-weight:900;">${a} (您)</span>` : `<b>${a}</b>`;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>#${r}</td><td>${actorNameStr}</td><td>${s}</td><td style="color:${c.color==='red'?'red':'#1a202c'}; font-weight:bold;">${c.color==='red'?'紅':'黑'} ${c.value}</td><td><small>${act}</small></td><td><code>${f}</code></td><td><b>${e}</b></td>`;
+        document.getElementById(tId).prepend(tr);
+    }
+    
+    function spawnMistakeMarker(isChu, pos) {
+        const t = document.getElementById(`tick-${pos}`); if (!t) return;
+        const m = document.createElement('div'); m.className = 'mistake-marker'; m.style.left = (t.offsetLeft - 16) + 'px'; m.style.top = isChu ? '0px' : '45px';
+        m.innerHTML = `<div class="mistake-icon">❌</div><div class="mistake-text">走錯方向！</div>`;
+        document.getElementById('mistakeLayer').appendChild(m);
+        setTimeout(() => { if (m.parentNode) m.parentNode.removeChild(m); }, 1500);
+    }
+
+    const line = document.getElementById('numberLine');
+    for (let i = MIN_BOUND; i <= MAX_BOUND; i++) {
+        let isM = (i % 5 === 0), d = document.createElement('div'); d.className = 'tick-item' + (i===0?' origin':'') + (isM?' major':''); d.id = `tick-${i}`;
+        d.innerHTML = `<div class="tick${isM?' major':''}"></div><div class="tick-label">${isM?(i>0?`+${i}`:i):''}</div>`;
+        line.appendChild(d);
+    }
+    window.addEventListener('resize', () => refreshUI());
+</script>
+</body>
+</html>
