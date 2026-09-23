@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>次方與科學記號：乘法累積互動教學實驗室</title>
+
+  <!-- jQuery (MathQuill 必要相依套件) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- MathQuill 數學輸入編輯器 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+
+  <!-- KaTeX 數學渲染排版引擎 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --accent: #059669;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #e2e8f0;
+      --highlight: #fef3c7;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    header {
+      background: linear-gradient(135deg, #1e3a8a, #2563eb);
+      color: white;
+      padding: 36px 20px;
+      text-align: center;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    header h1 { margin: 0; font-size: 1.8rem; }
+    header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 1rem; }
+
+    .container {
+      max-width: 960px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 24px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 8px -2px rgba(0,0,0,0.05);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      color: var(--primary);
+      border-bottom: 2px solid var(--border);
+      padding-bottom: 10px;
+      font-size: 1.35rem;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* 觀念引導看板 */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .box {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .box h3 { margin: 0 0 8px 0; color: #1d4ed8; font-size: 1.1rem; }
+    .box p { margin: 4px 0; font-size: 0.95rem; }
+
+    /* 表單元件 */
+    .form-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 16px;
+      align-items: flex-end;
+    }
+
+    .form-group {
+      flex: 1;
+      min-width: 140px;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      font-size: 0.9rem;
+      color: #475569;
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      font-size: 1rem;
+      outline: none;
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(37,99,235,0.2);
+    }
+
+    /* 輸出與動畫區 */
+    .display-panel {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-left: 5px solid var(--primary);
+      border-radius: 8px;
+      padding: 18px;
+      margin-top: 14px;
+    }
+
+    .katex-render-box {
+      font-size: 1.15rem;
+      margin: 10px 0;
+      overflow-x: auto;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 0.85rem;
+      font-weight: bold;
+      background: #dbeafe;
+      color: #1e40af;
+      margin-bottom: 6px;
+    }
+
+    /* MathQuill 區塊 */
+    .math-field-box {
+      border: 2px solid var(--primary);
+      border-radius: 6px;
+      padding: 12px;
+      min-height: 48px;
+      font-size: 1.3rem;
+      background: white;
+      cursor: text;
+    }
+
+    .btn-tools {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tool-btn {
+      background: #e2e8f0;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .tool-btn:hover { background: #cbd5e1; }
+
+    .latex-code {
+      margin-top: 8px;
+      background: #1e293b;
+      color: #38bdf8;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>從乘法累積到十進位縮放：次方與科學記號</h1>
+  <p>國中七年級數學互動探索 × 視覺化數學公式編輯器</p>
+</header>
+
+<div class="container">
+
+  <!-- 單元 1: 核心觀念連鎖 -->
+  <div class="card">
+    <h2>1. 算術思維的升級：加法 ➔ 乘法 ➔ 次方</h2>
+    <div class="grid-2">
+      <div class="box">
+        <h3>加法與乘法的本質</h3>
+        <p><strong>加法</strong>是數量的計數累積。</p>
+        <p><strong>乘法</strong>是「加法的累積打包」：</p>
+        <div id="demoAddMul"></div>
+      </div>
+      <div class="box">
+        <h3>次方與科學記號的本質</h3>
+        <p><strong>次方</strong>是「乘法的累積打包」：</p>
+        <div id="demoPow"></div>
+        <p><strong>科學記號</strong>就是累積打包「乘以或除以 10」的次數！</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 單元 2: 指數律視覺化推導器 -->
+  <div class="card">
+    <h2>2. 指數律拆解實驗室（數一數累積了幾個）</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>運算法則：</label>
+        <select id="ruleSelect" onchange="calcExponent()">
+          <option value="mult">同底相乘：aᵐ × aⁿ = aᵐ⁺ⁿ</option>
+          <option value="div">同底相除：aᵐ ÷ aⁿ = aᵐ⁻ⁿ</option>
+          <option value="power">冪的乘方：(aᵐ)ⁿ = aᵐˣⁿ</option>
+          <option value="zero">零次方：a⁰ = 1 的由來</option>
+          <option value="negative">負指數：a⁻ⁿ = 1/aⁿ 的由來</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>底數 (a)：</label>
+        <input type="number" id="baseA" value="2" oninput="calcExponent()">
+      </div>
+      <div class="form-group" id="groupM">
+        <label>指數 m：</label>
+        <input type="number" id="expM" value="3" min="0" max="6" oninput="calcExponent()">
+      </div>
+      <div class="form-group" id="groupN">
+        <label>指數 n：</label>
+        <input type="number" id="expN" value="2" min="0" max="6" oninput="calcExponent()">
+      </div>
+    </div>
+
+    <div class="display-panel">
+      <span class="badge">累積展開歷程</span>
+      <div id="expFormula" class="katex-render-box"></div>
+      <div id="expBreakdown" class="katex-render-box"></div>
+      <div id="expResult" class="katex-render-box" style="color: var(--accent); font-weight: bold;"></div>
+    </div>
+  </div>
+
+  <!-- 單元 3: 科學記號動態實驗室 -->
+  <div class="card">
+    <h2>3. 科學記號實驗室：a × 10ⁿ 的小數點縮放魔法</h2>
+    <p style="font-size: 0.95rem; color: #475569;">
+      標準規定：<strong>1 ≤ a &lt; 10</strong>，n 必須為整數。<br>
+      輸入一個常規數字（支援極大整數如 <code>300000000</code> 或極小數如 <code>0.00045</code>）：
+    </p>
+
+    <div class="form-row">
+      <div class="form-group" style="flex: 2;">
+        <label>請輸入任意實數：</label>
+        <input type="text" id="sciInput" value="3450000" oninput="calcScientificNotation()">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label>快速情境帶入：</label>
+        <select onchange="fillScenario(this.value)">
+          <option value="">-- 點選自動填入 --</option>
+          <option value="300000000">真空光速 (300,000,000 m/s)</option>
+          <option value="0.000007">紅血球直徑 (0.000007 m)</option>
+          <option value="149600000">日地距離 (149,600,000 km)</option>
+          <option value="0.0000001">奈米級線寬 (0.0000001 m)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="display-panel" style="border-left-color: var(--accent);">
+      <span class="badge" style="background: #d1fae5; color: #065f46;">標準科學記號分析</span>
+      <div id="sciOutput" class="katex-render-box"></div>
+      <div id="sciSteps" style="margin-top: 10px; line-height: 1.7; color: #334155;"></div>
+    </div>
+  </div>
+
+  <!-- 單元 4: 所見即所得數學編輯器 (MathQuill) -->
+  <div class="card">
+    <h2>4. 互動數學黑板：隨手寫公式</h2>
+    <p style="font-size: 0.95rem; color: #64748b;">
+      使用下方按鈕或鍵盤快捷鍵（如鍵盤按 <code>^</code> 直接跳次方、按 <code>/</code> 打分數、<code>*</code> 打乘號）：
+    </p>
+    
+    <div id="mathField" class="math-field-box"></div>
+
+    <div class="btn-tools">
+      <button class="tool-btn" onclick="insertSymbol('^')">次方 (^)</button>
+      <button class="tool-btn" onclick="insertSymbol('\\times')">乘號 (×)</button>
+      <button class="tool-btn" onclick="insertSymbol('\\div')">除號 (÷)</button>
+      <button class="tool-btn" onclick="insertSymbol('\\frac')">分數 (\frac)</button>
+      <button class="tool-btn" onclick="insertSymbol('\\times 10^')">× 10ⁿ (科學記號)</button>
+      <button class="tool-btn" onclick="clearMathField()" style="color: #dc2626;">清除重寫</button>
+    </div>
+
+    <div style="margin-top: 12px; font-weight: 600; font-size: 0.85rem; color: #64748b;">即時 LaTeX 語法代碼：</div>
+    <div class="latex-code" id="latexOutput"></div>
+  </div>
+
+</div>
+
+<script>
+  // 1. 初始化靜態觀念 KaTeX
+  document.addEventListener('DOMContentLoaded', () => {
+    katex.render("a \\times 4 = \\underbrace{a + a + a + a}_{4 \\text{ 個 } a \\text{ 連加}}", document.getElementById('demoAddMul'));
+    katex.render("a^4 = \\underbrace{a \\times a \\times a \\times a}_{4 \\text{ 個 } a \\text{ 連乘}}", document.getElementById('demoPow'));
+
+    // 初始化 MathQuill
+    const MQ = MathQuill.getInterface(2);
+    const mathFieldSpan = document.getElementById('mathField');
+    window.mathFieldInstance = MQ.MathField(mathFieldSpan, {
+      spaceBehavesLikeTab: true,
+      handlers: {
+        edit: function() {
+          const latex = window.mathFieldInstance.latex();
+          document.getElementById('latexOutput').textContent = latex || "(尚未輸入)";
+        }
+      }
+    });
+
+    // 預載公式
+    window.mathFieldInstance.latex('3.45 \\times 10^6');
+
+    // 啟動運算
+    calcExponent();
+    calcScientificNotation();
+  });
+
+  // MathQuill 按鈕輔助功能
+  function insertSymbol(sym) {
+    if (sym === '\\frac') {
+      window.mathFieldInstance.cmd('\\frac');
+    } else {
+      window.mathFieldInstance.write(sym);
+    }
+    window.mathFieldInstance.focus();
+  }
+
+  function clearMathField() {
+    window.mathFieldInstance.latex('');
+    document.getElementById('latexOutput').textContent = "(空白)";
+    window.mathFieldInstance.focus();
+  }
+
+  // 2. 指數律推導演算法
+  function calcExponent() {
+    const rule = document.getElementById('ruleSelect').value;
+    const a = document.getElementById('baseA').value || 'a';
+    const m = parseInt(document.getElementById('expM').value, 10) || 0;
+    const n = parseInt(document.getElementById('expN').value, 10) || 0;
+
+    const groupM = document.getElementById('groupM');
+    const groupN = document.getElementById('groupN');
+
+    let fLatex = "", bLatex = "", rLatex = "";
+    const dotChain = (val, cnt) => Array(Math.max(0, cnt)).fill(val).join(' \\times ');
+
+    if (rule === 'mult') {
+      groupM.style.display = 'block';
+      groupN.style.display = 'block';
+      fLatex = `\\text{算式：} ${a}^{${m}} \\times ${a}^{${n}}`;
+      bLatex = `\\text{連乘累積：} (\\underbrace{${dotChain(a, m)}}_{${m}\\text{ 個 } ${a}}) \\times (\\underbrace{${dotChain(a, n)}}_{${n}\\text{ 個 } ${a}})`;
+      rLatex = `\\text{總共累積 } ${m} + ${n} = ${m + n} \\text{ 個 } ${a} \\implies ${a}^{${m+n}}`;
+    } else if (rule === 'div') {
+      groupM.style.display = 'block';
+      groupN.style.display = 'block';
+      fLatex = `\\text{算式：} ${a}^{${m}} \\div ${a}^{${n}} = \\frac{${a}^{${m}}}{${a}^{${n}}}`;
+      bLatex = `\\text{約分抵消：} \\frac{\\overbrace{${dotChain(a, m)}}^{${m}\\text{ 個 } ${a}}}{\\underbrace{${dotChain(a, n)}}_{${n}\\text{ 個 } ${a}}}`;
+      rLatex = `\\text{抵消後剩下 } ${m} - ${n} = ${m - n} \\text{ 個 } ${a} \\implies ${a}^{${m-n}}`;
+    } else if (rule === 'power') {
+      groupM.style.display = 'block';
+      groupN.style.display = 'block';
+      fLatex = `\\text{算式：} (${a}^{${m}})^{${n}}`;
+      const groupStr = `(${dotChain(a, m)})`;
+      bLatex = `\\text{分組累積：} \\underbrace{${Array(Math.max(0, n)).fill(groupStr).join(' \\times ')}}_{${n}\\text{ 組 }}`;
+      rLatex = `\\text{每組有 } ${m} \\text{ 個，共 } ${n} \\text{ 組，總共 } ${m} \\times ${n} = ${m * n} \\text{ 個 } ${a} \\implies ${a}^{${m*n}}`;
+    } else if (rule === 'zero') {
+      groupM.style.display = 'none';
+      groupN.style.display = 'none';
+      fLatex = `\\text{思考：} ${a}^n \\div ${a}^n`;
+      bLatex = `\\text{數值相除：} \\frac{${a}^n}{${a}^n} = 1 \\quad \\longleftrightarrow \\quad \\text{指數相減：} ${a}^{n-n} = ${a}^0`;
+      rLatex = `\\text{為了維持減法規律一致：} ${a}^0 = 1 \\text{（代表連乘累積的初始起點）}`;
+    } else if (rule === 'negative') {
+      groupM.style.display = 'none';
+      groupN.style.display = 'block';
+      fLatex = `\\text{思考：} ${a}^{-${n}} = ${a}^{0 - ${n}}`;
+      bLatex = `\\text{拆為除法：} \\frac{${a}^0}{${a}^{${n}}} = \\frac{1}{${a}^{${n}}}`;
+      rLatex = `\\text{結論：負指數就是乘法的反向運算（除法累積）} \\implies ${a}^{-${n}} = \\frac{1}{${a}^{${n}}}`;
+    }
+
+    katex.render(fLatex, document.getElementById('expFormula'), { displayMode: true });
+    katex.render(bLatex, document.getElementById('expBreakdown'), { displayMode: true });
+    katex.render(rLatex, document.getElementById('expResult'), { displayMode: true });
+  }
+
+  // 3. 科學記號動態分析演算法
+  function fillScenario(val) {
+    if (!val) return;
+    document.getElementById('sciInput').value = val;
+    calcScientificNotation();
+  }
+
+  function calcScientificNotation() {
+    const raw = document.getElementById('sciInput').value.trim();
+    const num = parseFloat(raw);
+
+    const outElem = document.getElementById('sciOutput');
+    const stepElem = document.getElementById('sciSteps');
+
+    if (isNaN(num) || num <= 0) {
+      outElem.innerHTML = "<span style='color:red;'>請輸入大於 0 的有效正數！</span>";
+      stepElem.innerHTML = "";
+      return;
+    }
+
+    // 轉為科學記號字串解析
+    const expStr = num.toExponential();
+    const parts = expStr.split('e');
+    let aVal = parseFloat(parts[0]);
+    let nVal = parseInt(parts[1], 10);
+
+    // 格式化漂亮數值 (去除多餘浮點誤差)
+    aVal = Math.round(aVal * 1000000) / 1000000;
+
+    const katexLatex = `${raw} = ${aVal} \\times 10^{${nVal}}`;
+    katex.render(katexLatex, outElem, { displayMode: true });
+
+    // 產生教學分析文字
+    let analysisHTML = "";
+    if (nVal > 0) {
+      analysisHTML = `
+        🔹 <strong>這是一個極大數</strong>：<br>
+        1. 小數點向<strong>左</strong>移了 <strong>${nVal}</strong> 位，得到係數 <code>a = ${aVal}</code>（滿足 1 ≤ a &lt; 10）。<br>
+        2. 相當於將 ${aVal} <strong>累積連乘了 ${nVal} 次 10</strong>。<br>
+        3. <strong>位數判斷</strong>：整數部分為 <code>${nVal} + 1 = ${nVal + 1}</code> 位數。
+      `;
+    } else if (nVal < 0) {
+      const absN = Math.abs(nVal);
+      analysisHTML = `
+        🔹 <strong>這是一個極小數</strong>：<br>
+        1. 小數點向<strong>右</strong>移了 <strong>${absN}</strong> 位，得到係數 <code>a = ${aVal}</code>（滿足 1 ≤ a &lt; 10）。<br>
+        2. 相當於將 ${aVal} <strong>累積連除以 ${absN} 次 10</strong>（即乘以 10<sup>${nVal}</sup>）。<br>
+        3. <strong>位數判斷</strong>：展開後在<strong>小數點後第 ${absN} 位</strong>開始出現第一個不為 0 的數字。
+      `;
+    } else {
+      analysisHTML = `
+        🔹 <strong>數值落在 1 到 10 之間</strong>：<br>
+        小數點不需要移動，指數為 0（10⁰ = 1）。
+      `;
+    }
+
+    stepElem.innerHTML = analysisHTML;
+  }
+</script>
+
+</body>
+</html>
