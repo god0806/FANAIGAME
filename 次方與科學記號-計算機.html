@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智慧互動黑板：次方與科學記號全解析</title>
+
+  <!-- 1. jQuery (MathQuill 必要相依套件) -->
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+  <!-- 2. MathQuill 數學公式編輯器 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+
+  <!-- 3. KaTeX 數學排版引擎 -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+
+  <!-- 4. Math.js 數學數值運算核心 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/12.4.0/math.js"></script>
+
+  <style>
+    :root {
+      --board-bg: #1e3a2f;       /* 經典黑板綠 */
+      --board-frame: #8b5a2b;    /* 木質邊框色 */
+      --primary: #2563eb;
+      --accent: #10b981;
+      --warning: #f59e0b;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --border: #e2e8f0;
+    }
+
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
+      background-color: var(--bg);
+      color: var(--text-main);
+      line-height: 1.5;
+    }
+
+    header {
+      background: #1e293b;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    header h1 { margin: 0; font-size: 1.6rem; }
+    header p { margin: 6px 0 0 0; opacity: 0.8; font-size: 0.95rem; }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 16px;
+    }
+
+    /* 仿教室黑板設計 */
+    .blackboard-frame {
+      background: var(--board-frame);
+      padding: 14px;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+
+    .blackboard {
+      background-color: var(--board-bg);
+      border-radius: 6px;
+      padding: 20px;
+      min-height: 160px;
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .bb-title {
+      font-size: 0.85rem;
+      letter-spacing: 1px;
+      color: #93c5fd;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    /* MathQuill 在黑板中的樣式覆寫 */
+    .mq-editable-field {
+      border: 2px dashed rgba(255,255,255,0.3) !important;
+      border-radius: 6px;
+      padding: 10px 14px !important;
+      min-height: 54px;
+      background: rgba(0, 0, 0, 0.2);
+      font-size: 1.7rem !important;
+      color: #fef08a !important; /* 粉筆黃 */
+      cursor: text;
+    }
+
+    .mq-editable-field.mq-focused {
+      border-color: #60a5fa !important;
+      box-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+    }
+
+    /* 即時答案輸出行 */
+    .bb-result {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 1.5rem;
+      color: #6ee7b7; /* 醒目粉筆綠 */
+    }
+
+    /* 鍵盤操作區卡片 */
+    .keyboard-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 18px;
+      margin-top: 18px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .kb-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 540px) {
+      .kb-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+
+    .btn-key {
+      background: #f8fafc;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 14px 6px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #1e293b;
+      cursor: pointer;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      user-select: none;
+      transition: all 0.1s ease;
+      box-shadow: 0 2px 0 #cbd5e1;
+    }
+
+    .btn-key:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .btn-num { background: #ffffff; font-weight: 700; }
+    .btn-op { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; box-shadow: 0 2px 0 #bfdbfe; }
+    .btn-exp { background: #fdf2f8; color: #be185d; border-color: #fbcfe8; box-shadow: 0 2px 0 #fbcfe8; font-weight: bold; }
+    .btn-action { background: #fee2e2; color: #b91c1c; border-color: #fca5a5; box-shadow: 0 2px 0 #fca5a5; }
+    .btn-nav { background: #f1f5f9; color: #475569; }
+
+    /* 觀念解讀區 */
+    .analysis-card {
+      background: #ffffff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-top: 16px;
+      border: 1px solid var(--border);
+      font-size: 0.95rem;
+      color: #334155;
+    }
+
+    .analysis-card strong { color: #1e40af; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>智慧互動黑板：次方與科學記號</h1>
+  <p>點選式出題 × 精確消除浮點誤差 × 自動並列輸出「小數/整數、最簡分數、標準科學記號」</p>
+</header>
+
+<div class="container">
+
+  <!-- 仿教室黑板 -->
+  <div class="blackboard-frame">
+    <div class="blackboard">
+      <div>
+        <div class="bb-title">互動手寫黑板 (點擊下方鍵盤或在虛線框內直接編輯)</div>
+        <div id="mathBoard"></div>
+      </div>
+      <div class="bb-result">
+        <span style="font-size: 1rem; color: #93c5fd;">即時計算：</span>
+        <div id="resultOutput"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 解釋面板 -->
+  <div class="analysis-card" id="analysisBox">
+    <strong>💡 運算解析：</strong>黑板將為您即時拆解位數與科學記號。
+  </div>
+
+  <!-- 點選式數學虛擬鍵盤 -->
+  <div class="keyboard-card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+      <span style="font-size: 0.85rem; font-weight: bold; color: #64748b;">專用點選鍵盤</span>
+      <span style="font-size: 0.8rem; color: #94a3b8;">支援手機、平板或電子白板觸控</span>
+    </div>
+
+    <div class="kb-grid">
+      <!-- Row 1: 指數與科學記號快捷鍵 -->
+      <button class="btn-key btn-exp" onclick="pressKey('pow_any')">x<sup>□</sup> (次方)</button>
+      <button class="btn-key btn-exp" onclick="pressKey('pow2')">x²</button>
+      <button class="btn-key btn-exp" onclick="pressKey('pow3')">x³</button>
+      <button class="btn-key btn-exp" onclick="pressKey('sci')">×10<sup>□</sup></button>
+      <button class="btn-key btn-action" onclick="pressKey('backspace')">⌫ 倒退</button>
+
+      <!-- Row 2: 7, 8, 9 及 乘除 -->
+      <button class="btn-key btn-num" onclick="pressKey('7')">7</button>
+      <button class="btn-key btn-num" onclick="pressKey('8')">8</button>
+      <button class="btn-key btn-num" onclick="pressKey('9')">9</button>
+      <button class="btn-key btn-op" onclick="pressKey('times')">×</button>
+      <button class="btn-key btn-op" onclick="pressKey('div')">÷</button>
+
+      <!-- Row 3: 4, 5, 6 及 加減 -->
+      <button class="btn-key btn-num" onclick="pressKey('4')">4</button>
+      <button class="btn-key btn-num" onclick="pressKey('5')">5</button>
+      <button class="btn-key btn-num" onclick="pressKey('6')">6</button>
+      <button class="btn-key btn-op" onclick="pressKey('+')">+</button>
+      <button class="btn-key btn-op" onclick="pressKey('-')">−</button>
+
+      <!-- Row 4: 1, 2, 3 及 括號、分數 -->
+      <button class="btn-key btn-num" onclick="pressKey('1')">1</button>
+      <button class="btn-key btn-num" onclick="pressKey('2')">2</button>
+      <button class="btn-key btn-num" onclick="pressKey('3')">3</button>
+      <button class="btn-key btn-op" onclick="pressKey('(')">(</button>
+      <button class="btn-key btn-op" onclick="pressKey(')')">)</button>
+
+      <!-- Row 5: 0, 小數點, 分數, 方向鍵 -->
+      <button class="btn-key btn-num" onclick="pressKey('0')">0</button>
+      <button class="btn-key btn-num" onclick="pressKey('.')">.</button>
+      <button class="btn-key btn-op" onclick="pressKey('frac')">分數 a/b</button>
+      <button class="btn-key btn-nav" onclick="pressKey('left')">◀ 游標</button>
+      <button class="btn-key btn-nav" onclick="pressKey('right')">游標 ▶</button>
+    </div>
+
+    <div style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 8px;">
+      <button class="btn-key btn-action" style="flex: 1; min-width: 120px; padding: 8px; font-size: 0.95rem;" onclick="pressKey('clear')">🧹 清空黑板</button>
+      <button class="btn-key btn-op" style="flex: 1; min-width: 140px; padding: 8px; font-size: 0.95rem;" onclick="loadQuick('6 \\times 10^{-5}')">範例：6 × 10⁻⁵</button>
+      <button class="btn-key btn-op" style="flex: 1; min-width: 140px; padding: 8px; font-size: 0.95rem;" onclick="loadQuick('2^2 \\div 2^5')">範例：2² ÷ 2⁵</button>
+      <button class="btn-key btn-op" style="flex: 1; min-width: 140px; padding: 8px; font-size: 0.95rem;" onclick="loadQuick('(3 \\times 10^4) \\times (2 \\times 10^3)')">範例：大數相乘</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  let MQ, boardField;
+
+  document.addEventListener('DOMContentLoaded', () => {
+    MQ = MathQuill.getInterface(2);
+    const boardSpan = document.getElementById('mathBoard');
+
+    boardField = MQ.MathField(boardSpan, {
+      spaceBehavesLikeTab: true,
+      handlers: {
+        edit: function() {
+          const latex = boardField.latex();
+          calculateBoard(latex);
+        }
+      }
+    });
+
+    loadQuick('6 \\times 10^{-5}');
+  });
+
+  function pressKey(action) {
+    if (!boardField) return;
+
+    switch (action) {
+      case '0': case '1': case '2': case '3': case '4':
+      case '5': case '6': case '7': case '8': case '9':
+      case '.': case '+': case '-': case '(': case ')':
+        boardField.typedText(action);
+        break;
+
+      case 'times':
+        boardField.cmd('\\times');
+        break;
+      case 'div':
+        boardField.cmd('\\div');
+        break;
+      case 'frac':
+        boardField.cmd('\\frac');
+        break;
+
+      case 'pow_any':
+        boardField.cmd('^');
+        break;
+      case 'pow2':
+        boardField.cmd('^');
+        boardField.typedText('2');
+        boardField.cmd('Right');
+        break;
+      case 'pow3':
+        boardField.cmd('^');
+        boardField.typedText('3');
+        boardField.cmd('Right');
+        break;
+      case 'sci':
+        boardField.cmd('\\times');
+        boardField.typedText('10');
+        boardField.cmd('^');
+        break;
+
+      case 'backspace':
+        boardField.keystroke('Backspace');
+        break;
+      case 'left':
+        boardField.keystroke('Left');
+        break;
+      case 'right':
+        boardField.keystroke('Right');
+        break;
+      case 'clear':
+        boardField.latex('');
+        boardField.focus();
+        calculateBoard('');
+        break;
+    }
+    boardField.focus();
+  }
+
+  function loadQuick(latex) {
+    if (!boardField) return;
+    boardField.latex(latex);
+    boardField.focus();
+    calculateBoard(latex);
+  }
+
+  function parseLatex(latex) {
+    if (!latex) return "";
+    let s = latex;
+
+    while (s.includes('\\frac')) {
+      s = s.replace(/\\frac\s*\{([^{}]+)\}\s*\{([^{}]+)\}/g, '(($1)/($2))');
+    }
+
+    s = s.replace(/\\times/g, '*')
+         .replace(/\\cdot/g, '*')
+         .replace(/\\div/g, '/')
+         .replace(/\\left\(/g, '(')          .replace(/\\right\)/g, ')')
+         .replace(/\{/g, '(')
+         .replace(/\}/g, ')');
+
+    s = s.replace(/(\d)\s*\(/g, '$1*(')          .replace(/\)\s*\(/g, ')*(');
+
+    return s;
+  }
+
+  // 消除浮點數微小誤差（例如 0.00006000000000000001 -> 0.00006）
+  function cleanFloat(val) {
+    if (typeof val === 'number') {
+      return parseFloat(val.toPrecision(12));
+    }
+    return val;
+  }
+
+  // 格式化為純常規十進位字串（避免極小數直接被 JS 轉為 6e-5）
+  function formatDecimalString(num) {
+    if (num === 0) return "0";
+    const absVal = Math.abs(num);
+    if (absVal < 1 && absVal >= 1e-7) {
+      return num.toLocaleString('en-US', {
+        useGrouping: false,
+        maximumFractionDigits: 10
+      });
+    }
+    return num.toString();
+  }
+
+  function calculateBoard(latex) {
+    const resElem = document.getElementById('resultOutput');
+    const analysisElem = document.getElementById('analysisBox');
+
+    if (!latex.trim()) {
+      resElem.innerHTML = "<span style='color: rgba(255,255,255,0.4); font-size: 1.1rem;'>請點選下方鍵盤出題...</span>";
+      analysisElem.innerHTML = "<strong>💡 運算解析：</strong>黑板目前為空。";
+      return;
+    }
+
+    try {
+      const expr = parseLatex(latex);
+      const val = math.evaluate(expr);
+
+      if (typeof val === 'undefined' || typeof val === 'function') {
+        resElem.innerHTML = "<span style='color: #fbbf24; font-size: 1.1rem;'>代數式（含符號）</span>";
+        analysisElem.innerHTML = "<strong>💡 提示：</strong>目前為純代數式，若要計算數值請輸入具體數字。";
+        return;
+      }
+
+      const rawNum = Number(val);
+      if (isNaN(rawNum)) {
+        resElem.innerHTML = "<span style='color: #f87171;'>式子未完成</span>";
+        return;
+      }
+
+      // 1. 浮點數精度修正
+      const num = cleanFloat(rawNum);
+      const numStr = formatDecimalString(num);
+
+      // 2. 最簡分數處理
+      let fracLatex = "";
+      try {
+        const frac = math.fraction(val);
+        if (frac.d !== 1 && Math.abs(frac.d) < 1000000) {
+          fracLatex = ` = \\frac{${frac.s * frac.n}}{${frac.d}}`;
+        }
+      } catch (e) {}
+
+      // 3. 標準科學記號生成 (a × 10ⁿ，1 ≤ |a| < 10)
+      let sciLatex = "";
+      let sciA = 0, sciN = 0;
+      if (num !== 0) {
+        const sci = num.toExponential().split('e');
+        sciA = cleanFloat(parseFloat(sci[0]));
+        sciN = parseInt(sci[1], 10);
+        sciLatex = ` = ${sciA} \\times 10^{${sciN}}`;
+      } else {
+        sciLatex = ` = 0`;
+      }
+
+      // 4. 黑板上輸出完整串接： = 常規小數 = 分數 = 科學記號
+      const boardAnsLatex = `= ${numStr}${fracLatex}${sciLatex}`;
+      katex.render(boardAnsLatex, resElem, { displayMode: false, throwOnError: false });
+
+      // 5. 下方教學深度分析
+      let explain = "";
+      if (num === 0) {
+        explain = `<strong>數值為 0</strong>。`;
+      } else if (sciN > 0) {
+        explain = `
+          <strong>🚀 大數分析（科學記號 $${sciA} \\times 10^{${sciN}}$）：</strong><br>
+          1. 小數點向左移動了 <strong>${sciN}</strong> 位，係數 <code>${sciA}</code> 符合 $1 \\le a < 10$。<br>
+          2. <strong>位數判斷</strong>：整數部分共有 <code>${sciN} + 1 = <strong>${sciN + 1}</strong></code> 位數。
+        `;
+      } else if (sciN < 0) {
+        const absN = Math.abs(sciN);
+        explain = `
+          <strong>🔬 小數分析（科學記號 $${sciA} \\times 10^{${sciN}}$）：</strong><br>
+          1. 小數點向右移動了 <strong>${absN}</strong> 位（即連除以 10 共 ${absN} 次）。<br>
+          2. <strong>位置判斷</strong>：在<strong>小數點後第 ${absN} 位</strong>開始出現第一個不為 0 的數字（數字 <code>${sciA}</code>）。
+        `;
+      } else {
+        explain = `
+          <strong>數值介於 1 到 10 之間</strong>：小數點無需移動，指數為 0（即 $10^0 = 1$）。
+        `;
+      }
+
+      analysisElem.innerHTML = explain;
+      analysisElem.innerHTML = analysisElem.innerHTML.replace(/\$([^$]+)\$/g, (m, c) => katex.renderToString(c, { throwOnError: false }));
+
+    } catch (err) {
+      resElem.innerHTML = "<span style='color: rgba(255,255,255,0.4); font-size: 1rem;'>輸入中...</span>";
+    }
+  }
+</script>
+
+</body>
+</html>
