@@ -70,12 +70,35 @@
         @keyframes mistakeFloat { 0% { transform: translateY(0) scale(0.6); opacity: 0; } 20% { transform: translateY(-10px) scale(1.15); opacity: 1; } 70% { transform: translateY(-24px) scale(1); opacity: 1; } 100% { transform: translateY(-40px) scale(0.85); opacity: 0; } }
         
         .event-modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(3px); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; }
-        .event-modal-card { background: linear-gradient(145deg, #ffffff, #fffaf0); border: 3px solid #d69e2e; border-radius: 14px; max-width: 400px; width: 100%; padding: 20px; text-align: center; animation: popModal 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
-        @keyframes popModal { 0% { transform: scale(0.7); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+        .event-modal-card { background: linear-gradient(145deg, #ffffff, #fffaf0); border: 3px solid #d69e2e; border-radius: 14px; max-width: 400px; width: 100%; padding: 20px; text-align: center; transition: all 0.3s ease; }
+        
+        /* 上帝懲罰特效 */
+        .my-turn-active { box-shadow: 0 0 12px 4px rgba(72,187,120, 0.4) !important; border: 2px solid #48bb78 !important; transform: scale(1.01); transition: all 0.3s ease; }
+        .huge-hint { font-size: 1.15rem !important; color: #e53e3e !important; font-weight: 900 !important; animation: pulseText 1s infinite; }
+        @keyframes pulseText { 0%, 100% {opacity:1;} 50% {opacity:0.6;} }
+        @keyframes pulseBtn { 0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(72,187,120, 0.7); } 50% { transform: scale(1.03); box-shadow: 0 0 0 8px rgba(72,187,120, 0); } 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(72,187,120, 0); } }
+        .btn-my-turn { animation: pulseBtn 1.5s infinite !important; border: 2px solid #fff !important; }
+
+        @keyframes fxWind { 0% {transform: translateX(100vw) skewX(-30deg);} 100% {transform: translateX(0) skewX(0);} }
+        @keyframes fxRock { 0% {transform: translateY(-50vh) scale(1.5);} 100% {transform: translateY(0) scale(1);} }
+        @keyframes fxBoost { 0% {transform: scale(0); opacity: 0;} 80% {transform: scale(1.1); opacity: 1;} 100% {transform: scale(1);} }
+        @keyframes fxSurge { 0%, 100% {transform: rotate(0deg);} 25% {transform: rotate(10deg);} 75% {transform: rotate(-10deg);} }
+        @keyframes fxMist { 0% {filter: blur(20px); opacity: 0;} 100% {filter: blur(0); opacity: 1;} }
+        @keyframes strongShake { 0%, 100% { transform: translateX(0); } 10%, 30%, 50%, 70%, 90% { transform: translateX(-10px); } 20%, 40%, 60%, 80% { transform: translateX(10px); } }
+        @keyframes sirenPulse { 0% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0.7); } 70% { box-shadow: 0 0 0 30px rgba(229, 62, 62, 0); } 100% { box-shadow: 0 0 0 0 rgba(229, 62, 62, 0); } }
+        
+        .effect-wind { animation: fxWind 0.5s ease-out; }
+        .effect-rock { animation: fxRock 0.5s cubic-bezier(0.55, 0.085, 0.68, 0.53); border-color: #4a5568 !important; }
+        .effect-boost { animation: fxBoost 0.5s ease-out; border-color: #3182ce !important; }
+        .effect-surge { animation: fxSurge 0.5s ease-in-out; border-color: #319795 !important; }
+        .effect-mist { animation: fxMist 0.8s ease-out; background: linear-gradient(145deg, #e2e8f0, #ffffff) !important; }
+        .effect-silence { animation: strongShake 0.5s ease-in-out, sirenPulse 1.5s infinite; border-color: #e53e3e !important; background: linear-gradient(145deg, #fff5f5, #fed7d7) !important; }
+        .effect-neutral { animation: fxBoost 0.3s ease-out; border-color: #cbd5e0 !important; background: #f7fafc !important; }
+
         .event-modal-title { color: #b7791f; font-size: 1.25rem; font-weight: 900; margin: 0 0 6px 0; }
         .event-modal-desc { font-size: 0.95rem; color: #2d3748; line-height: 1.4; margin: 8px 0 14px 0; font-weight: 500; }
         
-        .control-grid-layout { display: grid; grid-template-columns: auto 1fr; gap: 15px; align-items: center; }
+        .control-grid-layout { display: grid; grid-template-columns: auto 1fr; gap: 15px; padding: 10px 14px; background: #edf2f7; border-radius: 10px; align-items: center; transition: all 0.3s ease; }
         @media (max-width: 500px) { .control-grid-layout { grid-template-columns: 1fr; justify-items: center; text-align: center; } }
         
         .card-and-status { display: flex; flex-direction: column; align-items: center; gap: 4px; }
@@ -87,7 +110,7 @@
         .actions-and-formula { display: flex; flex-direction: column; width: 100%; gap: 8px; }
         .action-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn { min-height: 42px; padding: 8px 12px; font-size: 0.95rem; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-        .btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .btn:disabled { opacity: 0.35; cursor: not-allowed !important; animation: none !important; box-shadow: none !important; transform: scale(1) !important; border: none !important;}
         .btn-primary { background-color: #3182ce; color: white; width: 100%; }
         .btn-fwd { background-color: #38a169; color: white; }
         .btn-back { background-color: #dd6b20; color: white; }
@@ -121,11 +144,11 @@
 <body>
 
 <div id="eventModal" class="event-modal-overlay">
-    <div class="event-modal-card">
+    <div id="eventModalCard" class="event-modal-card">
         <div style="display:inline-block; background:#fefcbf; color:#975a16; border:1px solid #ecc94b; padding:3px 12px; border-radius:20px; font-size:0.75rem; font-weight:bold; margin-bottom: 6px;">歷史風雲事件</div>
         <h3 id="modalEventTitle" class="event-modal-title"></h3>
         <p id="modalEventDesc" class="event-modal-desc"></p>
-        <button class="btn btn-primary" style="background:#b7791f; width:auto; padding:6px 20px; margin:0 auto;" onclick="closeEventModal()">整軍備戰</button>
+        <button id="eventModalBtn" class="btn btn-primary" style="background:#b7791f; width:auto; padding:6px 20px; margin:0 auto;" onclick="closeEventModal()">整軍備戰</button>
     </div>
 </div>
 
@@ -154,7 +177,7 @@
 
 <header>
     <h1>桌迷藏：楚越舟戰</h1>
-    <div class="subtitle">終極無界連線版 (支援最高30人/房主踢人管理)</div>
+    <div class="subtitle">無界無限連線版 (含智能防撞名/上帝全能特權)</div>
 </header>
 
 <div class="container">
@@ -250,7 +273,7 @@
             </div>
             <div class="toggle-content">
                 <div style="font-size: 0.75rem; color: #718096; margin-bottom: 6px; text-align: center;">輸入認證碼獲取權限。該陣營下次行動必觸發指令！</div>
-                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px;">
+                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin-bottom: 10px;">
                     <input type="password" id="refereeSecret" class="name-input" style="max-width:90px; margin:0; padding:4px;" maxlength="4" placeholder="認證碼">
                     <select id="tianshiTargetSelect" class="select-input" style="margin:0; max-width: 100px; font-size:0.8rem; padding: 4px;">
                         <option value="chu">指派楚軍</option>
@@ -262,8 +285,12 @@
                         <option value="STRATEGY_BOOST">⚡ 軍師借風 (+3格)</option>
                         <option value="RIVER_SURGE">🌀 江心急流 (-2格)</option>
                         <option value="MIST_SWAP">🌫️ 水寨迷霧 (互換)</option>
+                        <option value="SILENCE_PENALTY">🤫 鴉雀無聲 (暫停一回)</option>
                     </select>
                     <button class="btn" style="min-height:30px; padding:4px 12px; font-size:0.8rem; background:#b7791f; color:white;" onclick="applyTianshi()">下達</button>
+                </div>
+                <div style="text-align: center; border-top: 1px solid #ecc94b; padding-top: 10px;">
+                    <button class="btn" style="min-height:30px; padding:6px 16px; font-size:0.85rem; background:#e53e3e; color:white; width: auto; margin: 0 auto; box-shadow: 0 2px 4px rgba(229,62,62,0.3);" onclick="reqForceEndGame()">🛑 強制終止本局遊戲</button>
                 </div>
                 <div id="refereeStatusMsg" style="font-size:0.75rem; color:#b7791f; margin-top:4px; font-weight:bold; text-align: center;"></div>
             </div>
@@ -277,8 +304,8 @@
             <p style="font-size:0.85rem; line-height: 1.5;">
                 <b>楚國 (目標 -25)：</b>紅牌(正)選後退(減)，黑牌(負)選前進(加)。<br>
                 <b>越國 (目標 +25)：</b>黑牌(負)按後退(減去負數向右)。<br>
-                <b>防掛網機制：</b>輪到您出牌時會有 30 秒倒數，超時未點選將強制判定為離線，並瞬間由同陣營下一順位遞補出戰！<br>
-                <b>房主權限：</b>房主可隨時在連線名單中剔除惡意玩家，被踢除者將立即斷線並移出對戰列隊。<br>
+                <b>無界動態賽制：</b>支援無限人數排隊輪番上陣。若斷線將被跳過，重連後自動移至隊伍最後方！玩家隨時可點擊「讓位」將球權傳給同國候補。<br>
+                <b>大數據檢討：</b>遊戲結束後，可點選「檢討戰報」查看每個人的出牌、計算公式與 AI 系統對錯誤走法的分析建議！
             </p>
         </div>
     </div>
@@ -306,7 +333,7 @@
         </div>
     </div>
 
-    <div class="card-box" style="padding: 10px 14px; background: #edf2f7;">
+    <div class="card-box" id="controlPanelBlock" style="padding: 10px 14px; background: #edf2f7; transition: all 0.3s ease;">
         <div class="toggle-header" onclick="toggleBlock(this)">
             <h4 style="margin: 0; color: #1a365d; font-size: 1rem;">🎮 戰術控制台</h4>
             <span class="toggle-icon">▼</span>
@@ -380,8 +407,8 @@
         }
     }
 
-    const MIN_BOUND = -25, MAX_BOUND = 25, P2P_PREFIX = "chuyue_dyn_max_v1_", REFEREE_PWD = "0806";
-    const MAX_PLAYERS = 30; // 人數上限設定
+    const MIN_BOUND = -25, MAX_BOUND = 25, P2P_PREFIX = "chuyue_dyn_max_v6_", REFEREE_PWD = "0806";
+    const MAX_PLAYERS = 30; 
     
     let myUid = sessionStorage.getItem('chuyue_uid');
     if (!myUid) { myUid = Math.random().toString(36).substring(2, 10); sessionStorage.setItem('chuyue_uid', myUid); }
@@ -495,6 +522,48 @@
         }
     }
 
+    // ★ 特效過濾顯示機制 (客戶端點擊關閉發送請求)
+    function showEventModalUI(evt, targetTeam) {
+        let isTarget = (net.role === targetTeam || net.role === 'local');
+        let cardElem = document.getElementById('eventModalCard');
+        
+        cardElem.className = 'event-modal-card';
+        cardElem.style = '';
+
+        if (isTarget) {
+            document.getElementById('modalEventTitle').innerHTML = (evt.id === 'SILENCE_PENALTY' ? '🛑 ' : '⚡ ') + evt.name;
+            document.getElementById('modalEventDesc').innerHTML = evt.desc;
+            document.getElementById('eventModalBtn').innerText = evt.id === 'SILENCE_PENALTY' ? '深刻反省 (遵守規則)' : '整軍備戰';
+            
+            if (evt.id === 'DOUBLE_WIND') cardElem.classList.add('effect-wind');
+            if (evt.id === 'REEF_ROCK') cardElem.classList.add('effect-rock');
+            if (evt.id === 'STRATEGY_BOOST') cardElem.classList.add('effect-boost');
+            if (evt.id === 'RIVER_SURGE') cardElem.classList.add('effect-surge');
+            if (evt.id === 'MIST_SWAP') cardElem.classList.add('effect-mist');
+            if (evt.id === 'SILENCE_PENALTY') {
+                cardElem.classList.add('effect-silence');
+                document.getElementById('modalEventTitle').style.color = '#e53e3e';
+            } else {
+                cardElem.style.border = '3px solid #d69e2e';
+                cardElem.style.background = 'linear-gradient(145deg, #ffffff, #fffaf0)';
+                document.getElementById('modalEventTitle').style.color = '#b7791f';
+            }
+        } else {
+            const tName = targetTeam === 'chu' ? '楚軍' : '越軍';
+            document.getElementById('modalEventTitle').innerHTML = '☁️ 觀測天象';
+            if (evt.id === 'SILENCE_PENALTY') {
+                document.getElementById('modalEventDesc').innerHTML = `天威震怒！<b>${tName}</b> 遭上帝禁言並暫停一回合！`;
+            } else {
+                document.getElementById('modalEventDesc').innerHTML = `天象異變！<b>${tName}</b> 觸發了【${evt.name}】！`;
+            }
+            document.getElementById('eventModalBtn').innerText = '靜觀其變';
+            cardElem.classList.add('effect-neutral');
+            document.getElementById('modalEventTitle').style.color = '#4a5568';
+        }
+        
+        document.getElementById('eventModal').style.display = 'flex';
+    }
+
     function startAiGame() {
         let uTeam = document.getElementById('aiRoleSelect').value;
         if (uTeam === 'random') {
@@ -578,7 +647,13 @@
                 else if (data.type === 'REQ_START_GAME' && conn.role === 'spectator') { 
                     hostStartGame(conn);
                 }
+                else if (data.type === 'REQ_FORCE_END' && conn.role === 'spectator') { 
+                    processForceEndGame();
+                }
                 else if (data.type === 'TIANSHI_CMD') { handleTianshi(data); }
+                else if (data.type === 'REQ_CLOSE_MODAL') {
+                    if (gameState.isEventModalOpen) closeEventModal();
+                }
             });
             conn.on('close', () => { handleClientDrop(conn); });
         });
@@ -589,7 +664,6 @@
         });
     }
 
-    // 房主專屬踢人功能
     function kickPlayer(uid) {
         if (!net.isHost || uid === myUid) return;
         if (!confirm('確定要剔除此玩家嗎？')) return;
@@ -606,10 +680,8 @@
         gameState.yueQueue = gameState.yueQueue.filter(x => x.uid !== uid);
         gameState.spectators = gameState.spectators.filter(x => x.uid !== uid);
 
-        updateLobbyUI();
-        syncAll();
-        
-        if (gameState.gameStarted) checkTurn(); // 確保不會因為當前玩家被踢而卡死
+        updateLobbyUI(); syncAll();
+        if (gameState.gameStarted) checkTurn(); 
     }
 
     function reqStartGame() {
@@ -617,8 +689,32 @@
         else if (net.hostConn) net.hostConn.send({ type: 'REQ_START_GAME' });
     }
 
+    function reqForceEndGame() {
+        if (!confirm('確定要以上帝視角強制中止這場戰役嗎？\n(將立刻進入結算與檢討畫面)')) return;
+        if (net.isHost) processForceEndGame();
+        else if (net.hostConn) net.hostConn.send({ type: 'REQ_FORCE_END' });
+    }
+
+    function processForceEndGame() {
+        if (!gameState.gameStarted || gameState.gameOver) return;
+        gameState.gameOver = true;
+        
+        if (turnTimer) { clearTimeout(turnTimer); turnTimer = null; }
+        if (window.localCountdown) { clearInterval(window.localCountdown); window.localCountdown = null; }
+        
+        syncAll(); refreshUI();
+        showVictoryModal('force_end');
+        
+        if (net.isHost) {
+            for(let u in hostPlayers) {
+                if (hostPlayers[u].connected && hostPlayers[u].conn) {
+                    hostPlayers[u].conn.send({ type: 'FORCE_END' });
+                }
+            }
+        }
+    }
+
     function handleClientJoin(conn, data) {
-        // 偵測房間上限 (30人)
         if (Object.keys(hostPlayers).length >= MAX_PLAYERS && !hostPlayers[data.uid]) {
             conn.send({ type: 'ALERT', message: `房間人數已達伺服器上限 (${MAX_PLAYERS} 人)！` });
             setTimeout(() => conn.close(), 500);
@@ -788,16 +884,16 @@
                 } else if (data.type === 'SYNC') {
                     gameState = data.state;
                     if (net.role === 'spectator' && gameState.gameStarted) document.getElementById('spectatorAdminPanel').style.display = 'block';
+                    if (gameState.gameStarted) transitionToGameView();
                     updateLobbyUI(); refreshUI(); 
                     if (gameState.activeEvent && gameState.isEventModalOpen) {
-                        document.getElementById('modalEventTitle').innerHTML = `⚡ ${gameState.activeEvent.name}`;
-                        document.getElementById('modalEventDesc').innerHTML = gameState.activeEvent.desc;
-                        document.getElementById('eventModal').style.display = 'flex';
+                        showEventModalUI(gameState.activeEvent, gameState.turnTeam);
                     } else if (!gameState.isEventModalOpen) document.getElementById('eventModal').style.display = 'none';
                 } else if (data.type === 'LOG') { addLog(data.target, data.r, data.a, data.s, data.c, data.act, data.f, data.e); }
                 else if (data.type === 'CLOSE_MODAL') { document.getElementById('eventModal').style.display = 'none'; gameState.isEventModalOpen = false; updateControlsAvailability(); }
                 else if (data.type === 'MISTAKE') { spawnMistakeMarker(data.isChu, data.pos); }
                 else if (data.type === 'VICTORY') { showVictoryModal(data.team); }
+                else if (data.type === 'FORCE_END') { showVictoryModal('force_end'); }
                 else if (data.type === 'KICK_TIMEOUT') {
                     alert('您已超過 30 秒未動作，系統已將您標記為離線並換人。\n若要繼續遊玩，請重新點擊「加入房間」！');
                 }
@@ -939,17 +1035,16 @@
         
         let evtDef = triggerEvent(team);
         if (evtDef) {
-            gameState.activeEvent = { name: evtDef.name, desc: evtDef.desc, hasPre: evtDef.hasPre };
-            if (evtDef.type === 'pos') evtDef.exec(team); else evtDef.exec(card);
+            gameState.activeEvent = { id: evtDef.id, name: evtDef.name, desc: evtDef.desc, hasPre: evtDef.hasPre };
+            if (evtDef.type === 'pos') evtDef.exec(team); 
+            else if (evtDef.type === 'card') evtDef.exec(card);
             gameState.isEventModalOpen = true;
         } else { gameState.activeEvent = null; gameState.isEventModalOpen = false; }
         
         gameState.drawnCard = card;
         
         if (evtDef) {
-            document.getElementById('modalEventTitle').innerHTML = `⚡ ${evtDef.name}`;
-            document.getElementById('modalEventDesc').innerHTML = evtDef.desc;
-            document.getElementById('eventModal').style.display = 'flex';
+            showEventModalUI(gameState.activeEvent, team);
         }
         syncAll(); refreshUI();
         if (!evtDef) checkTurn();
@@ -969,11 +1064,12 @@
     function getEvtDef(id, isT) {
         const p = isT ? '上帝指令・' : '';
         switch(id) {
-            case 'DOUBLE_WIND': return { name: p+'順風疾行', desc: '牌面點數效果翻倍(x2)！', type: 'card', exec: (c) => { c.value*=2; c.signedVal*=2;} };
-            case 'REEF_ROCK': return { name: p+'巨石暗礁', desc: '牌面點數減半(最小1)！', type: 'card', exec: (c) => { c.value=Math.max(1,Math.floor(c.value/2)); c.signedVal=c.color==='red'?c.value:-c.value;} };
-            case 'STRATEGY_BOOST': return { name: p+'軍師借風', desc: '直接向目標營地躍進 3 格！', type: 'pos', hasPre: true, exec: (t) => { if(t==='chu') gameState.posChu=Math.max(MIN_BOUND,gameState.posChu-3); else gameState.posYue=Math.min(MAX_BOUND,gameState.posYue+3);} };
-            case 'RIVER_SURGE': return { name: p+'江心急流', desc: '強行遠離營地 2 格！', type: 'pos', hasPre: true, exec: (t) => { if(t==='chu') gameState.posChu=Math.min(MAX_BOUND,gameState.posChu+2); else gameState.posYue=Math.max(MIN_BOUND,gameState.posYue-2);} };
-            case 'MIST_SWAP': return { name: p+'水寨迷霧', desc: '楚越兩船座標瞬間互換！', type: 'pos', hasPre: true, exec: () => { let tmp=gameState.posChu; gameState.posChu=gameState.posYue; gameState.posYue=tmp;} };
+            case 'DOUBLE_WIND': return { id, name: p+'順風疾行', desc: '牌面點數效果翻倍(x2)！', type: 'card', exec: (c) => { c.value*=2; c.signedVal*=2;} };
+            case 'REEF_ROCK': return { id, name: p+'巨石暗礁', desc: '牌面點數減半(最小1)！', type: 'card', exec: (c) => { c.value=Math.max(1,Math.floor(c.value/2)); c.signedVal=c.color==='red'?c.value:-c.value;} };
+            case 'STRATEGY_BOOST': return { id, name: p+'軍師借風', desc: '直接向目標營地躍進 3 格！', type: 'pos', hasPre: true, exec: (t) => { if(t==='chu') gameState.posChu=Math.max(MIN_BOUND,gameState.posChu-3); else gameState.posYue=Math.min(MAX_BOUND,gameState.posYue+3);} };
+            case 'RIVER_SURGE': return { id, name: p+'江心急流', desc: '強行遠離營地 2 格！', type: 'pos', hasPre: true, exec: (t) => { if(t==='chu') gameState.posChu=Math.min(MAX_BOUND,gameState.posChu+2); else gameState.posYue=Math.max(MIN_BOUND,gameState.posYue-2);} };
+            case 'MIST_SWAP': return { id, name: p+'水寨迷霧', desc: '楚越兩船座標瞬間互換！', type: 'pos', hasPre: true, exec: () => { let tmp=gameState.posChu; gameState.posChu=gameState.posYue; gameState.posYue=tmp;} };
+            case 'SILENCE_PENALTY': return { id, name: p+'鴉雀無聲', desc: '天威震怒！此陣營立刻被禁言並暫停一回合，請遵守遊戲規則保持安靜！', type: 'skip', hasPre: false, exec: () => {} };
         }
     }
 
@@ -995,6 +1091,31 @@
             q.push(q.shift()); 
             syncAll(); refreshUI(); checkTurn(); 
         }
+    }
+
+    function processSkipTurn() {
+        const team = gameState.turnTeam;
+        const q = team === 'chu' ? gameState.chuQueue : gameState.yueQueue;
+        const actorName = q.length > 0 ? q[0].name : '無人';
+        if (q.length > 0) q.push(q.shift()); 
+
+        const start = team === 'chu' ? gameState.posChu : gameState.posYue;
+        const rNum = team === 'chu' ? gameState.roundChu : gameState.roundYue;
+        const dummyCard = { color: 'black', value: '0', signedVal: 0 };
+        const actName = '🤫 上帝禁言(暫停)';
+
+        gameState.history[team].push({ r: rNum, actor: actorName, start: start, card: dummyCard, op: 'skip', actName: actName, fStr: '遵守規則', end: start, isWrong: false });
+        addLog(team === 'chu' ? 'logBodyChu' : 'logBodyYue', rNum, actorName, start, dummyCard, actName, '遵守規則', start);
+
+        if (net.isHost) {
+            const msg = { type: 'LOG', target: team === 'chu' ? 'logBodyChu' : 'logBodyYue', r: rNum, a: actorName, s: start, c: dummyCard, act: actName, f: '遵守規則', e: start };
+            for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send(msg);
+        }
+
+        if (team === 'chu') gameState.roundChu++; else gameState.roundYue++;
+        gameState.turnTeam = team === 'chu' ? 'yue' : 'chu'; 
+
+        syncAll(); executeAutoDraw();
     }
 
     function processMove(op) {
@@ -1056,15 +1177,27 @@
 
     // --- 勝利結算與戰後檢討系統 ---
     function showVictoryModal(team) {
-        const teamName = team === 'chu' ? '楚軍 (藍方)' : '越軍 (紅方)';
-        const teamColor = team === 'chu' ? '#2b6cb0' : '#c53030';
-        const bgGrad = team === 'chu' ? 'linear-gradient(145deg, #ebf8ff, #ffffff)' : 'linear-gradient(145deg, #fff5f5, #ffffff)';
+        if (team === 'force_end') {
+            document.getElementById('victoryCard').style.background = '#fff5f5';
+            document.getElementById('victoryCard').style.borderColor = '#e53e3e';
+            document.getElementById('victoryTitle').style.color = '#e53e3e';
+            document.getElementById('victoryTitle').innerHTML = `🛑 遊戲強制終止！`;
+            document.getElementById('victoryDesc').innerText = `上帝視角已介入，這場舟戰被強制畫下句點！`;
+            document.getElementById('hintText').innerText = `🛑 上帝強制終止了遊戲。`;
+        } else {
+            const teamName = team === 'chu' ? '楚軍 (藍方)' : '越軍 (紅方)';
+            const teamColor = team === 'chu' ? '#2b6cb0' : '#c53030';
+            const bgGrad = team === 'chu' ? 'linear-gradient(145deg, #ebf8ff, #ffffff)' : 'linear-gradient(145deg, #fff5f5, #ffffff)';
+            
+            document.getElementById('victoryCard').style.background = bgGrad;
+            document.getElementById('victoryCard').style.borderColor = teamColor;
+            document.getElementById('victoryTitle').style.color = teamColor;
+            document.getElementById('victoryTitle').innerText = `🎉 ${teamName} 獲勝！`;
+            document.getElementById('victoryDesc').innerText = `率先抵達終點，贏得了這場萬人舟戰的最終勝利！`;
+            document.getElementById('hintText').innerText = `🏆 對局結束！${teamName} 獲勝！`;
+        }
         
-        document.getElementById('victoryCard').style.background = bgGrad;
-        document.getElementById('victoryCard').style.borderColor = teamColor;
-        document.getElementById('victoryTitle').style.color = teamColor;
-        document.getElementById('victoryTitle').innerText = `🎉 ${teamName} 獲勝！`;
-        document.getElementById('victoryDesc').innerText = `率先抵達終點，贏得了這場萬人舟戰的最終勝利！`;
+        document.getElementById('btnForward').disabled = true; document.getElementById('btnBackward').disabled = true; document.getElementById('btnPass').disabled = true;
         document.getElementById('victoryModal').style.display = 'flex';
     }
     
@@ -1072,6 +1205,8 @@
 
     function getReviewReason(team, card, op, isWrong) {
         if (!isWrong) return '<span style="color:#38a169;">✅ 決策正確 (朝目標推進)</span>';
+        if (op === 'skip') return '<span style="color:#e53e3e;">🛑 遭上帝強制剝奪行動權。</span>';
+
         const cType = card.color === 'red' ? '正數(紅牌)' : '負數(黑牌)';
         if (team === 'chu') {
             const correctOp = card.color === 'red' ? '後退(－)' : '前進(＋)';
@@ -1160,8 +1295,13 @@
 
         const playArea = document.getElementById('playButtonsArea');
         const reviewArea = document.getElementById('reviewButtonsArea');
+        const controlBlock = document.getElementById('controlPanelBlock');
         const fwd = document.getElementById('btnForward'), back = document.getElementById('btnBackward'), passBtn = document.getElementById('btnPass');
         const hint = document.getElementById('hintText');
+        
+        controlBlock.classList.remove('my-turn-active');
+        fwd.classList.remove('btn-my-turn'); back.classList.remove('btn-my-turn');
+        hint.classList.remove('huge-hint');
         
         if (net.isHost && hostPlayers[myUid] && !hostPlayers[myUid].connected && !hostPlayers[myUid].asSpectator) {
             document.getElementById('btnHostReconnect').style.display = 'block';
@@ -1171,7 +1311,9 @@
 
         if (gameState.gameOver) {
             playArea.style.display = 'none'; reviewArea.style.display = 'grid';
-            hint.innerText = "🏆 遊戲結束！請點擊上方按鈕檢討雙方戰報。";
+            if (hint.innerText.indexOf('🏆') === -1 && hint.innerText.indexOf('🛑') === -1) {
+                hint.innerText = "🏆 遊戲結束！請點擊上方按鈕檢討雙方戰報。";
+            }
             return; 
         } else {
             playArea.style.display = 'grid'; reviewArea.style.display = 'none';
@@ -1197,6 +1339,10 @@
         if (curPlayer.uid === myUid) { 
             fwd.disabled = false; back.disabled = false; 
             passBtn.disabled = q.length <= 1; 
+            
+            controlBlock.classList.add('my-turn-active');
+            fwd.classList.add('btn-my-turn'); back.classList.add('btn-my-turn');
+            hint.classList.add('huge-hint');
 
             if (gameMode === 'online') {
                 let timeLeft = 30;
@@ -1208,6 +1354,9 @@
                         clearInterval(window.localCountdown);
                         hint.innerText = `⏳ 時間到！系統強制判定離線...`;
                         fwd.disabled = true; back.disabled = true; passBtn.disabled = true;
+                        controlBlock.classList.remove('my-turn-active');
+                        fwd.classList.remove('btn-my-turn'); back.classList.remove('btn-my-turn');
+                        hint.classList.remove('huge-hint');
                     }
                 }, 1000);
             } else {
@@ -1220,13 +1369,27 @@
     }
 
     function closeEventModal() {
-        document.getElementById('eventModal').style.display = 'none'; gameState.isEventModalOpen = false;
-        if (net.isHost) {
-            syncAll(); 
-            for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send({ type: 'CLOSE_MODAL' });
-            if (gameState.activeEvent && gameState.activeEvent.hasPre) { refreshUI(); setTimeout(checkTurn, 1000); } 
-            else checkTurn();
-        } else updateControlsAvailability();
+        if (!gameState.isEventModalOpen) return;
+        
+        if (net.isHost || gameMode === 'ai') {
+            document.getElementById('eventModal').style.display = 'none';
+            gameState.isEventModalOpen = false;
+            const wasSkip = gameState.activeEvent && gameState.activeEvent.id === 'SILENCE_PENALTY';
+            
+            if (gameMode === 'online') {
+                syncAll(); 
+                for(let u in hostPlayers) if (hostPlayers[u].connected && hostPlayers[u].conn) hostPlayers[u].conn.send({ type: 'CLOSE_MODAL' });
+            }
+
+            if (wasSkip) {
+                processSkipTurn();
+            } else if (gameState.activeEvent && gameState.activeEvent.hasPre) { 
+                refreshUI(); setTimeout(checkTurn, 1000); 
+            } else checkTurn();
+        } else {
+            document.getElementById('eventModal').style.display = 'none';
+            if (net.hostConn) net.hostConn.send({ type: 'REQ_CLOSE_MODAL' });
+        }
     }
 
     function applyTianshi() {
