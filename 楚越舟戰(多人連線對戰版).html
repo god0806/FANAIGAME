@@ -154,7 +154,7 @@
 
 <header>
     <h1>桌迷藏：楚越舟戰</h1>
-    <div class="subtitle">無界無限連線版 (沉浸式自動收合)</div>
+    <div class="subtitle">終極無界連線版 (支援最高30人/房主踢人管理)</div>
 </header>
 
 <div class="container">
@@ -197,7 +197,7 @@
             
             <div class="toggle-content" id="onlineLobbyGrid" style="display: grid; grid-template-columns: 1fr; gap: 12px;">
                 <div style="padding-bottom: 10px; border-bottom: 1px solid #e2e8f0;">
-                    <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">🏠 建立房間 (房主)</h4>
+                    <h4 style="margin:0 0 4px 0; font-size: 0.95rem;">🏠 建立房間 (房主) <span style="font-size:0.75rem; color:#718096; font-weight:normal;">上限 30 人</span></h4>
                     <input type="text" id="hostPlayerName" class="name-input" maxlength="8" placeholder="留空自動生成名號" value="">
                     <select id="hostFactionSelect" class="select-input">
                         <option value="random" selected>🎲 隨機分配陣營</option>
@@ -231,7 +231,6 @@
             </div>
         </div>
 
-        <!-- 獨立的戰局名單與連線狀態區塊 -->
         <div id="lobbyStatusBox" class="card-box" style="display:none; background: #fffaf0; border: 1px dashed #d69e2e;">
             <div class="toggle-header" onclick="toggleBlock(this)">
                 <h4 style="margin: 0; color: #b7791f; font-size: 1rem;">📋 戰局連線名單與狀態</h4>
@@ -244,7 +243,6 @@
             </div>
         </div>
 
-        <!-- 上帝法旨面板 -->
         <div id="spectatorAdminPanel" class="card-box" style="display:none; background:#fffaf0; border:2px solid #d69e2e;">
             <div class="toggle-header" onclick="toggleBlock(this)">
                 <h4 style="margin: 0; color: #b7791f; font-size: 1rem;">🔮 上帝指令・全事件自選控盤</h4>
@@ -279,7 +277,8 @@
             <p style="font-size:0.85rem; line-height: 1.5;">
                 <b>楚國 (目標 -25)：</b>紅牌(正)選後退(減)，黑牌(負)選前進(加)。<br>
                 <b>越國 (目標 +25)：</b>黑牌(負)按後退(減去負數向右)。<br>
-                <b>防掛網機制：</b>輪到您出牌時會有 30 秒倒數，超時未點選將強制判定為離線，並瞬間由同陣營下一順位遞補出戰！斷線者重連後只能乖乖排到隊伍最後面。<br>
+                <b>防掛網機制：</b>輪到您出牌時會有 30 秒倒數，超時未點選將強制判定為離線，並瞬間由同陣營下一順位遞補出戰！<br>
+                <b>房主權限：</b>房主可隨時在連線名單中剔除惡意玩家，被踢除者將立即斷線並移出對戰列隊。<br>
             </p>
         </div>
     </div>
@@ -381,7 +380,8 @@
         }
     }
 
-    const MIN_BOUND = -25, MAX_BOUND = 25, P2P_PREFIX = "chuyue_dyn_inf_v11_", REFEREE_PWD = "0806";
+    const MIN_BOUND = -25, MAX_BOUND = 25, P2P_PREFIX = "chuyue_dyn_max_v1_", REFEREE_PWD = "0806";
+    const MAX_PLAYERS = 30; // 人數上限設定
     
     let myUid = sessionStorage.getItem('chuyue_uid');
     if (!myUid) { myUid = Math.random().toString(36).substring(2, 10); sessionStorage.setItem('chuyue_uid', myUid); }
@@ -390,7 +390,7 @@
     let net = { peer: null, isHost: false, role: 'local', hostConn: null, myName: '' }; 
     let hostPlayers = {}; 
     let turnTimer = null; 
-    let hasAutoScrolled = false; // 控制是否已經平滑捲動過了
+    let hasAutoScrolled = false; 
 
     let gameState = {
         posChu: 0, posYue: 0, turnTeam: 'chu', roundChu: 1, roundYue: 1, 
@@ -472,7 +472,6 @@
         }
     }
 
-    // ★ 新增：遊戲開始自動隱藏設定區塊並平滑捲動
     function transitionToGameView() {
         if (hasAutoScrolled) return;
         hasAutoScrolled = true;
@@ -492,9 +491,7 @@
         
         const gameStage = document.getElementById('mainGameStage');
         if (gameStage) {
-            setTimeout(() => {
-                gameStage.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }, 150);
+            setTimeout(() => { gameStage.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
         }
     }
 
@@ -521,8 +518,7 @@
         }
         
         gameState.gameStarted = true;
-        transitionToGameView();
-        updateMyIdentityUI(); refreshUI(); executeAutoDraw();
+        transitionToGameView(); updateMyIdentityUI(); refreshUI(); executeAutoDraw();
     }
 
     function startHost() {
@@ -593,17 +589,47 @@
         });
     }
 
+    // 房主專屬踢人功能
+    function kickPlayer(uid) {
+        if (!net.isHost || uid === myUid) return;
+        if (!confirm('確定要剔除此玩家嗎？')) return;
+
+        let p = hostPlayers[uid];
+        if (p) {
+            if (p.conn) {
+                try { p.conn.send({ type: 'KICKED_BY_HOST' }); p.conn.close(); } catch(e) {}
+            }
+            delete hostPlayers[uid];
+        }
+
+        gameState.chuQueue = gameState.chuQueue.filter(x => x.uid !== uid);
+        gameState.yueQueue = gameState.yueQueue.filter(x => x.uid !== uid);
+        gameState.spectators = gameState.spectators.filter(x => x.uid !== uid);
+
+        updateLobbyUI();
+        syncAll();
+        
+        if (gameState.gameStarted) checkTurn(); // 確保不會因為當前玩家被踢而卡死
+    }
+
     function reqStartGame() {
         if (net.isHost) hostStartGame();
         else if (net.hostConn) net.hostConn.send({ type: 'REQ_START_GAME' });
     }
 
     function handleClientJoin(conn, data) {
+        // 偵測房間上限 (30人)
+        if (Object.keys(hostPlayers).length >= MAX_PLAYERS && !hostPlayers[data.uid]) {
+            conn.send({ type: 'ALERT', message: `房間人數已達伺服器上限 (${MAX_PLAYERS} 人)！` });
+            setTimeout(() => conn.close(), 500);
+            return;
+        }
+
         if (!data.asSpectator && data.requestedFaction === 'random') {
             const cLen = gameState.chuQueue.length; const yLen = gameState.yueQueue.length;
             if (cLen < yLen) data.requestedFaction = 'chu';
             else if (yLen < cLen) data.requestedFaction = 'yue';
-            else data.requestedFaction = getFairRandomFaction();
+            else data.requestedFaction = Math.random() < 0.5 ? 'chu' : 'yue';
             if (data.isRandomName) data.name = getRandomName(data.requestedFaction);
         }
 
@@ -626,6 +652,9 @@
             let existingIdx = q.findIndex(x => x.uid === p.uid);
             if (existingIdx !== -1) q.splice(existingIdx, 1);
             q.push({ uid: p.uid, name: p.name });
+        } else {
+            let existingIdx = gameState.spectators.findIndex(x => x.uid === p.uid);
+            if (existingIdx === -1) gameState.spectators.push({ uid: p.uid, name: p.name, connected: true });
         }
 
         conn.send({ type: 'WELCOME', role: conn.role, state: gameState, finalName: p.name });
@@ -650,19 +679,22 @@
         let cHtml = gameState.chuQueue.map(p => {
             let isMe = p.uid === myUid ? '<span style="color:#e53e3e; font-weight:bold;">(您)</span> ' : '';
             let status = hostPlayers[p.uid] && hostPlayers[p.uid].connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線(跳過)';
-            return `<div>${isMe}${p.name} ${status}</div>`;
+            let kickBtn = (net.isHost && p.uid !== myUid) ? `<button onclick="kickPlayer('${p.uid}')" style="margin-left:8px; padding:2px 6px; background:#e53e3e; color:white; border:none; border-radius:4px; font-size:0.7rem; cursor:pointer;">剔除</button>` : '';
+            return `<div style="padding: 2px 0;">${isMe}${p.name} ${status} ${kickBtn}</div>`;
         }).join('') || '<div style="color:#a0aec0;">無玩家加入</div>';
         
         let yHtml = gameState.yueQueue.map(p => {
             let isMe = p.uid === myUid ? '<span style="color:#e53e3e; font-weight:bold;">(您)</span> ' : '';
             let status = hostPlayers[p.uid] && hostPlayers[p.uid].connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線(跳過)';
-            return `<div>${isMe}${p.name} ${status}</div>`;
+            let kickBtn = (net.isHost && p.uid !== myUid) ? `<button onclick="kickPlayer('${p.uid}')" style="margin-left:8px; padding:2px 6px; background:#e53e3e; color:white; border:none; border-radius:4px; font-size:0.7rem; cursor:pointer;">剔除</button>` : '';
+            return `<div style="padding: 2px 0;">${isMe}${p.name} ${status} ${kickBtn}</div>`;
         }).join('') || '<div style="color:#a0aec0;">無玩家加入</div>';
 
         let sHtml = (gameState.spectators || []).map(p => {
             let isMe = p.uid === myUid ? '<span style="color:#e53e3e; font-weight:bold;">(您)</span> ' : '';
-            let status = p.connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線';
-            return `<div>${isMe}${p.name} ${status}</div>`;
+            let status = hostPlayers[p.uid] && hostPlayers[p.uid].connected ? '<span class="status-dot dot-on"></span>在線' : '<span class="status-dot dot-off"></span>離線';
+            let kickBtn = (net.isHost && p.uid !== myUid) ? `<button onclick="kickPlayer('${p.uid}')" style="margin-left:8px; padding:2px 6px; background:#e53e3e; color:white; border:none; border-radius:4px; font-size:0.7rem; cursor:pointer;">剔除</button>` : '';
+            return `<div style="padding: 2px 0;">${isMe}${p.name} ${status} ${kickBtn}</div>`;
         }).join('') || '<div style="color:#a0aec0;">無觀戰者</div>';
         
         let html = `
@@ -756,7 +788,6 @@
                 } else if (data.type === 'SYNC') {
                     gameState = data.state;
                     if (net.role === 'spectator' && gameState.gameStarted) document.getElementById('spectatorAdminPanel').style.display = 'block';
-                    if (gameState.gameStarted) transitionToGameView();
                     updateLobbyUI(); refreshUI(); 
                     if (gameState.activeEvent && gameState.isEventModalOpen) {
                         document.getElementById('modalEventTitle').innerHTML = `⚡ ${gameState.activeEvent.name}`;
@@ -770,7 +801,14 @@
                 else if (data.type === 'KICK_TIMEOUT') {
                     alert('您已超過 30 秒未動作，系統已將您標記為離線並換人。\n若要繼續遊玩，請重新點擊「加入房間」！');
                 }
-                else if (data.type === 'ALERT') { alert(data.message); }
+                else if (data.type === 'KICKED_BY_HOST') {
+                    alert('您已被房主剔除出局！');
+                    resetGameState();
+                    switchTab('onlineTab');
+                    setStatus('已被房主剔除');
+                    document.getElementById('btnJoin').disabled = false;
+                }
+                else if (data.type === 'ALERT') { alert(data.message); document.getElementById('btnJoin').disabled = false; }
             });
             conn.on('close', () => { setStatus('斷線，請重新加入'); document.getElementById('btnJoin').disabled = false; });
         });
