@@ -338,7 +338,7 @@
     };
 
     // ==========================================
-    // 1. UI、連線大廳與 QR Code 邏輯
+    // 1. UI、連線大廳與 QR Code 加入邏輯
     // ==========================================
     const btnSingle = document.getElementById('mode-single');
     const btnHost = document.getElementById('mode-host');
@@ -347,6 +347,7 @@
     const joinPanel = document.getElementById('join-panel');
     const multiInfo = document.getElementById('multiplayer-info');
 
+    // 檢查網址是否有 ?room=xxxx 參數，若有則直接進入加入模式
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
 
@@ -376,7 +377,7 @@
         hostPanel.classList.add('hidden');
         joinPanel.classList.remove('hidden');
         
-        // QR Code 自動連線機制
+        // QR Code 直連邏輯：自動填寫並加入
         if(roomParam) {
            document.getElementById('join-code-input').value = roomParam;
            setTimeout(() => document.getElementById('join-btn').click(), 300); 
@@ -388,6 +389,7 @@
     btnHost.addEventListener('click', () => switchMode('host'));
     btnJoin.addEventListener('click', () => switchMode('join'));
     
+    // 如果網址帶有房間號，直接切換到加入模式
     if(roomParam) switchMode('join');
 
     // 檔案上傳預先解析
@@ -424,8 +426,10 @@
       });
     });
 
+    // 動態設定同步
     document.getElementById('speed-slider').addEventListener('input', (e) => { document.getElementById('speed-val').textContent = parseFloat(e.target.value).toFixed(1); });
     document.getElementById('fire-slider').addEventListener('input', (e) => { document.getElementById('fire-val').textContent = parseFloat(e.target.value).toFixed(1) + ' 秒'; });
+
     document.getElementById('difficulty-select').addEventListener('change', (e) => {
       const diff = e.target.value;
       const speedSlider = document.getElementById('speed-slider');
@@ -716,6 +720,7 @@
       buildMap(selectedMap);
       yVelocity = 0;
 
+      // 如果勾選上帝視角
       if (isGodMode) {
          document.body.classList.add('god-mode-active');
          camera.position.y = 20;
@@ -799,6 +804,7 @@
       playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
       isTransitioning = false;
 
+      // 玩家人數：客機數量 + (主機若非上帝模式則+1)
       let playerCount = 1;
       if(connectionMode === 'host') {
          playerCount = Object.keys(clientConnections).length + (isGodMode ? 0 : 1);
@@ -873,7 +879,7 @@
       document.getElementById('hud-question-number').textContent = data.qNumText;
       document.getElementById('hud-question').textContent = data.qTitleText;
       currentQuestionCorrectNeeded = data.cNeeded;
-      currentQuestionCorrectHits = data.cHits !== undefined ? data.cHits : 0; // 同步中途加入時的擊殺進度
+      currentQuestionCorrectHits = data.cHits !== undefined ? data.cHits : 0; 
       updateTargetHUD();
 
       agentGroup.clear(); 
@@ -893,7 +899,6 @@
     function updateTargetHUD() {
        const hud = document.getElementById('hud-team-targets');
        hud.textContent = `擊殺目標: ${currentQuestionCorrectHits} / ${currentQuestionCorrectNeeded}`;
-       // 特效閃爍
        hud.classList.remove('bg-rose-600', 'bg-emerald-600');
        hud.classList.add('bg-white', 'text-slate-900');
        setTimeout(() => {
@@ -1127,6 +1132,7 @@
       agent.userData.gunMesh.getWorldPosition(startPos);
       bullet.position.copy(startPos);
 
+      // 上帝模式：敵人會尋找客機隊友作為目標，不會對上帝開槍
       let targetCamPos = camera.position.clone();
       if (isGodMode && connectionMode === 'host') {
          const keys = Object.keys(clientPlayers);
