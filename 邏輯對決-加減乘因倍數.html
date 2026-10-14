@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>桌迷藏 Online：數位邏輯對決 (教育特化版)</title>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root{--ink:#15233d;--muted:#71809b;--gold:#d7ad63;--gold-light:#f5e5bf;--red-card:#c94d59;--black-card:#233858;--zero-card:#d59337;--accent:#4876a9;--paper:#fffdf8;--line:#e6e1d6;--shadow:0 12px 40px rgba(17,31,55,.14)}
+        *{box-sizing:border-box}
+        body{font-family:"Segoe UI","Noto Sans TC",Tahoma,sans-serif;background:radial-gradient(ellipse at 50% -10%,#354b70 0,#1c2d4b 42%,#111c31 100%);color:var(--ink);margin:0;min-height:100vh;padding:15px;display:flex;flex-direction:column;align-items:center}
+        header{text-align:center;margin:0 auto 10px;color:#fff;position:relative}
+        header:before{content:"✦ 桌迷藏 ✦";display:block;color:var(--gold);letter-spacing:12px;font-size:11px;margin-bottom:6px}
+        header h1{margin:0;font-family:Georgia,"Noto Serif TC",serif;font-size:clamp(18px,3vw,26px);font-weight:700;letter-spacing:2px;text-shadow:0 3px 18px #0a1428}
+        
+        #top-room-display { position: absolute; top: 15px; right: 20px; background: rgba(255,255,255,0.9); padding: 8px 15px; border-radius: 20px; font-weight: bold; color: var(--accent); border: 2px solid var(--gold); box-shadow: 0 4px 8px rgba(0,0,0,0.2); z-index: 100; display: none; font-size: 15px; letter-spacing: 1px;}
+        #top-room-display span { font-size: 18px; color: #d35400; font-family: monospace; }
+        
+        .container{width:100%;max-width:1280px;background:linear-gradient(145deg,#fffefa,#f8f5ee);border:1px solid rgba(235,210,162,.8);border-radius:16px;box-shadow:var(--shadow);padding:15px 20px;display:none;position:relative;overflow:hidden;}
+        .container:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,transparent,var(--gold),#f3dfb5,var(--gold),transparent)}
+        .active-section{display:block;animation:fadeIn .4s ease both}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .section-title{color:var(--ink);text-align:center;border-bottom:1px solid var(--line);padding:0 0 8px;margin:0 0 12px;font-family:Georgia,"Noto Serif TC",serif;font-size:18px;letter-spacing:1px}
+        
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; max-width: 800px; margin: 0 auto; }
+        .mode-btn{width:100%; margin:5px auto;padding:15px;font-size:16px;font-weight:700;letter-spacing:.5px;border:1px solid rgba(255,255,255,.28);border-radius:10px;color:#fff;cursor:pointer;display:block;transition:transform .2s,filter .2s;box-shadow:0 6px 12px rgba(25,39,60,.16)}
+        .mode-btn:hover{transform:translateY(-2px);filter:brightness(1.08)}
+        .btn-ai { background: linear-gradient(115deg,#2c3e50,#34495e); }
+        .btn-pvp { background: linear-gradient(115deg,#8e44ad,#9b59b6); }
+        .btn-teacher { background: linear-gradient(115deg,#d35400,#e67e22); }
+        .btn-teaching{background:linear-gradient(115deg,#6b4291,#8b5dc4)}.btn-simple{background:linear-gradient(115deg,#27886c,#45ae83)}.btn-standard{background:linear-gradient(115deg,#b67b27,#e4ad4e)}
+        
+        .lobby-box { text-align: center; padding: 15px; background: #fff; border-radius: 12px; border: 2px dashed #ccc; margin-top: 10px; }
+        .room-input { font-size: 22px; padding: 8px; width: 150px; text-align: center; letter-spacing: 3px; border-radius: 8px; border: 2px solid var(--accent); margin: 5px; }
+        #room-code-display { font-size: 36px; color: var(--accent); font-weight: bold; letter-spacing: 8px; margin: 10px 0; }
+        
+        #qrcode-container, #teacher-qrcode-container { display: flex; justify-content: center; margin: 15px 0; display: none; }
+        #qrcode, #teacher-qrcode { padding: 10px; background: #fff; border-radius: 8px; border: 2px solid #ecf0f1; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        
+        .card-row{display:flex;gap:10px;justify-content:center;margin:8px 0 12px;flex-wrap:wrap;perspective:700px}
+        .card{width:56px;height:84px;background:linear-gradient(145deg,#fff,#f7f3e9);border:1px solid #d8d0bf;border-radius:8px;font-size:24px;font-weight:800;display:flex;justify-content:center;align-items:center;cursor:pointer;user-select:none;transition:transform .2s;box-shadow:0 4px 8px rgba(28,43,66,.13),inset 0 0 0 3px #fff; position:relative;}
+        .card.red{color:var(--red-card);border-color:#d99797}.card.black{color:var(--black-card);border-color:#8292a9}.card.zero{color:var(--zero-card);border-color:#dfbd7e}
+        .card.hidden{background:repeating-linear-gradient(45deg,#263b5c,#263b5c 8px,#30496d 8px,#30496d 16px);color:transparent;border:2px solid var(--gold);cursor:default;}
+        .card.selected{outline:3px solid var(--accent);transform:translateY(-4px)}
+        
+        .teacher-card { cursor: pointer !important; transition: all 0.2s ease; }
+        .teacher-card:hover { transform: translateY(-4px); box-shadow: 0 6px 12px rgba(241,196,15,0.4); border-color: var(--gold); }
+        .card.revealed-by-teacher { opacity: 1 !important; filter: none !important; background:linear-gradient(145deg,#fff8e7,#ffebba);border:3px solid #f1c40f;box-shadow:0 0 15px rgba(241,196,15,.6); color:inherit; }
+        .card.revealed-by-teacher::before { content: "👁️"; position: absolute; top: -10px; right: -10px; font-size: 16px; background: rgba(255,255,255,0.9); border-radius: 50%; padding: 2px; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
+        
+        .game-layout{display:grid;grid-template-columns:minmax(0,2.2fr) minmax(260px,1fr);gap:15px; align-items: start;}
+        .battle-mid-section { display: grid; grid-template-columns: 1.6fr 1fr; gap: 15px; margin: 10px 0; }
+        
+        .question-board{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;}
+        .question-card{background:linear-gradient(145deg,#fff,#f8f4e9);border:1px solid #e4d9c1;border-left:4px solid var(--gold);padding:10px;border-radius:8px;text-align:center;cursor:pointer;font-size:13px;font-weight:700;color:#34445f; display:flex;align-items:center;justify-content:center;}
+        .question-card:hover{background:#fff9e9;transform:translateY(-2px)}
+        .disabled-board { pointer-events: none; opacity: 0.6; filter: grayscale(50%); }
+        
+        .history-panel{background:#f2f4f7;border-radius:10px;padding:12px;border-left:4px solid var(--accent); height: 180px; overflow-y: auto;}
+        .history-list{list-style:none;padding:0;margin:0;font-size:12.5px}
+        .history-list li{margin-bottom:6px;padding:8px;background:rgba(255,255,255,.7);border-radius:6px;border-bottom:1px solid #dfe4ea}
+        
+        .tracker{background:linear-gradient(155deg,#f4f6f8,#e9edf2);padding:15px;border-radius:12px;border:1px solid #d9e0e8;}
+        .tracker-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(42px,1fr));gap:6px}
+        .track-btn{padding:8px 0;border:1px solid #d4dbe4;border-radius:6px;background:#fff;cursor:pointer;font-size:14px;font-weight:800;text-align:center;user-select:none;}
+        .track-btn.state-x{background:#d95f66;color:white!important;text-decoration:line-through;border-color:#c94d59}
+        .track-btn.state-o{background:#54ad8e;color:white!important;border-color:#379676}
+        
+        .zone-label { display: block; text-align: center; font-size: 14px; font-weight: bold; color: var(--muted); margin-bottom: 2px; }
+        .player-zone { position: relative; background: rgba(255,255,255,0.4); border-radius: 12px; padding: 10px; border: 1px dashed #d9e0e8;}
+        
+        .btn{background:linear-gradient(110deg,#3e6694,#5689b8);color:#fff;border:0;padding:12px 20px;font-size:15px;font-weight:800;border-radius:8px;cursor:pointer;display:block;margin:10px auto;text-align:center;}
+        .btn-danger{background:linear-gradient(110deg,#a63d4b,#d15c60);}
+        .btn-small { padding: 8px 15px; font-size: 13px; margin: 5px auto; }
+        
+        #turn-indicator { text-align: center; padding: 8px; font-size: 16px; font-weight: bold; border-radius: 8px; margin-bottom: 10px; transition: 0.3s; }
+        .my-turn { background: #dff9fb; color: #000; border: 2px solid #55efc4; }
+        .opp-turn { background: #ffcccc; color: #000; border: 2px solid #ff7675; }
+        
+        /* 專屬作答面板 */
+        .answer-panel { background: rgba(255,255,255,0.95); border: 2px solid var(--accent); border-radius: 12px; padding: 15px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%;}
+        .answer-panel h3 { color: var(--accent); margin: 0 0 10px 0; font-size: 16px; }
+        .answer-panel p { margin: 0 0 15px 0; font-size: 14px; color: #34495e; font-weight: bold; }
+        .answer-input { font-size: 20px; padding: 10px; width: 80%; text-align: center; border: 2px solid #bdc3c7; border-radius: 8px; margin-bottom: 15px; outline: none;}
+        .answer-input:focus { border-color: var(--accent); }
+        .answer-btn-group { display: flex; gap: 10px; justify-content: center; width: 100%; }
+        .answer-btn-group .btn { margin: 0; flex: 1; }
+
+        #reconnect-overlay { position: absolute; inset: 0; background: rgba(17, 31, 55, 0.85); z-index: 9999; display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: white; border-radius: 16px; backdrop-filter: blur(5px); }
+        .reconnect-box { background: rgba(255,255,255,0.1); padding: 30px; border-radius: 16px; border: 2px solid var(--accent); }
+        .reconnect-box h2 { margin-top: 0; color: #f1c40f; }
+        .loader { border: 4px solid #f3f3f3; border-top: 4px solid var(--accent); border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 10px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        .teacher-view-area { border: 2px dashed #d35400; padding: 15px; border-radius: 12px; background: rgba(255,250,240,0.7); margin-bottom: 15px; }
+        .teacher-view-area h3 { color: #d35400; margin: 0 0 10px 0; font-size: 16px; text-align: center;}
+        .teacher-split-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start; margin-top: 15px; text-align: left; }
+        
+        @media(max-width:900px){
+            .game-layout{grid-template-columns:1fr;}
+            .battle-mid-section { grid-template-columns: 1fr; }
+            .history-panel { height: 120px; }
+            .teacher-split-grid { grid-template-columns: 1fr; }
+            #top-room-display { position: relative; top: 0; right: 0; display: inline-block; margin-bottom: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>桌迷藏 Online</h1>
+        <div id="top-room-display">連線房號：<span id="top-room-id">----</span></div>
+    </header>
+
+    <div id="main-menu" class="container active-section">
+        <h2 class="section-title">選擇連線模式</h2>
+        <div class="menu-grid">
+            <button class="mode-btn btn-ai" onclick="startAIMode()">🤖 單機練習 (對抗AI)</button>
+            <button class="mode-btn btn-pvp" onclick="showLobby()">🌐 學生連線 (兩台平板對決)</button>
+            <button class="mode-btn btn-teacher" onclick="showTeacherLobby()">👁️ 教師觀戰 (上帝視角/發起戰局)</button>
+        </div>
+    </div>
+
+    <!-- 學生連線大廳 -->
+    <div id="lobby-section" class="container">
+        <h2 class="section-title" id="lobby-title">連線大廳</h2>
+        
+        <div class="menu-grid" id="player-lobby-grid">
+            <div class="lobby-box">
+                <h3>我是發起人</h3>
+                <button class="btn" onclick="createRoom()">建立新房間 (開房)</button>
+                <div id="host-wait-area" style="display:none;">
+                    <p>請對手輸入下方房號：</p>
+                    <div id="room-code-display">----</div>
+                    <button class="btn btn-small" id="btn-show-qr" onclick="generateQRCode()">📱 顯示 QR Code 邀請碼</button>
+                    <div id="qrcode-container"><div id="qrcode"></div></div>
+                    <div class="loader" id="host-loader"></div>
+                    <p id="host-status-text" style="color:var(--accent);">等待對手加入中...</p>
+                </div>
+            </div>
+            
+            <div class="lobby-box">
+                <h3>我是挑戰者</h3>
+                <p>請輸入對手的 4 位數房號：</p>
+                <input type="number" id="join-room-id" class="room-input" placeholder="1234">
+                <button class="btn btn-danger" onclick="joinRoom('player')">加入房間</button>
+                <div id="join-wait-area" style="display:none; margin-top:10px; color:var(--accent); font-weight:bold;">
+                    連線中，請稍候...
+                </div>
+            </div>
+        </div>
+
+        <!-- 教師連線大廳 -->
+        <div class="menu-grid" id="teacher-lobby-grid" style="display:none;">
+            <div class="lobby-box">
+                <h3>我是教師 (發起上帝視角戰局)</h3>
+                <button class="btn btn-teacher" onclick="createTeacherRoom()">建立專屬房間</button>
+                <div id="teacher-host-wait-area" style="display:none; margin-top: 15px;">
+                    <p style="margin:5px 0;">請學生掃描 QR Code 或輸入房號：</p>
+                    <div id="teacher-room-code-display" style="font-size: 36px; color: var(--accent); font-weight: bold; letter-spacing: 8px;">----</div>
+                    <button class="btn btn-small" onclick="generateTeacherQRCode()">📱 顯示 QR Code</button>
+                    <div id="teacher-qrcode-container"><div id="teacher-qrcode"></div></div>
+                    
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 8px; margin-top: 15px; text-align: left;">
+                        <p id="teacher-p1-status" style="margin: 5px 0; font-weight: bold; color: #7f8c8d;">🔴 玩家 1: 尚未加入</p>
+                        <p id="teacher-p2-status" style="margin: 5px 0; font-weight: bold; color: #7f8c8d;">🔴 玩家 2: 尚未加入</p>
+                    </div>
+                    
+                    <div id="teacher-difficulty-selection" style="display:none; margin-top:15px;">
+                        <p style="color:var(--accent); font-weight:bold;">✅ 雙方已就緒！請選擇難度發牌：</p>
+                        <button class="btn btn-small btn-teaching" onclick="initDeckAndDistribute('teaching')">🟣 教學版 (3張牌)</button>
+                        <button class="btn btn-small btn-simple" onclick="initDeckAndDistribute('simple')">🟢 簡單版 (5張牌)</button>
+                        <button class="btn btn-small btn-standard" onclick="initDeckAndDistribute('standard')">🟡 標準版 (5張牌)</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="lobby-box">
+                <h3>我是教師 (加入現有學生房間)</h3>
+                <p style="margin: 10px 0 5px;">觀戰房號 (學生的4位數)：</p>
+                <input type="number" id="teacher-room-id" class="room-input" placeholder="1234">
+                <p style="margin: 10px 0 5px;">上帝視角密碼：</p>
+                <input type="password" id="teacher-pwd" class="room-input" placeholder="輸入密碼">
+                <button class="btn btn-teacher" onclick="joinRoom('spectator')">進入觀戰</button>
+                <div id="teacher-wait-area" style="display:none; margin-top:15px; color:var(--accent); font-weight:bold; line-height: 1.6;">
+                    連線通道建立中...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- P2P模式：Host 設定難度區 -->
+    <div id="mode-section" class="container">
+        <h2 class="section-title">請選擇遊戲難度</h2>
+        <p style="text-align: center; color: #7f8c8d; margin-bottom: 20px;">請決定這局的難度配置</p>
+        <div class="menu-grid">
+            <button class="mode-btn btn-teaching" onclick="initDeckAndDistribute('teaching')">🟣 教學版 (3張牌，-3 到 3)</button>
+            <button class="mode-btn btn-simple" onclick="initDeckAndDistribute('simple')">🟢 簡單版 (5張牌，-5 到 5)</button>
+            <button class="mode-btn btn-standard" onclick="initDeckAndDistribute('standard')">🟡 標準版 (5張牌，-10 到 10)</button>
+        </div>
+    </div>
+
+    <div id="setup-section" class="container">
+        <h2 class="section-title">強制排序試煉</h2>
+        <p style="text-align: center; margin-bottom: 5px;">點擊兩張牌互換，將手牌<strong>由小到大</strong>排列（負數越小排越左邊）。</p>
+        <div id="player-sort-cards" class="card-row" style="margin: 30px 0;"></div>
+        <button class="btn" id="btn-ready" onclick="checkSorting()">我排好了，準備對決！</button>
+        <div id="sort-error" style="color: red; text-align: center; font-weight: bold; margin-top: 10px;"></div>
+    </div>
+
+    <!-- 教師專用視角區塊 -->
+    <div id="teacher-section" class="container">
+        <h2 class="section-title">👨‍🏫 教師上帝視角</h2>
+        <p style="text-align: center; margin-bottom: 10px; font-size: 14px; color: #d35400; font-weight:bold;">
+            💡 卡牌預設隱藏。點擊任一卡牌可「強制翻開」，學生螢幕將同步顯示該卡牌。
+        </p>
+        
+        <div class="teacher-view-area">
+            <h3>🏠 發起人 (Host) / 玩家 1 戰局</h3>
+            <div id="teacher-host-cards" class="card-row"></div>
+            <div class="teacher-split-grid">
+                <div class="history-panel" style="height: 160px; margin: 0;">
+                    <div style="text-align:center; font-size:13px; color:#7f8c8d; font-weight:bold; margin-bottom:8px;">📜 關於玩家 1 的線索</div>
+                    <ul id="teacher-history-host" class="history-list"></ul>
+                </div>
+                <div class="tracker" style="margin: 0; padding: 10px;">
+                    <div style="text-align:center; font-size:13px; color:#7f8c8d; font-weight:bold; margin-bottom:8px;">✏️ 玩家 1 記錄紙</div>
+                    <div id="teacher-tracker-grid-host" class="tracker-grid"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="teacher-view-area" style="border-color: #2980b9; background: rgba(240,248,255,0.7);">
+            <h3 style="color: #2980b9;">⚔️ 挑戰者 (Guest) / 玩家 2 戰局</h3>
+            <div id="teacher-guest-cards" class="card-row"></div>
+            <div class="teacher-split-grid">
+                <div class="history-panel" style="height: 160px; margin: 0; border-left-color: #2980b9;">
+                    <div style="text-align:center; font-size:13px; color:#7f8c8d; font-weight:bold; margin-bottom:8px;">📜 關於玩家 2 的線索</div>
+                    <ul id="teacher-history-guest" class="history-list"></ul>
+                </div>
+                <div class="tracker" style="margin: 0; padding: 10px;">
+                    <div style="text-align:center; font-size:13px; color:#7f8c8d; font-weight:bold; margin-bottom:8px;">✏️ 玩家 2 記錄紙</div>
+                    <div id="teacher-tracker-grid-guest" class="tracker-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 玩家遊戲區塊 -->
+    <div id="game-section" class="container">
+        <div id="reconnect-overlay">
+            <div class="reconnect-box">
+                <div class="loader" style="border-top-color: #f1c40f;"></div>
+                <h2 id="reconnect-title">連線中斷</h2>
+                <p id="reconnect-desc">正在嘗試恢復連線，請不要關閉視窗...</p>
+                <button id="btn-force-ai" class="btn btn-danger" style="display:none;" onclick="forceAITakeover()">放棄等待，立即由 AI 接管</button>
+            </div>
+        </div>
+
+        <div class="game-layout">
+            <div class="battle-area">
+                <div id="turn-indicator" class="my-turn">輪到你的回合！請發問</div>
+                
+                <div class="player-zone">
+                    <span class="zone-label">對手的牌 (隱藏)</span>
+                    <div id="opponent-cards" class="card-row"></div>
+                </div>
+                
+                <div class="battle-mid-section">
+                    <div id="question-board" class="question-board"></div>
+                    <div class="history-panel">
+                        <ul id="history-list" class="history-list">
+                            <li style="color:#aaa; text-align:center;">戰報紀錄開始</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="player-zone">
+                    <span class="zone-label">我的手牌</span>
+                    <div id="player-game-cards" class="card-row"></div>
+                    <button class="btn btn-danger" onclick="declareAnswer()" style="margin: 5px auto 0;">⚔️ 宣告解答</button>
+                </div>
+            </div>
+            
+            <div id="sidebar-tracker" class="tracker">
+                <h3 style="margin-top:0; text-align:center; font-size:16px;">數位記錄紙</h3>
+                <p style="font-size:12px; text-align:center; margin:5px 0 10px; color:#71809b;">點擊切換：空白 ➔ <span style="color:red">X</span> ➔ <span style="color:green">O</span></p>
+                <div id="tracker-grid" class="tracker-grid"></div>
+            </div>
+            
+            <div id="sidebar-answer" class="answer-panel">
+                <h3>⚠️ 對手發問 ⚠️</h3>
+                <p id="answer-question-text"></p>
+                <p id="answer-hint-text" style="color:var(--muted); font-size:12px;"></p>
+                <input type="text" id="answer-input-field" class="answer-input" placeholder="請輸入答案" autocomplete="off" onkeydown="if(event.key==='Enter') submitAnswer()">
+                <div class="answer-btn-group">
+                    <button class="btn" onclick="submitAnswer()">送出答案</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const PEER_PREFIX = 'swjh-math-v4-';
+        let peer = null, conn = null; 
+        
+        let isHost = false, isPvP = false, isSpectator = false, isAITakeover = false;
+        let isTeacherHost = false, isConnectedToTeacherHost = false; 
+        let connP1 = null, connP2 = null; 
+        let teacherHostTurn = true; 
+        let spectators = [];
+        let isGameStarted = false, currentRoomId = '', reconnectInterval = null;
+        let aiTimeout = null;
+        
+        let BASE_NUMBERS = [], hostCards = [], guestCards = [];
+        let myCards = [], opponentCards = []; 
+        let cardCount = 5, selectedForSwap = null;
+        let currentBoardQuestions = [], historyData = []; 
+        let opponentReady = false, amIReady = false, myTurn = true;
+        let revealedHostCards = [], revealedGuestCards = [];
+        let qrCodeInstance = null, qrCodeInstanceTeacher = null;
+        
+        let pendingQuestionId = null, pendingBoardIdx = null;
+
+        const questionPool = [
+            { id: 1, text: "正數(紅色)有幾張?", calc: (c) => c.filter(x => x > 0).length },
+            { id: 2, text: "負數(黑色)有幾張?", calc: (c) => c.filter(x => x < 0).length },
+            { id: 3, text: "全部總和多少?", calc: (c) => c.reduce((a, b) => a + b, 0) },
+            { id: 4, text: "最大與最小差距 (大-小)?", calc: (c) => Math.max(...c) - Math.min(...c) },
+            { id: 5, text: "最大與最小的總和?", calc: (c) => Math.max(...c) + Math.min(...c) },
+            { id: 6, text: "左邊三張總和?", calc: (c) => c[0] + c[1] + c[2], minCards: 5 },
+            { id: 7, text: "右邊三張總和?", calc: (c) => c[c.length-3] + c[c.length-2] + c[c.length-1], minCards: 5 },
+            { id: 8, text: "左邊兩張乘積?", calc: (c) => c[0] * c[1] },
+            { id: 9, text: "右邊兩張乘積?", calc: (c) => c[c.length-2] * c[c.length-1] },
+            { id: 10, text: "數字為偶數有幾張?", calc: (c) => c.filter(x => Math.abs(x) % 2 === 0).length },
+            { id: 11, text: "中位數有幾張?", calc: (c) => { const m = c[Math.floor(c.length/2)]; return c.filter(x => x === m).length; } }, 
+            { id: 12, text: "Joker 0 位置在哪?", calc: (c) => {
+                let idxs = []; c.forEach((x, i) => { if(x === 0) idxs.push(i+1); });
+                return idxs.length > 0 ? idxs.join(',') : "N";
+            }},
+            { id: 13, text: "正數(紅色)的總和?", calc: (c) => c.filter(x => x > 0).reduce((a,b)=>a+b, 0) },
+            { id: 14, text: "負數(黑色)的總和?", calc: (c) => c.filter(x => x < 0).reduce((a,b)=>a+b, 0) }
+        ];
+
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam && roomParam.length === 4) {
+                showLobby();
+                document.getElementById('join-room-id').value = roomParam;
+                setTimeout(() => joinRoom('player'), 500);
+            }
+        };
+
+        function switchScreen(id) {
+            document.querySelectorAll('.container').forEach(c => c.classList.remove('active-section'));
+            document.getElementById(id).classList.add('active-section');
+        }
+        
+        function displayTopRoomId(roomId) {
+            document.getElementById('top-room-id').innerText = roomId;
+            document.getElementById('top-room-display').style.display = 'block';
+        }
+
+        function startAIMode() { isPvP = false; isHost = true; myTurn = true; switchScreen('mode-section'); }
+        
+        function showLobby() {
+            isPvP = true; isSpectator = false; isTeacherHost = false;
+            document.getElementById('player-lobby-grid').style.display = 'grid';
+            document.getElementById('teacher-lobby-grid').style.display = 'none';
+            document.getElementById('lobby-title').innerText = "連線大廳";
+            switchScreen('lobby-section');
+        }
+        
+        function showTeacherLobby() {
+            isPvP = true; isSpectator = true; 
+            document.getElementById('player-lobby-grid').style.display = 'none';
+            document.getElementById('teacher-lobby-grid').style.display = 'grid';
+            document.getElementById('lobby-title').innerText = "教師管理中心";
+            switchScreen('lobby-section');
+        }
+
+        function broadcastToSpectators(data) { spectators.forEach(sp => { if (sp.open) sp.send(data); }); }
+
+        function showReconnectOverlay(title, desc, showAIButton) {
+            document.getElementById('reconnect-overlay').style.display = 'flex';
+            document.getElementById('reconnect-title').innerText = title;
+            document.getElementById('reconnect-desc').innerText = desc;
+            document.getElementById('btn-force-ai').style.display = showAIButton ? 'block' : 'none';
+        }
+        
+        function hideReconnectOverlay() { document.getElementById('reconnect-overlay').style.display = 'none'; }
+        
+        function forceAITakeover() {
+            hideReconnectOverlay(); isAITakeover = true; isPvP = false;
+            document.getElementById('ai-takeover-alert').style.display = 'block';
+            document.getElementById('ai-takeover-alert').innerText = "✅ 已強制由電腦 AI 接管戰局！";
+            if(!myTurn) setTimeout(aiPlayTurn, 1000);
+        }
+
+        function handleDisconnect() {
+            if(!isPvP || isSpectator || isAITakeover || isTeacherHost) return;
+            if(isHost && !isConnectedToTeacherHost) showReconnectOverlay("⚠️ 挑戰者已斷線", "保留戰局中，等待對手重新連線...", true);
+            else { showReconnectOverlay("⚠️ 與主機失去連線", "正在自動嘗試重新連線中...", false); startAutoReconnect(); }
+        }
+
+        function startAutoReconnect() {
+            if(!currentRoomId || reconnectInterval) return;
+            reconnectInterval = setInterval(() => {
+                let tempConn = peer.connect(PEER_PREFIX + currentRoomId, { metadata: { role: 'player' } });
+                tempConn.on('open', () => {
+                    clearInterval(reconnectInterval); reconnectInterval = null;
+                    conn = tempConn; setupConnEvents();
+                });
+            }, 3000);
+        }
+
+        function createRoom() {
+            isHost = true; isTeacherHost = false;
+            currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('room-code-display').innerText = currentRoomId;
+            displayTopRoomId(currentRoomId);
+            document.getElementById('host-wait-area').style.display = 'block';
+            
+            peer = new Peer(PEER_PREFIX + currentRoomId);
+            peer.on('error', (err) => alert('連線發生錯誤: ' + err.type));
+            peer.on('connection', (c) => {
+                if(c.metadata && c.metadata.role === 'spectator') {
+                    spectators.push(c);
+                    c.on('data', handleSpectatorData);
+                    c.on('open', () => {
+                        if (hostCards && hostCards.length > 0) {
+                            c.send({ type: 'SYNC_STATE', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, revealedHostCards, revealedGuestCards, history: historyData });
+                        }
+                    });
+                } else {
+                    conn = c; setupConnEvents();
+                    document.getElementById('btn-show-qr').style.display = 'none';
+                    document.getElementById('qrcode-container').style.display = 'none';
+                    if (isGameStarted) {
+                        conn.on('open', () => {
+                            conn.send({ type: 'RESTORE_GAME', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, revealedHostCards, revealedGuestCards, questions: currentBoardQuestions.map(q=>q.id), history: historyData, hostTurn: myTurn });
+                            hideReconnectOverlay();
+                        });
+                    } else {
+                        document.getElementById('host-loader').style.display = 'none';
+                        document.getElementById('host-status-text').innerHTML = "✅ 對手已連線！請點擊選擇難度";
+                        document.getElementById('host-status-text').style.color = "#27ae60";
+                    }
+                }
+            });
+        }
+        
+        function generateQRCode() {
+            const url = window.location.href.split('?')[0] + '?room=' + currentRoomId;
+            const container = document.getElementById('qrcode-container');
+            container.style.display = 'flex';
+            if (qrCodeInstance) { qrCodeInstance.clear(); qrCodeInstance.makeCode(url); } 
+            else { qrCodeInstance = new QRCode(document.getElementById("qrcode"), { text: url, width: 150, height: 150, colorDark : "#15233d", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H }); }
+        }
+
+        function createTeacherRoom() {
+            isTeacherHost = true; isSpectator = true; isHost = false;
+            currentRoomId = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('teacher-room-code-display').innerText = currentRoomId;
+            displayTopRoomId(currentRoomId);
+            document.getElementById('teacher-host-wait-area').style.display = 'block';
+            
+            peer = new Peer(PEER_PREFIX + currentRoomId);
+            peer.on('error', (err) => alert('連線發生錯誤: ' + err.type));
+            peer.on('connection', (c) => {
+                if (c.metadata && c.metadata.role === 'spectator') return;
+                
+                if (!connP1 || !connP1.open) {
+                    connP1 = c;
+                    c.on('data', (data) => handleDataAsTeacherHost(connP1, data));
+                    c.on('open', () => c.send({ type: 'TEACHER_ACK', role: 'p1' }));
+                    document.getElementById('teacher-p1-status').innerHTML = "🟢 玩家 1: 已連線";
+                    document.getElementById('teacher-p1-status').style.color = "#27ae60";
+                    
+                    if (isGameStarted) {
+                        c.on('open', () => {
+                            c.send({ type: 'RESTORE_GAME_FROM_TEACHER', role: 'p1', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, revealedHostCards, revealedGuestCards, questions: currentBoardQuestions.map(q=>q.id), history: historyData, hostTurn: teacherHostTurn });
+                        });
+                    }
+                } else if (!connP2 || !connP2.open) {
+                    connP2 = c;
+                    c.on('data', (data) => handleDataAsTeacherHost(connP2, data));
+                    c.on('open', () => c.send({ type: 'TEACHER_ACK', role: 'p2' }));
+                    document.getElementById('teacher-p2-status').innerHTML = "🟢 玩家 2: 已連線";
+                    document.getElementById('teacher-p2-status').style.color = "#27ae60";
+                    
+                    if (!isGameStarted) document.getElementById('teacher-difficulty-selection').style.display = 'block';
+                    else {
+                        c.on('open', () => {
+                            c.send({ type: 'RESTORE_GAME_FROM_TEACHER', role: 'p2', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, revealedHostCards, revealedGuestCards, questions: currentBoardQuestions.map(q=>q.id), history: historyData, hostTurn: teacherHostTurn });
+                        });
+                    }
+                }
+            });
+        }
+
+        function generateTeacherQRCode() {
+            const url = window.location.href.split('?')[0] + '?room=' + currentRoomId;
+            const container = document.getElementById('teacher-qrcode-container');
+            container.style.display = 'flex';
+            if (qrCodeInstanceTeacher) { qrCodeInstanceTeacher.clear(); qrCodeInstanceTeacher.makeCode(url); } 
+            else { qrCodeInstanceTeacher = new QRCode(document.getElementById("teacher-qrcode"), { text: url, width: 150, height: 150, colorDark : "#15233d", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H }); }
+        }
+
+        function joinRoom(role) {
+            isHost = false;
+            if (role === 'spectator') {
+                const pwd = document.getElementById('teacher-pwd').value.trim();
+                if (pwd !== "0806") return alert("密碼錯誤，無法進入觀戰模式。");
+            }
+            const inputId = role === 'spectator' ? 'teacher-room-id' : 'join-room-id';
+            currentRoomId = document.getElementById(inputId).value.trim();
+            if(currentRoomId.length !== 4) return alert('請輸入 4 位數房號');
+            
+            displayTopRoomId(currentRoomId);
+            const waitArea = document.getElementById(role === 'spectator' ? 'teacher-wait-area' : 'join-wait-area');
+            waitArea.style.display = 'block';
+            
+            peer = new Peer();
+            peer.on('error', (err) => alert('連線發生錯誤: ' + err.type));
+            peer.on('open', () => {
+                conn = peer.connect(PEER_PREFIX + currentRoomId, { metadata: { role: role } });
+                if(role === 'spectator') {
+                    isSpectator = true;
+                    conn.on('data', handleSpectatorData);
+                    conn.on('open', () => {
+                        waitArea.innerHTML = "✅ 已成功連線至學生房間！<br>等待雙方完成發牌即可顯示戰局...";
+                        waitArea.style.color = "#27ae60";
+                    });
+                } else {
+                    setupConnEvents();
+                }
+            });
+        }
+
+        function handleDataAsTeacherHost(senderConn, data) {
+            let receiverConn = (senderConn === connP1) ? connP2 : connP1;
+
+            if (data.type === 'READY_RELAY') {
+                if (senderConn === connP1) {
+                    hostCards = data.sortedCards;
+                    if (connP2 && connP2.open) connP2.send({ type: 'HOST_READY', sortedCards: data.sortedCards });
+                    revealedHostCards = Array(cardCount).fill(false);
+                } else {
+                    guestCards = data.sortedCards;
+                    if (connP1 && connP1.open) connP1.send({ type: 'READY', sortedCards: data.sortedCards });
+                    revealedGuestCards = Array(cardCount).fill(false);
+                }
+                renderTeacherBoard();
+                return;
+            }
+            if (data.type === 'ASK' || data.type === 'GAME_OVER') {
+                if (receiverConn && receiverConn.open) receiverConn.send(data);
+            }
+            if (data.type === 'ANSWER') {
+                let isP1Asking = (receiverConn === connP1);
+                addHistoryLogAsTeacherHost(data.qText, data.ansText, isP1Asking);
+                if (!data.penalty) teacherHostTurn = !teacherHostTurn;
+                if (receiverConn && receiverConn.open) receiverConn.send(data);
+            }
+        }
+
+        function addHistoryLogAsTeacherHost(question, answer, isP1Asking) {
+            historyData.push({ asker: isP1Asking ? 'host' : 'guest', question: question, answer: answer });
+            const targetListId = isP1Asking ? 'teacher-history-guest' : 'teacher-history-host';
+            const list = document.getElementById(targetListId);
+            const li = document.createElement('li');
+            if (isP1Asking) li.innerHTML = `🏠 <b>玩家1 問：</b>${question} <br> <span style="color:#2980b9;font-weight:bold;font-size:14px;">👉 答：${answer}</span>`;
+            else li.innerHTML = `⚔️ <b>玩家2 問：</b>${question} <br> <span style="color:#d35400;font-weight:bold;font-size:14px;">👉 答：${answer}</span>`;
+            if (list.firstChild && list.firstChild.style && list.firstChild.style.color === 'rgb(170, 170, 170)') list.innerHTML = ''; 
+            list.insertBefore(li, list.firstChild);
+        }
+
+        function setupConnEvents() {
+            conn.on('open', () => {
+                if(isHost) { if(!isGameStarted) switchScreen('mode-section'); } 
+                else {
+                    document.getElementById('join-wait-area').innerHTML = "✅ 連線成功！<br>等待發起人決定難度與發牌...";
+                    document.getElementById('join-wait-area').style.color = "#27ae60";
+                }
+            });
+            conn.on('data', handleNetworkData);
+            conn.on('close', handleDisconnect);
+            conn.on('error', handleDisconnect);
+        }
+
+        function handleNetworkData(data) {
+            switch(data.type) {
+                case 'TEACHER_ACK':
+                    isConnectedToTeacherHost = true;
+                    document.getElementById('join-wait-area').innerHTML = "✅ 已成功連線至老師！<br>等待老師選擇難度與發牌...";
+                    document.getElementById('join-wait-area').style.color = "#27ae60";
+                    break;
+                case 'INIT_FROM_TEACHER':
+                    isConnectedToTeacherHost = true;
+                    isHost = (data.role === 'p1'); 
+                    isPvP = true;
+                    BASE_NUMBERS = data.baseNum; cardCount = data.count;
+                    hostCards = data.hostCards; guestCards = data.guestCards;
+                    myCards = isHost ? hostCards : guestCards; opponentCards = isHost ? guestCards : hostCards;
+                    revealedHostCards = Array(cardCount).fill(false); revealedGuestCards = Array(cardCount).fill(false);
+                    currentBoardQuestions = data.questions.map(id => questionPool.find(q=>q.id===id));
+                    switchScreen('setup-section'); renderSortingCards();
+                    break;
+                case 'RESTORE_GAME_FROM_TEACHER':
+                    isConnectedToTeacherHost = true;
+                    isHost = (data.role === 'p1');
+                    isPvP = true; isGameStarted = true;
+                    BASE_NUMBERS = data.baseNum; cardCount = data.count;
+                    hostCards = data.hostCards; guestCards = data.guestCards;
+                    myCards = isHost ? hostCards : guestCards; opponentCards = isHost ? guestCards : hostCards;
+                    revealedHostCards = data.revealedHostCards; revealedGuestCards = data.revealedGuestCards;
+                    currentBoardQuestions = data.questions.map(id => questionPool.find(q=>q.id===id));
+                    historyData = data.history; 
+                    myTurn = isHost ? data.hostTurn : !data.hostTurn;
+                    
+                    if (aiTimeout) { clearTimeout(aiTimeout); aiTimeout = null; }
+                    
+                    hideReconnectOverlay(); switchScreen('game-section'); renderOpponentCards();
+                    const mc = document.getElementById('player-game-cards');
+                    mc.innerHTML = '';
+                    myCards.forEach((num, idx) => { let c = createCardDOM(num, false); c.id = `my-card-${idx}`; mc.appendChild(c); });
+                    renderTracker(); renderQuestionBoard(); updateTurnUI(); syncRevealCardsUI();
+                    
+                    const hl = document.getElementById('history-list');
+                    hl.innerHTML = '';
+                    [...historyData].reverse().forEach(item => {
+                        let isMeAsking = (item.asker === (isHost ? 'host' : 'guest'));
+                        const li = document.createElement('li');
+                        if(isMeAsking) li.innerHTML = `👦 我問：${item.question} <br> <span style="color:#e74c3c;font-weight:bold;font-size:14px;">👉 答：${item.answer}</span>`;
+                        else li.innerHTML = `🤖 敵問：${item.question} <br> <span style="color:#27ae60;font-weight:bold;font-size:14px;">👉 我答：${item.answer}</span>`;
+                        hl.appendChild(li);
+                    });
+                    break;
+                case 'SYNC_REVEAL_FROM_TEACHER':
+                    revealedHostCards = data.hostRevealed; revealedGuestCards = data.guestRevealed;
+                    syncRevealCardsUI(); break;
+                case 'INIT_GAME':
+                    BASE_NUMBERS = data.baseNum; cardCount = data.count;
+                    hostCards = data.hostCards; guestCards = data.guestCards;
+                    myCards = guestCards; opponentCards = hostCards; 
+                    revealedHostCards = Array(cardCount).fill(false); revealedGuestCards = Array(cardCount).fill(false);
+                    currentBoardQuestions = data.questions.map(id => questionPool.find(q=>q.id===id));
+                    switchScreen('setup-section'); renderSortingCards();
+                    break;
+                case 'READY': 
+                    opponentReady = true; guestCards = data.sortedCards; opponentCards = guestCards;
+                    if (isHost && !isTeacherHost) broadcastToSpectators({ type: 'UPDATE_CARDS', target: 'guest', cards: guestCards });
+                    myTurn = true; 
+                    checkStartGame(); break;
+                case 'HOST_READY':
+                    opponentReady = true; hostCards = data.sortedCards; opponentCards = hostCards;
+                    myTurn = false; 
+                    checkStartGame(); break;
+                case 'ASK': 
+                    showAnswerPanel(data.qId, data.boardIdx); 
+                    break;
+                case 'ANSWER':
+                    // 如果對方算錯 (penalty)，對方輪空，所以我方繼續發問 (myTurn = true)
+                    // 如果對方算對，換對方發問，我方等待 (myTurn = false)
+                    if(data.penalty) {
+                        alert("🎉 對方計算錯誤！被系統懲罰輪空一回合，系統已獲取正確答案。輪到你繼續發問！");
+                        myTurn = true;
+                    } else { 
+                        myTurn = false; 
+                    }
+                    addHistoryLog(data.qText, data.ansText, true, true);
+                    currentBoardQuestions[data.boardIdx] = questionPool.find(q=>q.id===data.newQId);
+                    renderQuestionBoard(); updateTurnUI();
+                    break;
+                case 'RESTORE_GAME':
+                    BASE_NUMBERS = data.baseNum; cardCount = data.count;
+                    hostCards = data.hostCards; guestCards = data.guestCards;
+                    myCards = guestCards; opponentCards = hostCards;
+                    revealedHostCards = data.revealedHostCards; revealedGuestCards = data.revealedGuestCards;
+                    currentBoardQuestions = data.questions.map(id => questionPool.find(q=>q.id===id));
+                    historyData = data.history; 
+                    myTurn = !data.hostTurn; 
+                    isGameStarted = true;
+                    
+                    if (aiTimeout) { clearTimeout(aiTimeout); aiTimeout = null; }
+                    
+                    hideReconnectOverlay(); switchScreen('game-section'); renderOpponentCards();
+                    const myContainer = document.getElementById('player-game-cards');
+                    myContainer.innerHTML = '';
+                    myCards.forEach((num, idx) => { let c = createCardDOM(num, false); c.id = `my-card-${idx}`; myContainer.appendChild(c); });
+                    renderTracker(); renderQuestionBoard(); updateTurnUI(); syncRevealCardsUI();
+                    
+                    const list = document.getElementById('history-list');
+                    list.innerHTML = '';
+                    [...historyData].reverse().forEach(item => {
+                        let isMeAsking = (item.asker === 'guest');
+                        const li = document.createElement('li');
+                        if(isMeAsking) li.innerHTML = `👦 我問：${item.question} <br> <span style="color:#e74c3c;font-weight:bold;font-size:14px;">👉 答：${item.answer}</span>`;
+                        else li.innerHTML = `🤖 敵問：${item.question} <br> <span style="color:#27ae60;font-weight:bold;font-size:14px;">👉 我答：${item.answer}</span>`;
+                        list.appendChild(li);
+                    });
+                    break;
+                case 'SYNC_REVEAL':
+                    revealedHostCards = data.hostRevealed; revealedGuestCards = data.guestRevealed;
+                    syncRevealCardsUI(); break;
+                case 'GAME_OVER':
+                    if(data.win) alert(`💀 對手精準猜中了你的牌！你輸了！\n對手的牌是：${opponentCards.join(', ')}`);
+                    else alert(`🎉 恭喜！對手猜錯被淘汰，你獲得勝利！\n對手的牌是：${opponentCards.join(', ')}`);
+                    location.reload(); break;
+            }
+        }
+
+        function handleSpectatorData(data) {
+            if(isSpectator && data.type === 'SYNC_STATE') {
+                if(!data.hostCards || data.hostCards.length === 0) return;
+                BASE_NUMBERS = data.baseNum; cardCount = data.count;
+                hostCards = data.hostCards; guestCards = data.guestCards;
+                revealedHostCards = data.revealedHostCards || Array(cardCount).fill(false);
+                revealedGuestCards = data.revealedGuestCards || Array(cardCount).fill(false);
+                switchScreen('teacher-section'); 
+                renderTeacherBoard(); renderTracker(); 
+                
+                if(data.history) {
+                    document.getElementById('teacher-history-host').innerHTML = '';
+                    document.getElementById('teacher-history-guest').innerHTML = '';
+                    data.history.forEach(item => {
+                        let isHostAsking = (item.asker === 'host');
+                        const targetListId = isHostAsking ? 'teacher-history-guest' : 'teacher-history-host';
+                        const list = document.getElementById(targetListId);
+                        const li = document.createElement('li');
+                        if (isHostAsking) li.innerHTML = `🏠 <b>發起人問：</b>${item.question} <br> <span style="color:#2980b9;font-weight:bold;font-size:14px;">👉 答：${item.answer}</span>`;
+                        else li.innerHTML = `⚔️ <b>挑戰者問：</b>${item.question} <br> <span style="color:#d35400;font-weight:bold;font-size:14px;">👉 答：${item.answer}</span>`;
+                        list.insertBefore(li, list.firstChild);
+                    });
+                }
+            }
+            if(isSpectator && data.type === 'UPDATE_CARDS') {
+                if(data.target === 'host') hostCards = data.cards; else guestCards = data.cards;
+                renderTeacherBoard();
+            }
+            if(isSpectator && data.type === 'SYNC_REVEAL') {
+                revealedHostCards = data.hostRevealed; revealedGuestCards = data.guestRevealed;
+                renderTeacherBoard();
+            }
+            if(isSpectator && data.type === 'SYNC_HISTORY') {
+                const targetListId = data.isHostAsking ? 'teacher-history-guest' : 'teacher-history-host';
+                const list = document.getElementById(targetListId);
+                const li = document.createElement('li');
+                if (data.isHostAsking) li.innerHTML = `🏠 <b>發起人問：</b>${data.question} <br> <span style="color:#2980b9;font-weight:bold;font-size:14px;">👉 答：${data.answer}</span>`;
+                else li.innerHTML = `⚔️ <b>挑戰者問：</b>${data.question} <br> <span style="color:#d35400;font-weight:bold;font-size:14px;">👉 答：${data.answer}</span>`;
+                if (list.firstChild && list.firstChild.style && list.firstChild.style.color === 'rgb(170, 170, 170)') list.innerHTML = ''; 
+                list.insertBefore(li, list.firstChild);
+            }
+            if(isHost && data.type === 'TEACHER_REVEAL') {
+                if(data.target === 'host') revealedHostCards[data.index] = data.state; else revealedGuestCards[data.index] = data.state;
+                const revealSync = { type: 'SYNC_REVEAL', hostRevealed: revealedHostCards, guestRevealed: revealedGuestCards };
+                if(conn && conn.open) conn.send(revealSync);
+                broadcastToSpectators(revealSync);
+                syncRevealCardsUI();
+            }
+        }
+
+        function initDeckAndDistribute(mode) {
+            if (mode === 'teaching') { BASE_NUMBERS = Array.from({length: 7}, (_, i) => i - 3); cardCount = 3; }
+            else if (mode === 'simple') { BASE_NUMBERS = Array.from({length: 11}, (_, i) => i - 5); cardCount = 5; }
+            else if (mode === 'standard') { BASE_NUMBERS = Array.from({length: 21}, (_, i) => i - 10); cardCount = 5; }
+
+            let deck = [...BASE_NUMBERS].sort(() => Math.random() - 0.5);
+            hostCards = deck.slice(0, cardCount); guestCards = deck.slice(cardCount, cardCount * 2);
+            revealedHostCards = Array(cardCount).fill(false); revealedGuestCards = Array(cardCount).fill(false);
+            let initialQs = getRandomQuestions(6, []).map(q => q.id);
+            currentBoardQuestions = initialQs.map(id => questionPool.find(q=>q.id===id));
+
+            if(isTeacherHost) {
+                let initDataP1 = { type: 'INIT_FROM_TEACHER', role: 'p1', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, questions: initialQs };
+                let initDataP2 = { type: 'INIT_FROM_TEACHER', role: 'p2', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, questions: initialQs };
+                if(connP1 && connP1.open) connP1.send(initDataP1);
+                if(connP2 && connP2.open) connP2.send(initDataP2);
+                teacherHostTurn = true;
+                isGameStarted = true;
+                switchScreen('teacher-section');
+                renderTeacherBoard(); renderTracker();
+            }
+            else if(isPvP) {
+                myCards = hostCards; opponentCards = guestCards; 
+                const initData = { type: 'INIT_GAME', baseNum: BASE_NUMBERS, count: cardCount, hostCards, guestCards, questions: initialQs };
+                conn.send(initData);
+                broadcastToSpectators({type: 'SYNC_STATE', ...initData, revealedHostCards, revealedGuestCards, history: historyData});
+                switchScreen('setup-section'); renderSortingCards();
+            } else {
+                myCards = guestCards; opponentCards = hostCards.sort((a,b)=>a-b);
+                switchScreen('setup-section'); renderSortingCards();
+            }
+        }
+
+        function renderSortingCards() {
+            const container = document.getElementById('player-sort-cards');
+            container.innerHTML = '';
+            myCards.forEach((num, index) => {
+                container.appendChild(createCardDOM(num, false, (el) => {
+                    if (selectedForSwap === null) { selectedForSwap = index; el.classList.add('selected'); }
+                    else {
+                        let t = myCards[selectedForSwap]; myCards[selectedForSwap] = myCards[index]; myCards[index] = t;
+                        selectedForSwap = null; renderSortingCards();
+                    }
+                }));
+            });
+        }
+
+        function checkSorting() {
+            for(let i = 0; i < myCards.length - 1; i++) {
+                if(myCards[i] > myCards[i+1]) return document.getElementById('sort-error').textContent = "❌ 排列錯誤！請確認由小到大！";
+            }
+            amIReady = true;
+            document.getElementById('btn-ready').innerText = "等待對手排牌...";
+            document.getElementById('btn-ready').disabled = true;
+            document.getElementById('sort-error').textContent = "";
+            
+            if(isPvP && conn && conn.open) {
+                if(isConnectedToTeacherHost) {
+                    conn.send({ type: 'READY_RELAY', sortedCards: myCards });
+                } else if(isHost) {
+                    hostCards = myCards;
+                    conn.send({ type: 'HOST_READY', sortedCards: myCards });
+                    broadcastToSpectators({ type: 'UPDATE_CARDS', target: 'host', cards: myCards });
+                } else {
+                    guestCards = myCards;
+                    conn.send({ type: 'READY', sortedCards: myCards });
+                }
+            }
+            checkStartGame();
+        }
+        
+        function checkStartGame() {
+            if(!isPvP) { initGamePhase(); return; }
+            if(amIReady && opponentReady) initGamePhase();
+        }
+
+        function initGamePhase() {
+            isGameStarted = true;
+            switchScreen('game-section');
+            renderOpponentCards();
+            const myContainer = document.getElementById('player-game-cards');
+            myContainer.innerHTML = '';
+            myCards.forEach((num, idx) => {
+                let c = createCardDOM(num, false); c.id = `my-card-${idx}`;
+                myContainer.appendChild(c);
+            });
+            renderTracker(); renderQuestionBoard();
+            
+            if (!isPvP) { myTurn = true; }
+            
+            updateTurnUI(); syncRevealCardsUI();
+        }
+
+        function renderOpponentCards() {
+            const oppContainer = document.getElementById('opponent-cards');
+            oppContainer.innerHTML = '';
+            opponentCards.forEach((num, idx) => {
+                let c = createCardDOM(num, true); c.id = `opp-card-${idx}`;
+                oppContainer.appendChild(c);
+            });
+        }
+
+        function getRandomQuestions(count, excludeList) {
+            let available = questionPool.filter(q => (!q.minCards || q.minCards <= cardCount) && !excludeList.includes(q.id));
+            if(available.length === 0) available = questionPool.filter(q => (!q.minCards || q.minCards <= cardCount));
+            return available.sort(() => Math.random() - 0.5).slice(0, count);
+        }
+
+        function renderQuestionBoard() {
+            const board = document.getElementById('question-board');
+            board.innerHTML = '';
+            currentBoardQuestions.forEach((q, idx) => {
+                const qCard = document.createElement('div');
+                qCard.classList.add('question-card');
+                qCard.textContent = q.text;
+                qCard.onclick = () => onQuestionClick(q, idx);
+                board.appendChild(qCard);
+            });
+        }
+
+        function updateTurnUI() {
+            const indicator = document.getElementById('turn-indicator');
+            const board = document.getElementById('question-board');
+            if(myTurn) {
+                indicator.className = 'my-turn'; indicator.innerText = "⭐ 輪到你的回合！請發問 ⭐";
+                board.classList.remove('disabled-board');
+            } else {
+                indicator.className = 'opp-turn'; indicator.innerText = "⏳ 等待對手回合中...";
+                board.classList.add('disabled-board');
+            }
+        }
+
+        function showAnswerPanel(qId, boardIdx) {
+            const qObj = questionPool.find(q=>q.id === qId);
+            pendingQuestionId = qId;
+            pendingBoardIdx = boardIdx;
+            
+            document.getElementById('answer-question-text').innerText = `「${qObj.text}」`;
+            if (qId === 12) {
+                document.getElementById('answer-hint-text').innerText = "若存在請輸入數字 (多張用逗號隔開)；若不存在請輸入 N";
+            } else {
+                document.getElementById('answer-hint-text').innerText = "只要填入數字即可：";
+            }
+            
+            document.getElementById('answer-input-field').value = '';
+            document.getElementById('sidebar-tracker').style.display = 'none';
+            document.getElementById('sidebar-answer').style.display = 'flex';
+            setTimeout(() => { document.getElementById('answer-input-field').focus(); }, 100);
+        }
+
+        function submitAnswer() {
+            if (pendingQuestionId === null) return;
+            
+            const qObj = questionPool.find(q=>q.id === pendingQuestionId);
+            const correctAns = qObj.calc(myCards);
+            let penaltyApplied = false;
+
+            let input = document.getElementById('answer-input-field').value;
+            if (input === null || input.trim() === '') {
+                alert("請輸入答案！"); return; 
+            }
+            
+            let cleanInput = input.trim().toUpperCase();
+            let isCorrect = false;
+
+            if (qObj.id === 12) {
+                cleanInput = cleanInput.replace(/，/g, ',').replace(/\s+/g, ',').replace(/,+/g, ',');
+                isCorrect = (cleanInput === correctAns.toString().toUpperCase());
+            } else {
+                cleanInput = cleanInput.replace(/\s+/g, '');
+                isCorrect = (parseInt(cleanInput, 10) === correctAns);
+            }
+
+            if (!isCorrect) {
+                alert(`❌ 算錯囉！懲罰輪空一回合！\n正確答案是「${correctAns}」，系統已自動幫您發送。`);
+                penaltyApplied = true;
+            } else { alert("✅ 答案正確！已發送給對手。"); }
+
+            addHistoryLog(qObj.text, correctAns, false, true);
+            let newQ = getRandomQuestions(1, currentBoardQuestions.map(q=>q.id))[0];
+            currentBoardQuestions[pendingBoardIdx] = newQ; renderQuestionBoard();
+
+            if(conn && conn.open) {
+                conn.send({ type: 'ANSWER', boardIdx: pendingBoardIdx, qText: qObj.text, ansText: correctAns, newQId: newQ.id, penalty: penaltyApplied });
+            }
+            
+            document.getElementById('sidebar-answer').style.display = 'none';
+            document.getElementById('sidebar-tracker').style.display = 'block';
+            
+            pendingQuestionId = null; pendingBoardIdx = null;
+
+            // 回答正確：對手回合結束，換我發問
+            if (!penaltyApplied) {
+                myTurn = true; 
+                updateTurnUI(); 
+            } else {
+                // 回答錯誤：我被懲罰輪空一回合，換對手繼續發問！
+                myTurn = false; 
+                updateTurnUI(); 
+                // 若為單機練習或AI接管，必須立即排程由AI接續出題發問！
+                if (!isPvP || isAITakeover) {
+                    if (aiTimeout) clearTimeout(aiTimeout);
+                    aiTimeout = setTimeout(aiPlayTurn, 1500);
+                }
+            }
+        }
+
+        function onQuestionClick(qObj, boardIdx) {
+            if(!myTurn) return;
+            myTurn = false; updateTurnUI();
+
+            if(!isPvP || isAITakeover) {
+                const ans = qObj.calc(opponentCards);
+                addHistoryLog(qObj.text, ans, true, true);
+                let newQ = getRandomQuestions(1, currentBoardQuestions.map(q=>q.id))[0];
+                currentBoardQuestions[boardIdx] = newQ; renderQuestionBoard();
+                
+                if (aiTimeout) clearTimeout(aiTimeout);
+                aiTimeout = setTimeout(aiPlayTurn, 1500);
+            } else {
+                document.getElementById('turn-indicator').innerText = "⏳ 等待對手計算答案中...";
+                conn.send({ type: 'ASK', qId: qObj.id, boardIdx: boardIdx });
+            }
+        }
+
+        function aiPlayTurn() {
+            if(myTurn) return;
+            let availableIdx = currentBoardQuestions.map((_, i) => i);
+            let boardIdx = availableIdx[Math.floor(Math.random() * availableIdx.length)];
+            let qId = currentBoardQuestions[boardIdx].id;
+            document.getElementById('turn-indicator').innerText = "⏳ AI 正在思考並發問...";
+            
+            if (aiTimeout) clearTimeout(aiTimeout);
+            aiTimeout = setTimeout(() => { showAnswerPanel(qId, boardIdx); }, 1500);
+        }
+
+        function addHistoryLog(question, answer, isMeAsking, syncToArray = true) {
+            if(syncToArray) {
+                historyData.push({ asker: isMeAsking ? (isHost ? 'host' : 'guest') : (isHost ? 'guest' : 'host'), question: question, answer: answer });
+            }
+            const list = document.getElementById('history-list');
+            const li = document.createElement('li');
+            if(isMeAsking) li.innerHTML = `👦 我問：${question} <br> <span style="color:#e74c3c;font-weight:bold;font-size:14px;">👉 答：${answer}</span>`;
+            else li.innerHTML = `🤖 敵問：${question} <br> <span style="color:#27ae60;font-weight:bold;font-size:14px;">👉 我答：${answer}</span>`;
+            if (list.firstChild && list.firstChild.style && list.firstChild.style.color === 'rgb(170, 170, 170)') list.innerHTML = ''; 
+            list.insertBefore(li, list.firstChild);
+
+            if (isHost && syncToArray && !isTeacherHost) {
+                broadcastToSpectators({ type: 'SYNC_HISTORY', question: question, answer: answer, isHostAsking: isMeAsking });
+            }
+        }
+
+        function renderTracker() {
+            const grids = [document.getElementById('tracker-grid'), document.getElementById('teacher-tracker-grid-host'), document.getElementById('teacher-tracker-grid-guest')].filter(Boolean);
+            grids.forEach(grid => {
+                grid.innerHTML = '';
+                BASE_NUMBERS.forEach(num => {
+                    const btn = document.createElement('div');
+                    btn.classList.add('track-btn'); btn.dataset.val = num; btn.textContent = num;
+                    if(num > 0) btn.style.color = 'var(--red-card)';
+                    if(num < 0) btn.style.color = 'var(--black-card)';
+
+                    btn.onclick = () => {
+                        if(!btn.classList.contains('state-x') && !btn.classList.contains('state-o')) btn.classList.add('state-x');
+                        else if (btn.classList.contains('state-x')) { btn.classList.remove('state-x'); btn.classList.add('state-o'); } 
+                        else btn.classList.remove('state-o');
+                    };
+                    grid.appendChild(btn);
+                });
+            });
+        }
+
+        function declareAnswer() {
+            if(isPvP && !myTurn && !isAITakeover) return alert("還沒輪到你的回合，不能宣告解答喔！");
+            const guessStr = prompt(`⚔️ 刺客系統啟動！\n👉 請輸入推測的 ${cardCount} 個數字 (可用半形/全形逗號或空格隔開)\n(例: ${cardCount === 3 ? '-2 0 1' : '-5, -1, 0, 3, 8'}):`);
+            if(!guessStr) return;
+            
+            const cleanStr = guessStr.replace(/，/g, ',').replace(/\s+/g, ',');
+            const guessArr = cleanStr.split(',').filter(x => x !== '').map(n => parseInt(n.trim(), 10)).sort((a,b)=>a-b);
+            
+            if(guessArr.length !== cardCount || guessArr.some(isNaN)) return alert(`格式錯誤，請輸入 ${cardCount} 個有效數字！`);
+            const isCorrect = guessArr.every((val, index) => val === opponentCards[index]);
+            if(isPvP && !isAITakeover && conn && conn.open) conn.send({ type: 'GAME_OVER', win: isCorrect }); 
+            if(isCorrect) alert(`🎉 太厲害了！你精準破解了密碼：${opponentCards.join(', ')}。你獲勝！`);
+            else alert(`💀 猜錯了！對手卡牌是：${opponentCards.join(', ')}。你被淘汰！`);
+            location.reload();
+        }
+
+        function createCardDOM(num, isHidden = false, clickHandler = null) {
+            const card = document.createElement('div');
+            card.classList.add('card');
+            if (isHidden) card.classList.add('hidden');
+            else {
+                card.textContent = num;
+                if (num > 0) card.classList.add('red');
+                else if (num < 0) card.classList.add('black');
+                else card.classList.add('zero');
+            }
+            if (clickHandler) card.onclick = () => clickHandler(card, num);
+            return card;
+        }
+
+        function renderTeacherBoard() {
+            const hostContainer = document.getElementById('teacher-host-cards');
+            const guestContainer = document.getElementById('teacher-guest-cards');
+            hostContainer.innerHTML = ''; guestContainer.innerHTML = '';
+            
+            hostCards.forEach((num, idx) => {
+                let c = createCardDOM(num, !revealedHostCards[idx]);
+                c.classList.add('teacher-card');
+                if(revealedHostCards[idx]) {
+                    c.classList.remove('teacher-card'); c.classList.add('revealed-by-teacher');
+                    if (num > 0) { c.classList.add('red'); c.classList.remove('black', 'zero'); }
+                    else if (num < 0) { c.classList.add('black'); c.classList.remove('red', 'zero'); }
+                    else { c.classList.add('zero'); c.classList.remove('red', 'black'); }
+                }
+                c.onclick = () => {
+                    if (isTeacherHost) {
+                        revealedHostCards[idx] = !revealedHostCards[idx];
+                        let revealData = { type: 'SYNC_REVEAL_FROM_TEACHER', hostRevealed: revealedHostCards, guestRevealed: revealedGuestCards };
+                        if(connP1 && connP1.open) connP1.send(revealData);
+                        if(connP2 && connP2.open) connP2.send(revealData);
+                        renderTeacherBoard();
+                    } else if (conn && conn.open) {
+                        revealedHostCards[idx] = !revealedHostCards[idx];
+                        conn.send({ type: 'TEACHER_REVEAL', target: 'host', index: idx, state: revealedHostCards[idx] });
+                        renderTeacherBoard(); 
+                    }
+                };
+                hostContainer.appendChild(c);
+            });
+            guestCards.forEach((num, idx) => {
+                let c = createCardDOM(num, !revealedGuestCards[idx]);
+                c.classList.add('teacher-card');
+                if(revealedGuestCards[idx]) {
+                    c.classList.remove('teacher-card'); c.classList.add('revealed-by-teacher');
+                    if (num > 0) { c.classList.add('red'); c.classList.remove('black', 'zero'); }
+                    else if (num < 0) { c.classList.add('black'); c.classList.remove('red', 'zero'); }
+                    else { c.classList.add('zero'); c.classList.remove('red', 'black'); }
+                }
+                c.onclick = () => {
+                    if (isTeacherHost) {
+                        revealedGuestCards[idx] = !revealedGuestCards[idx];
+                        let revealData = { type: 'SYNC_REVEAL_FROM_TEACHER', hostRevealed: revealedHostCards, guestRevealed: revealedGuestCards };
+                        if(connP1 && connP1.open) connP1.send(revealData);
+                        if(connP2 && connP2.open) connP2.send(revealData);
+                        renderTeacherBoard();
+                    } else if (conn && conn.open) {
+                        revealedGuestCards[idx] = !revealedGuestCards[idx];
+                        conn.send({ type: 'TEACHER_REVEAL', target: 'guest', index: idx, state: revealedGuestCards[idx] });
+                        renderTeacherBoard(); 
+                    }
+                };
+                guestContainer.appendChild(c);
+            });
+        }
+
+        function syncRevealCardsUI() {
+            if(isSpectator) return renderTeacherBoard();
+            let myRevealFlags = isHost ? revealedHostCards : revealedGuestCards;
+            let oppRevealFlags = isHost ? revealedGuestCards : revealedHostCards;
+            for(let i=0; i<cardCount; i++) {
+                let myCardEl = document.getElementById(`my-card-${i}`);
+                if(myCardEl && myRevealFlags[i]) myCardEl.classList.add('revealed-by-teacher');
+                else if(myCardEl) myCardEl.classList.remove('revealed-by-teacher');
+
+                let oppCardEl = document.getElementById(`opp-card-${i}`);
+                if(oppCardEl && oppRevealFlags[i]) {
+                    oppCardEl.classList.remove('hidden'); oppCardEl.classList.add('revealed-by-teacher');
+                    oppCardEl.textContent = opponentCards[i];
+                    if (opponentCards[i] > 0) { oppCardEl.classList.add('red'); oppCardEl.classList.remove('black', 'zero'); }
+                    else if (opponentCards[i] < 0) { oppCardEl.classList.add('black'); oppCardEl.classList.remove('red', 'zero'); }
+                    else { oppCardEl.classList.add('zero'); oppCardEl.classList.remove('red', 'black'); }
+                } else if(oppCardEl && !oppRevealFlags[i]) {
+                    oppCardEl.classList.add('hidden'); oppCardEl.classList.remove('revealed-by-teacher');
+                    oppCardEl.textContent = '';
+                }
+            }
+        }
+    </script>
+</body>
+</html>
