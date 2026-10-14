@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>數戰空間：CS 實戰特勤訓練場 (上帝視角與 QR Code 版)</title>
+  <title>數戰空間：CS 實戰特勤訓練場 (QR直連與上帝觀戰版)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -62,9 +62,11 @@
     .crosshair::before, .crosshair::after { box-shadow: 0 0 6px rgba(0,0,0,.9); }
     #joystick-zone { bottom: max(20px, env(safe-area-inset-bottom)); left: max(20px, env(safe-area-inset-left)); }
     
-    /* 上帝視角控制面板 */
     #god-mode-panel { position: absolute; top: 20px; right: 50%; transform: translateX(50%); background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 2px solid #38bdf8; border-radius: 12px; padding: 15px 25px; z-index: 35; pointer-events: auto; display: none; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     #qrcode-container img { margin: 0 auto; border: 4px solid white; border-radius: 8px; }
+
+    /* 上帝視角模式下的介面隱藏 */
+    .god-mode-active #hud-hp-container, .god-mode-active #hud-score-container, .god-mode-active .crosshair, .god-mode-active #btn-fire, .god-mode-active #btn-jump, .god-mode-active #btn-crouch, .god-mode-active #stance-indicator { display: none !important; }
 
     @media (max-width: 640px) {
       #ui-layer .absolute.top-4.left-4 { max-width: calc(100vw - 2rem); padding: .7rem .85rem; }
@@ -97,7 +99,7 @@
         
         <!-- 連線資訊與 QR Code 區域 -->
         <div id="multiplayer-info" class="hidden mb-4 p-4 bg-slate-800 border-2 border-rose-500 rounded-lg text-center relative">
-          <p class="text-slate-300 mb-2 font-bold">請隊員掃描 QR Code 或輸入代碼：</p>
+          <p class="text-slate-300 mb-2 font-bold">請隊員掃描 QR Code 或輸入代碼加入：</p>
           <div id="qrcode-container" class="flex justify-center mb-2 bg-white p-2 rounded-lg inline-block w-40 h-40 mx-auto"></div>
           <div class="text-4xl font-black text-rose-400 tracking-widest mt-2" id="host-room-id">生成中...</div>
           <p class="text-sm text-emerald-400 mt-2 font-bold" id="host-players-count">目前小隊人數: 1 / 4</p>
@@ -113,12 +115,24 @@
           <option value="mathNegativeMul" selected>內建：國中正負數乘法</option>
         </select>
 
+        <label class="block w-full text-center cursor-pointer bg-slate-800 hover:bg-slate-700 border-2 border-dashed border-sky-500 text-sky-400 font-bold px-4 py-2 rounded-lg transition-all text-sm mb-4">
+          <span id="upload-status">或點此上傳自訂 CSV (可多選)</span>
+          <input type="file" id="csv-upload" accept=".csv" multiple class="hidden">
+        </label>
+
         <button id="start-btn" class="w-full mt-auto px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-black text-2xl transition-all shadow-lg border-2 border-emerald-400">
           ▶ 開始特訓
         </button>
       </div>
 
       <div class="bg-slate-900 md:w-1/2 p-6 rounded-xl border border-slate-600 shadow-lg flex flex-col justify-between">
+        
+        <!-- 上帝視角開關 -->
+        <div id="god-mode-toggle-container" class="hidden mb-4 p-3 bg-indigo-900/50 border border-indigo-500 rounded-lg flex items-center gap-3">
+          <input type="checkbox" id="god-mode-toggle" class="w-5 h-5 accent-indigo-500">
+          <label for="god-mode-toggle" class="text-indigo-200 font-bold cursor-pointer select-none text-sm md:text-base">啟用上帝視角 (主機純觀戰不參與對戰)</label>
+        </div>
+
         <div class="flex flex-col sm:flex-row gap-4 mb-4">
           <div class="flex-1">
             <label class="text-sky-400 font-bold mb-1 block">作戰區域 (地圖)：</label>
@@ -225,10 +239,11 @@
       </div>
     </div>
     <p class="text-xs text-slate-400 mt-3 text-center">調整後將即時同步給所有隊員</p>
+    <p class="text-xs text-indigo-400 mt-1 text-center">操作方式：WASD 平移，E 上升，Q 下降</p>
   </div>
   <!-- 主機專屬：呼叫上帝視角的按鈕 -->
-  <button id="open-god-mode" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-sky-600/80 hover:bg-sky-500 text-white font-bold py-2 px-4 rounded-full border border-sky-300 z-20 shadow-lg pointer-events-auto text-sm backdrop-blur-sm">
-    ⚙️ 調控難度
+  <button id="open-god-mode" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-full border border-indigo-300 z-20 shadow-lg pointer-events-auto text-sm backdrop-blur-sm">
+    👁️ 觀戰控制
   </button>
 
   <!-- 觸控 UI 層 -->
@@ -246,6 +261,7 @@
   <div id="ui-layer">
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50 font-bold text-lg md:text-xl tracking-widest" id="stance-indicator">[ STANDING ]</div>
 
+    <!-- 進度與任務指示器 -->
     <div class="absolute top-4 left-4 md:bottom-8 md:top-auto md:left-8 bg-slate-900/90 border-l-4 border-amber-500 p-3 md:p-6 rounded text-white shadow-2xl max-w-xs md:max-w-4xl">
       <div class="flex justify-between items-center mb-1">
         <div class="text-sm md:text-lg text-amber-400 font-bold" id="hud-question-number">MISSION OBJECTIVE</div>
@@ -255,11 +271,11 @@
     </div>
 
     <div class="absolute bottom-4 left-4 md:bottom-8 md:left-auto md:right-8 flex gap-3 md:gap-6">
-      <div class="bg-slate-900/90 border-b-4 border-rose-500 p-2 md:p-4 rounded text-center min-w-[80px] md:min-w-[140px] shadow-2xl">
+      <div class="bg-slate-900/90 border-b-4 border-rose-500 p-2 md:p-4 rounded text-center min-w-[80px] md:min-w-[140px] shadow-2xl" id="hud-hp-container">
         <div class="text-xs md:text-lg text-slate-400 font-bold mb-1">ARMOR</div>
         <div class="text-2xl md:text-5xl font-black text-rose-500" id="hud-hp">100</div>
       </div>
-      <div class="bg-slate-900/90 border-b-4 border-sky-500 p-2 md:p-4 rounded text-center min-w-[80px] md:min-w-[140px] shadow-2xl">
+      <div class="bg-slate-900/90 border-b-4 border-sky-500 p-2 md:p-4 rounded text-center min-w-[80px] md:min-w-[140px] shadow-2xl" id="hud-score-container">
         <div class="text-xs md:text-lg text-slate-400 font-bold mb-1">SCORE</div>
         <div class="text-2xl md:text-5xl font-black text-sky-400" id="hud-score">0</div>
       </div>
@@ -288,8 +304,9 @@
     let wrongAnswersLog = [];
     let gameTime = 0; 
     
-    // 多人連線變數
+    // 多人連線與上帝視角變數
     let connectionMode = 'single'; // single, host, join
+    let isGodMode = false; // 是否啟用上帝視角
     let peer = null;
     let myPeerId = null;
     let roomPrefix = 'TCMATH-'; 
@@ -310,7 +327,7 @@
     let enemyBulletSpeed = 40.0;
     let autoAimEnabled = true;
 
-    // 內建題庫資料 (為節省空間僅列出前幾題作為示意，實際執行時請使用完整資料)
+    // 內建題庫資料 
     const cloudData = {
       "math99": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,1 x 1 = ?,4,5,2,1,D\n2,1 x 2 = ?,7,3,2,6,C\n3,1 x 3 = ?,1,2,3,5,C\n4,1 x 4 = ?,4,3,8,5,A\n5,1 x 5 = ?,6,10,5,9,C\n6,1 x 6 = ?,5,1,12,6,D\n7,1 x 7 = ?,8,7,2,3,B\n8,1 x 8 = ?,13,9,16,8,D\n9,1 x 9 = ?,9,10,18,6,A\n10,2 x 1 = ?,6,2,3,4,B\n11,2 x 2 = ?,5,9,6,4,D\n12,2 x 3 = ?,6,4,9,8,A\n13,2 x 4 = ?,3,6,10,8,D\n14,2 x 5 = ?,8,5,7,10,D\n15,2 x 6 = ?,6,8,12,18,C\n16,2 x 7 = ?,12,21,7,14,D\n17,2 x 8 = ?,13,8,18,16,D\n18,2 x 9 = ?,22,18,16,20,B\n19,3 x 1 = ?,6,1,4,3,D\n20,3 x 2 = ?,11,3,6,5,C\n21,3 x 3 = ?,9,8,6,11,A\n22,3 x 4 = ?,9,12,8,13,B\n23,3 x 5 = ?,15,16,20,12,A\n24,3 x 6 = ?,13,15,14,18,D\n25,3 x 7 = ?,17,21,10,16,B\n26,3 x 8 = ?,24,27,28,32,A\n27,3 x 9 = ?,30,24,18,27,D\n28,4 x 1 = ?,5,3,4,7,C\n29,4 x 2 = ?,13,12,8,6,C\n30,4 x 3 = ?,12,7,11,8,A\n31,4 x 4 = ?,12,16,15,8,B\n32,4 x 5 = ?,19,9,20,16,C\n33,4 x 6 = ?,28,24,20,23,B\n34,4 x 7 = ?,24,30,32,28,D\n35,4 x 8 = ?,32,40,35,33,A\n36,4 x 9 = ?,13,36,40,32,B\n37,5 x 1 = ?,4,7,3,5,D\n38,5 x 2 = ?,10,15,12,8,A\n39,5 x 3 = ?,20,10,15,12,C\n40,5 x 4 = ?,9,25,20,21,C\n41,5 x 5 = ?,24,30,25,20,C\n42,5 x 6 = ?,11,28,25,30,D\n43,5 x 7 = ?,28,42,33,35,D\n44,5 x 8 = ?,45,44,48,40,D\n45,5 x 9 = ?,45,46,54,36,A\n46,6 x 1 = ?,12,7,6,5,C\n47,6 x 2 = ?,9,8,16,12,D\n48,6 x 3 = ?,15,9,18,19,C\n49,6 x 4 = ?,28,18,24,20,C\n50,6 x 5 = ?,35,24,30,36,C\n51,6 x 6 = ?,40,42,30,36,D\n52,6 x 7 = ?,47,35,42,13,C\n53,6 x 8 = ?,48,40,54,52,A\n54,6 x 9 = ?,51,45,54,49,C\n55,7 x 1 = ?,8,6,5,7,D\n56,7 x 2 = ?,16,21,14,12,C\n57,7 x 3 = ?,18,16,10,21,D\n58,7 x 4 = ?,27,28,24,32,B\n59,7 x 5 = ?,30,35,12,42,B\n60,7 x 6 = ?,48,37,42,35,C\n61,7 x 7 = ?,14,51,56,49,D\n62,7 x 8 = ?,15,56,58,49,B\n63,7 x 9 = ?,68,63,70,72,B\n64,8 x 1 = ?,16,9,7,8,D\n65,8 x 2 = ?,10,16,20,18,B\n66,8 x 3 = ?,32,20,24,27,C\n67,8 x 4 = ?,28,24,37,32,D\n68,8 x 5 = ?,45,43,40,41,C\n69,8 x 6 = ?,48,47,56,46,A\n70,8 x 7 = ?,56,64,49,52,A\n71,8 x 8 = ?,56,64,72,16,B\n72,8 x 9 = ?,72,17,63,80,A\n73,9 x 1 = ?,7,10,18,9,D\n74,9 x 2 = ?,13,18,27,20,B\n75,9 x 3 = ?,18,27,24,36,B\n76,9 x 4 = ?,27,13,32,36,D\n77,9 x 5 = ?,45,50,14,54,A\n78,9 x 6 = ?,52,50,59,54,D\n79,9 x 7 = ?,63,54,56,60,A\n80,9 x 8 = ?,80,69,73,72,D\n81,9 x 9 = ?,72,85,76,81,D\n`,
       "mathMul2_1": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,45 x 6 = ?,250,279,273,270,D\n2,56 x 7 = ?,399,394,392,412,C\n3,69 x 9 = ?,620,619,621,617,C\n4,72 x 3 = ?,224,216,215,217,B\n5,93 x 4 = ?,369,367,372,352,C\n6,43 x 7 = ?,281,321,301,303,C\n7,86 x 7 = ?,602,603,604,587,A\n8,97 x 2 = ?,193,182,196,194,D\n9,16 x 5 = ?,79,80,100,89,B\n10,41 x 9 = ?,384,369,370,371,B\n11,23 x 4 = ?,92,94,91,82,A\n12,38 x 4 = ?,154,152,139,162,B\n13,84 x 3 = ?,272,244,252,262,C\n14,76 x 2 = ?,149,152,132,155,B\n15,66 x 2 = ?,133,142,132,147,C\n16,14 x 9 = ?,112,126,146,111,B\n17,57 x 2 = ?,112,134,117,114,D\n18,88 x 7 = ?,596,615,616,614,C\n19,41 x 4 = ?,154,165,174,164,D\n20,92 x 8 = ?,734,751,731,736,D\n21,70 x 8 = ?,549,560,580,547,B\n22,79 x 8 = ?,630,642,632,625,C\n23,72 x 4 = ?,292,308,289,288,D\n24,50 x 8 = ?,400,401,390,398,A\n25,91 x 5 = ?,455,453,454,475,A\n26,49 x 9 = ?,461,431,428,441,D\n27,45 x 4 = ?,181,180,193,170,B\n28,72 x 7 = ?,516,508,495,504,D\n29,97 x 2 = ?,184,204,208,194,D\n30,16 x 5 = ?,82,81,80,72,C\n`,
@@ -330,6 +347,10 @@
     const joinPanel = document.getElementById('join-panel');
     const multiInfo = document.getElementById('multiplayer-info');
 
+    // 檢查網址是否有 ?room=xxxx 參數，若有則直接進入加入模式
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get('room');
+
     function switchMode(mode) {
       connectionMode = mode;
       btnSingle.classList.remove('ring-4', 'ring-sky-300');
@@ -341,25 +362,33 @@
         hostPanel.classList.remove('hidden');
         joinPanel.classList.add('hidden');
         multiInfo.classList.add('hidden');
+        document.getElementById('god-mode-toggle-container').classList.add('hidden');
         document.getElementById('start-btn').textContent = '▶ 開始單機特訓';
       } else if (mode === 'host') {
         btnHost.classList.add('ring-4', 'ring-rose-300');
         hostPanel.classList.remove('hidden');
         joinPanel.classList.add('hidden');
         multiInfo.classList.remove('hidden');
+        document.getElementById('god-mode-toggle-container').classList.remove('hidden');
         document.getElementById('start-btn').textContent = '▶ 小隊全員出擊';
         initHostPeer();
       } else if (mode === 'join') {
         btnJoin.classList.add('ring-4', 'ring-amber-300');
         hostPanel.classList.add('hidden');
         joinPanel.classList.remove('hidden');
+        if(roomParam) {
+           document.getElementById('join-code-input').value = roomParam;
+           document.getElementById('join-btn').click(); // 自動點擊加入
+        }
       }
     }
 
     btnSingle.addEventListener('click', () => switchMode('single'));
     btnHost.addEventListener('click', () => switchMode('host'));
     btnJoin.addEventListener('click', () => switchMode('join'));
-    switchMode('single'); 
+    
+    if(roomParam) switchMode('join');
+    else switchMode('single'); 
 
     // 自訂上傳邏輯
     const fileInput = document.getElementById('csv-upload');
@@ -417,6 +446,7 @@
       const diff = document.getElementById('difficulty-select').value;
       enemyBulletSpeed = (diff === 'hard') ? 70.0 : ((diff === 'easy') ? 25.0 : 45.0);
       autoAimEnabled = document.getElementById('auto-aim-toggle').checked;
+      isGodMode = document.getElementById('god-mode-toggle').checked && connectionMode === 'host';
     }
 
     // 上帝視角即時調控邏輯
@@ -486,22 +516,24 @@
         myPeerId = id;
         document.getElementById('host-room-id').textContent = code;
         
-        // 生成 QR Code (將目前網址與房間代碼包裝起來，學生若掃描並解析，可自動填入代碼)
-        // 這裡預設 QR 內容為房間代碼，若是放在您的伺服器，可以改成帶有參數的 URL 如: window.location.href + "?room=" + code
+        // 產生帶有參數的完整網址，方便學生直接掃描加入
+        let baseUrl = window.location.href.split('?')[0];
+        let joinUrl = baseUrl + "?room=" + code;
+        
         const qrContainer = document.getElementById("qrcode-container");
-        qrContainer.innerHTML = ""; // 清空舊的
+        qrContainer.innerHTML = ""; 
         qrCodeObj = new QRCode(qrContainer, {
-            text: code, 
+            text: joinUrl, 
             width: 140,
             height: 140,
-            colorDark : "#e11d48", // 配合主機紅色調
+            colorDark : "#e11d48", 
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
         });
       });
 
       peer.on('connection', conn => {
-        if(Object.keys(clientConnections).length >= 3) {
+        if(Object.keys(clientConnections).length >= 4) {
            conn.send({ event: 'error', msg: '房間已滿 (最大 4 人)' });
            setTimeout(()=>conn.close(), 500);
            return;
@@ -511,7 +543,7 @@
            const playerIndex = Object.keys(clientConnections).length + 1; 
            clientConnections[conn.peer] = conn;
            clientPlayers[conn.peer] = { colorIndex: playerIndex, pos: {x:0, y:0, z:0, ry:0}, score: 0 };
-           document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + 1} / 4`;
+           document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + (isGodMode?0:1)} / 4`;
            
            conn.send({ event: 'welcome', colorIndex: playerIndex });
         });
@@ -531,7 +563,7 @@
                scene.remove(otherPlayerMeshes[conn.peer]);
                delete otherPlayerMeshes[conn.peer];
            }
-           document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + 1} / 4`;
+           document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + (isGodMode?0:1)} / 4`;
         });
       });
       
@@ -566,6 +598,7 @@
               questions = data.questions;
               autoAimEnabled = data.autoAim;
               enemyMoveSpeed = data.speed;
+              isGodMode = false; // 客機絕對不是上帝模式
               
               currentQuestionIndex = 0;
               score = 0; hp = 100; wrongAnswersLog = [];
@@ -597,7 +630,6 @@
            } else if (data.event === 'game_over') {
               showReviewScreen(data.msg);
            } else if (data.event === 'update_config') {
-              // 客機接收主機的即時難度調控
               enemyMoveSpeed = data.speed;
               enemyFireBase = data.fireBase;
               enemyFireRand = enemyFireBase * 0.5;
@@ -651,8 +683,17 @@
       buildMap(selectedMap);
       yVelocity = 0;
 
+      // 如果主機勾選了上帝視角
+      if (isGodMode) {
+         document.body.classList.add('god-mode-active');
+         // 將主機拉高並允許飛行
+         camera.position.y = 20;
+      } else {
+         document.body.classList.remove('god-mode-active');
+      }
+
       if (connectionMode === 'host') {
-         godModeBtn.style.display = 'block'; // 主機顯示上帝視角按鈕
+         godModeBtn.style.display = 'block'; 
          const startData = {
            event: 'start_game',
            questions: questions,
@@ -726,8 +767,12 @@
       playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
       isTransitioning = false;
 
+      // 玩家人數：客機數量 + (主機若非上帝模式則+1)
       let playerCount = 1;
-      if(connectionMode === 'host') playerCount = Object.keys(clientConnections).length + 1;
+      if(connectionMode === 'host') {
+         playerCount = Object.keys(clientConnections).length + (isGodMode ? 0 : 1);
+         if(playerCount === 0) playerCount = 1; // 防呆
+      }
       
       currentQuestionCorrectNeeded = playerCount;
       currentQuestionCorrectHits = 0;
@@ -848,7 +893,7 @@
         }
       } else {
         board.material = createHoloBoardTexture(aData.text, 'rgba(239, 68, 68, 0.9)'); 
-        hp = Math.max(0, hp - 20); 
+        if(!isGodMode) hp = Math.max(0, hp - 20); // 只有主機在場上才扣血
         document.getElementById('hud-hp').textContent = hp;
         
         if(shooterPeerId === 'host') score = Math.max(0, score - 50);
@@ -857,7 +902,7 @@
         addKillfeed(`✕ [小隊] 誤殺平民 [${aData.text}]`, true);
         setTimeout(() => { if (!aData.dying) board.material = createHoloBoardTexture(aData.text, aData.originalColor); }, 500);
         
-        if (hp <= 0) {
+        if (hp <= 0 && !isGodMode) {
            showReviewScreen("KIA 任務失敗 (全隊陣亡)");
            if(connectionMode==='host'){
               for(let id in clientConnections) clientConnections[id].send({ event: 'game_over', msg: "KIA 任務失敗 (全隊陣亡)" });
@@ -908,8 +953,11 @@
        data.p.forEach(pSync => {
           if (pSync.id === 'host') hostPosSync = pSync;
           if (pSync.id === myPeerId) return; 
+          
           if (!otherPlayerMeshes[pSync.id]) {
              otherPlayerMeshes[pSync.id] = createPlayerMesh(pSync.c);
+             // 如果 host 是上帝視角，不渲染 host 模型
+             if(pSync.id === 'host' && pSync.y > 10) return; 
              scene.add(otherPlayerMeshes[pSync.id]);
           }
           otherPlayerMeshes[pSync.id].position.set(pSync.x, pSync.y, pSync.z);
@@ -982,7 +1030,7 @@
           drawDot(cp.pos.x, cp.pos.z, colorHex, true);
         }
       } else if (connectionMode === 'join' && hostConnection) {
-        drawDot(hostPosSync.x, hostPosSync.z, '#3b82f6', true);
+        if(hostPosSync.y < 10) drawDot(hostPosSync.x, hostPosSync.z, '#3b82f6', true); // 主機若為上帝視角(y>10)就不畫
         for(let id in clientPlayers) {
            if(id !== myPeerId) {
              const cp = clientPlayers[id];
@@ -1032,8 +1080,20 @@
       agent.userData.gunMesh.getWorldPosition(startPos);
       bullet.position.copy(startPos);
 
+      // 上帝模式下，敵人不會瞄準主機
+      let targetCamPos = camera.position.clone();
+      if (isGodMode && connectionMode === 'host') {
+         const keys = Object.keys(clientPlayers);
+         if(keys.length > 0) {
+            const randId = keys[Math.floor(Math.random() * keys.length)];
+            targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z);
+         } else {
+            return; // 沒人可以打
+         }
+      }
+
       const direction = new THREE.Vector3();
-      direction.subVectors(camera.position, startPos).normalize();
+      direction.subVectors(targetCamPos, startPos).normalize();
       
       bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction);
       bullet.userData = { velocity: direction.multiplyScalar(enemyBulletSpeed), aliveTimer: 2.0 }; 
@@ -1041,7 +1101,7 @@
     }
 
     function takeDamage(amount) {
-      if(isTransitioning || hp <= 0) return;
+      if(isTransitioning || hp <= 0 || isGodMode) return; // 上帝視角無敵
       hp = Math.max(0, hp - amount);
       document.getElementById('hud-hp').textContent = hp;
       
@@ -1058,7 +1118,7 @@
     }
 
     function fireWeapon() {
-      if (hp <= 0 || isTransitioning || isGameOver || isPaused) return;
+      if (hp <= 0 || isTransitioning || isGameOver || isPaused || isGodMode) return; // 上帝視角無法開火
 
       const crosshair = document.getElementById('crosshair');
       crosshair.classList.add('fire');
@@ -1113,7 +1173,7 @@
     // 5. FPS 操作與地圖
     // ==========================================
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-    const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false };
+    const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false, e: false, q: false };
     let joystickVector = new THREE.Vector2(0, 0);
     let yVelocity = 0;
     const gravity = -60.0;
@@ -1136,6 +1196,8 @@
       if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = true;
       if(e.code === 'Space') keys.jump = true;
       if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = true;
+      if(e.code === 'KeyE') keys.e = true; // 上帝模式上升
+      if(e.code === 'KeyQ') keys.q = true; // 上帝模式下降
     });
     
     document.addEventListener('keyup', (e) => {
@@ -1145,6 +1207,8 @@
       if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false;
       if(e.code === 'Space') keys.jump = false;
       if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = false;
+      if(e.code === 'KeyE') keys.e = false;
+      if(e.code === 'KeyQ') keys.q = false;
     });
 
     document.addEventListener('mousedown', (e) => {
@@ -1276,7 +1340,7 @@
            lastNetworkSync = time;
         }
 
-        if (autoAimEnabled && !isTransitioning) {
+        if (autoAimEnabled && !isTransitioning && !isGodMode) {
           let closestAgent = null;
           let minDist = 0.25; 
           agents.forEach(agent => {
@@ -1367,11 +1431,15 @@
                  eyePos.y += 2.0; 
                  
                  let targetCamPos = camera.position.clone();
-                 if (connectionMode === 'host' && Math.random() > 0.5) {
+                 if (connectionMode === 'host') {
+                    // 如果不是上帝視角，加入主機為攻擊目標
                     const keys = Object.keys(clientPlayers);
+                    if (!isGodMode) keys.push('host'); 
+                    
                     if(keys.length > 0) {
                        const randId = keys[Math.floor(Math.random() * keys.length)];
-                       targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z);
+                       if(randId === 'host') targetCamPos.set(camera.position.x, camera.position.y, camera.position.z);
+                       else targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z);
                     }
                  }
 
@@ -1418,7 +1486,7 @@
           p.position.add(moveStep);
           p.userData.aliveTimer -= delta;
           
-          if (p.position.distanceTo(camera.position) < 1.2) { 
+          if (p.position.distanceTo(camera.position) < 1.2 && !isGodMode) { 
             createImpactEffect(camera.position.clone().add(new THREE.Vector3(0, -0.5, -0.5)), 0xff0000);
             if(connectionMode !== 'join') takeDamage(10); 
             scene.remove(p);
@@ -1461,44 +1529,16 @@
           }
         }
 
-        let targetHeight = STAND_HEIGHT;
-        let baseSpeed = 22.0;
+        // --- 玩家物理 ---
+        let baseSpeed = isGodMode ? 35.0 : 22.0; // 上帝模式飛得比較快
         
-        if (keys.crouch) {
-          targetHeight = CROUCH_HEIGHT;
-          baseSpeed = 10.0; 
-          document.getElementById('stance-indicator').textContent = '[ CROUCHING ]';
-        } else {
-          document.getElementById('stance-indicator').textContent = '[ STANDING ]';
-        }
-
-        currentHeight += (targetHeight - currentHeight) * 15.0 * delta;
-
-        yVelocity += gravity * delta;
-        let nextY = playerBaseY + yVelocity * delta;
-
-        const feetOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 1.0, camera.position.z); 
-        collisionRaycaster.set(feetOrigin, new THREE.Vector3(0, -1, 0));
-        const groundHits = collisionRaycaster.intersectObjects(collidableObjects, false);
-        
-        if (groundHits.length > 0) {
-          const groundY = groundHits[0].point.y;
-          if (nextY <= groundY + 0.3) {
-            if (yVelocity <= 0 || playerBaseY < groundY) {
-              yVelocity = 0;
-              nextY = groundY;
-              if (keys.jump) yVelocity = jumpSpeed;
-            }
-          }
-        }
-        
-        playerBaseY = nextY;
-        camera.position.y = playerBaseY + currentHeight;
-
         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-        forward.y = 0; forward.normalize();
+        if(!isGodMode) forward.y = 0; // 正常模式只能水平移動
+        forward.normalize();
         const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-        right.y = 0; right.normalize();
+        if(!isGodMode) right.y = 0; 
+        right.normalize();
+        const up = new THREE.Vector3(0, 1, 0);
 
         const moveDirection = new THREE.Vector3();
         if (keys.w) moveDirection.add(forward);
@@ -1506,6 +1546,12 @@
         if (keys.d) moveDirection.add(right);
         if (keys.a) moveDirection.sub(right);
         
+        // 上帝模式自由升降
+        if (isGodMode) {
+           if (keys.e) moveDirection.add(up);
+           if (keys.q) moveDirection.sub(up);
+        }
+
         if (joystickVector.x !== 0 || joystickVector.y !== 0) {
           moveDirection.addScaledVector(forward, joystickVector.y); 
           moveDirection.addScaledVector(right, joystickVector.x);
@@ -1514,20 +1560,56 @@
         if (moveDirection.lengthSq() > 0) moveDirection.normalize();
 
         const moveStep = moveDirection.clone().multiplyScalar(baseSpeed * delta);
-        const checkOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 0.4, camera.position.z);
-        
-        if (Math.abs(moveStep.x) > 0) {
-          if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(Math.sign(moveStep.x), 0, 0), Math.abs(moveStep.x) + 0.5)) {
-            camera.position.x += moveStep.x;
-          }
-        }
-        if (Math.abs(moveStep.z) > 0) {
-          if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(0, 0, Math.sign(moveStep.z)), Math.abs(moveStep.z) + 0.5)) {
-            camera.position.z += moveStep.z;
-          }
-        }
 
-        if (camera.position.y < -15) { takeDamage(100); }
+        if (isGodMode) {
+           // 上帝模式：不受重力影響，自由穿牆飛行
+           camera.position.add(moveStep);
+        } else {
+           // 正常模式：重力、碰撞與蹲下邏輯
+           let targetHeight = STAND_HEIGHT;
+           if (keys.crouch) {
+             targetHeight = CROUCH_HEIGHT;
+             baseSpeed = 10.0; 
+             document.getElementById('stance-indicator').textContent = '[ CROUCHING ]';
+           } else {
+             document.getElementById('stance-indicator').textContent = '[ STANDING ]';
+           }
+
+           currentHeight += (targetHeight - currentHeight) * 15.0 * delta;
+           yVelocity += gravity * delta;
+           let nextY = playerBaseY + yVelocity * delta;
+
+           const feetOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 1.0, camera.position.z); 
+           collisionRaycaster.set(feetOrigin, new THREE.Vector3(0, -1, 0));
+           const groundHits = collisionRaycaster.intersectObjects(collidableObjects, false);
+           
+           if (groundHits.length > 0) {
+             const groundY = groundHits[0].point.y;
+             if (nextY <= groundY + 0.3) {
+               if (yVelocity <= 0 || playerBaseY < groundY) {
+                 yVelocity = 0;
+                 nextY = groundY;
+                 if (keys.jump) yVelocity = jumpSpeed;
+               }
+             }
+           }
+           
+           playerBaseY = nextY;
+           camera.position.y = playerBaseY + currentHeight;
+
+           const checkOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 0.4, camera.position.z);
+           if (Math.abs(moveStep.x) > 0) {
+             if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(Math.sign(moveStep.x), 0, 0), Math.abs(moveStep.x) + 0.5)) {
+               camera.position.x += moveStep.x;
+             }
+           }
+           if (Math.abs(moveStep.z) > 0) {
+             if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(0, 0, Math.sign(moveStep.z)), Math.abs(moveStep.z) + 0.5)) {
+               camera.position.z += moveStep.z;
+             }
+           }
+           if (camera.position.y < -15) { takeDamage(100); }
+        }
       }
 
       renderer.render(scene, camera);
