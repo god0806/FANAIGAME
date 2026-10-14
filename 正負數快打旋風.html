@@ -2,117 +2,144 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>快打旋風：心算加減奧義對決</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>快打旋風：正負數心算奧義對決</title>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <style>
-    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
     html, body {
-      margin: 0; padding: 0; width: 100%; height: 100%;
-      background: #090910; color: #fff;
+      margin: 0; padding: 0; width: 100vw; height: 100dvh;
+      background: #080d14; color: #fff;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
     }
 
-    /* 滿版垂直容器：上下徹底分離，絕不遮擋戰鬥 */
     #app-container {
-      display: flex; flex-direction: column; width: 100vw; height: 100vh;
+      display: flex; flex-direction: column; width: 100vw; height: 100dvh;
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-right: max(8px, env(safe-area-inset-right));
+      padding-left: max(8px, env(safe-area-inset-left));
+      padding-bottom: max(6px, env(safe-area-inset-bottom));
     }
 
-    /* 上半部：純戰鬥舞台 (固定 16:9 內部比例自適應) */
+    /* 上半部：戰鬥舞台 (彈性自適應) */
     #battle-view {
-      position: relative; flex: 1 1 55%; min-height: 240px;
-      background: #000; overflow: hidden; border-bottom: 3px solid #f59e0b;
+      position: relative; flex: 1 1 auto; min-height: 80px;
+      background: #000; overflow: hidden; border-bottom: 2px solid #f59e0b;
+      z-index: 1;
     }
     canvas { display: block; width: 100%; height: 100%; object-fit: contain; }
 
-    /* 頂部街機血條 HUD */
     .hud {
-      position: absolute; top: 8px; left: 0; width: 100%;
+      position: absolute; top: 4px; left: 0; width: 100%;
       display: flex; justify-content: space-between; align-items: center;
-      padding: 0 16px; z-index: 10; pointer-events: none;
+      padding: 0 12px; z-index: 10; pointer-events: none;
     }
-    .hp-wrapper { width: 38%; max-width: 320px; }
-    .name-tag { font-size: 0.95rem; font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #000; margin-bottom: 3px; }
+    .hp-wrapper { width: 38%; max-width: 300px; }
+    .name-tag { font-size: clamp(0.7rem, 1.2vw, 0.9rem); font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #000; margin-bottom: 1px; }
     .hp-bar-outer {
-      width: 100%; height: 18px; background: #7f1d1d;
-      border: 2px solid #fff; border-radius: 4px; overflow: hidden;
+      width: 100%; height: clamp(9px, 1.8vh, 14px); background: #7f1d1d;
+      border: 1.5px solid #fff; border-radius: 3px; overflow: hidden;
     }
     .hp-bar-fill {
       width: 100%; height: 100%; background: linear-gradient(180deg, #facc15 0%, #ca8a04 100%);
       transition: width 0.2s ease-out;
     }
     .ko-box {
-      font-size: 1.5rem; font-weight: 900; color: #ef4444;
-      background: #000; padding: 1px 10px; border: 2px solid #f59e0b; border-radius: 6px;
+      font-size: clamp(0.85rem, 1.5vw, 1.15rem); font-weight: 900; color: #ef4444;
+      background: #000; padding: 1px 8px; border: 2px solid #f59e0b; border-radius: 6px;
     }
 
-    /* 下半部：獨立算術控制台（手機/平板舒適握持區域） */
+    /* 下半部：算術控制台 (強制確保最高層級與觸控可點) */
     #control-dock {
-      flex: 0 0 auto; height: 45%; max-height: 380px; min-height: 220px;
-      background: #0d1117; display: flex; justify-content: space-between;
-      gap: 8px; padding: 6px 12px;
+      position: relative;
+      z-index: 20;
+      flex: 0 0 clamp(160px, 52dvh, 260px);
+      background: #0d1117; display: flex; justify-content: center;
+      gap: 10px; padding: 4px 6px 2px 6px;
+      overflow: hidden;
+      pointer-events: auto;
     }
 
     .player-zone {
       flex: 1; display: flex; flex-direction: column;
       background: #161b22; border: 2px solid #30363d;
-      border-radius: 12px; padding: 6px; justify-content: space-between;
+      border-radius: 8px; padding: 4px 8px;
+      max-width: 650px;
+      min-height: 0;
+      overflow: hidden;
+      pointer-events: auto;
     }
-    .player-zone.active-turn { border-color: #38bdf8; box-shadow: 0 0 12px rgba(56, 189, 248, 0.25); }
+    .player-zone.local-mode { max-width: 50%; }
+    .player-zone.active-turn { border-color: #38bdf8; box-shadow: 0 0 10px rgba(56, 189, 248, 0.25); }
 
-    /* 題目與目前輸入數字列 */
     .screen-strip {
       display: flex; justify-content: space-between; align-items: center;
-      background: #040d21; border-radius: 8px; padding: 6px 12px; margin-bottom: 6px;
-      border: 1px solid #1e293b;
+      background: #040d21; border-radius: 6px; padding: 2px 10px; margin-bottom: 4px;
+      border: 1px solid #1e293b; height: clamp(28px, 4.5vh, 34px); flex-shrink: 0;
     }
-    .quiz-exp { font-size: 1.3rem; font-weight: 900; color: #38bdf8; letter-spacing: 1px; }
+    .quiz-exp { font-size: clamp(1rem, 1.8vw, 1.35rem); font-weight: 900; color: #38bdf8; letter-spacing: 1px; }
     .quiz-input-box {
-      font-size: 1.4rem; font-weight: 900; color: #fde047;
-      min-width: 70px; height: 32px; line-height: 32px; text-align: right;
-      letter-spacing: 2px;
+      font-size: clamp(1.1rem, 2vw, 1.5rem); font-weight: 900; color: #fde047;
+      min-width: 60px; text-align: right; letter-spacing: 2px;
     }
 
-    /* 觸控數字九宮格 */
+    /* 4欄 x 4排 網格 */
     .numpad-grid {
-      display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; flex: 1;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 4px;
+      flex: 1;
+      min-height: 0;
+      pointer-events: auto;
     }
     .num-btn {
-      background: #21262d; border: 1px solid #30363d; color: #f0f6fc;
-      font-size: 1.25rem; font-weight: 800; border-radius: 6px;
+      background: #21262d; border: 1.5px solid #30363d; color: #f0f6fc;
+      font-size: clamp(1rem, 1.8vw, 1.35rem); font-weight: 800; border-radius: 6px;
       display: flex; align-items: center; justify-content: center;
       cursor: pointer; -webkit-tap-highlight-color: transparent;
+      padding: 0; margin: 0;
+      pointer-events: auto;
     }
     .num-btn:active { background: #f59e0b; color: #000; transform: scale(0.96); }
-    .num-btn.btn-clear { background: #991b1b; color: #fff; font-size: 1rem; }
-    .num-btn.btn-enter { background: #047857; color: #fff; font-size: 1.1rem; }
+    .num-btn.btn-sign { background: #3b4252; color: #88c0d0; font-size: clamp(0.95rem, 1.6vw, 1.2rem); }
+    .num-btn.btn-clear { background: #7f1d1d; color: #fecaca; font-size: clamp(0.85rem, 1.4vw, 1.05rem); }
+    .num-btn.btn-enter { background: #047857; color: #fff; font-size: clamp(0.95rem, 1.6vw, 1.25rem); font-weight: 900; }
 
-    /* 彈窗選單 */
+    /* 彈窗與斷線提示 */
     .modal {
-      position: absolute; inset: 0; background: rgba(0,0,0,0.9);
+      position: absolute; inset: 0; background: rgba(0,0,0,0.92);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      z-index: 50; gap: 14px; padding: 20px;
+      z-index: 100; gap: 12px; padding: 20px;
     }
-    .menu-title { font-size: 2.2rem; font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #b91c1c; }
+    .menu-title { font-size: clamp(1.6rem, 3vw, 2.2rem); font-weight: 900; color: #fbbf24; text-shadow: 2px 2px 0 #b91c1c; }
     .btn {
       background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%);
-      color: #000; font-size: 1.1rem; font-weight: 900; border: none;
-      padding: 10px 28px; border-radius: 8px; cursor: pointer;
-      box-shadow: 0 4px 0 #78350f;
+      color: #000; font-size: clamp(0.95rem, 1.5vw, 1.15rem); font-weight: 900; border: none;
+      padding: 10px 24px; border-radius: 8px; cursor: pointer;
+      box-shadow: 0 4px 0 #78350f; min-width: 220px;
     }
     .btn:active { transform: translateY(2px); box-shadow: none; }
     .input-field {
-      padding: 8px 12px; font-size: 1.4rem; border-radius: 8px;
+      padding: 6px 12px; font-size: 1.4rem; border-radius: 8px;
       border: 2px solid #f59e0b; background: #1e1e2f; color: #fff; text-align: center;
     }
     .hidden { display: none !important; }
 
-    /* 手機豎屏防呆提示 */
+    #reconnect-banner {
+      position: absolute; top: 0; left: 0; width: 100%; background: #dc2626;
+      color: #fff; font-weight: 900; text-align: center; padding: 5px;
+      font-size: 0.9rem; z-index: 90; display: none;
+    }
+
     @media screen and (orientation: portrait) {
-      #portrait-warning {
-        display: flex !important;
-      }
+      #portrait-warning { display: flex !important; }
     }
     #portrait-warning {
       display: none; position: fixed; inset: 0; background: #000; z-index: 9999;
@@ -124,106 +151,116 @@
 </head>
 <body>
 
-<!-- 手機請轉橫屏提示 -->
 <div id="portrait-warning">
-  🔄 請旋轉手機為「橫向模式」以獲取最佳對戰視野！
+  🔄 請旋轉設備為「橫向模式」以獲取最佳對戰視野與按鍵手感！
+</div>
+
+<div id="reconnect-banner">
+  ⚠️ 連線中斷！正在嘗試重新連線與恢復對局狀態... (<span id="reconnect-count">0</span>)
 </div>
 
 <div id="app-container">
-  <!-- 1. 上半部純淨戰鬥視野 -->
   <div id="battle-view">
-    <canvas id="stage" width="1024" height="460"></canvas>
+    <canvas id="stage" width="1024" height="380"></canvas>
 
     <div class="hud">
       <div class="hp-wrapper">
-        <div class="name-tag" id="p1-name">RYU (隆)</div>
+        <div class="name-tag" id="p1-name">隆</div>
         <div class="hp-bar-outer"><div class="hp-bar-fill" id="p1-hp"></div></div>
       </div>
       <div class="ko-box">VS</div>
       <div class="hp-wrapper" style="text-align: right;">
-        <div class="name-tag" id="p2-name">SAGAT (沙加特)</div>
+        <div class="name-tag" id="p2-name">肯</div>
         <div class="hp-bar-outer"><div class="hp-bar-fill" id="p2-hp"></div></div>
       </div>
     </div>
   </div>
 
-  <!-- 2. 下半部完全獨立的觸控鍵盤操控台 -->
   <div id="control-dock">
-    <!-- P1 操控面板 -->
+    <!-- 主操作鍵盤（onclick 相容性最高，杜絕觸控無效） -->
     <div class="player-zone active-turn" id="p1-zone">
       <div class="screen-strip">
-        <div class="quiz-exp" id="p1-exp">8 + 7 = ?</div>
+        <div class="quiz-exp" id="p1-exp">載入題目中...</div>
         <div class="quiz-input-box" id="p1-val"></div>
       </div>
       <div class="numpad-grid">
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','1')" onclick="handleVirtualInput('p1','1')">1</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','2')" onclick="handleVirtualInput('p1','2')">2</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','3')" onclick="handleVirtualInput('p1','3')">3</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','4')" onclick="handleVirtualInput('p1','4')">4</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','5')" onclick="handleVirtualInput('p1','5')">5</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','6')" onclick="handleVirtualInput('p1','6')">6</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','7')" onclick="handleVirtualInput('p1','7')">7</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','8')" onclick="handleVirtualInput('p1','8')">8</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','9')" onclick="handleVirtualInput('p1','9')">9</button>
-        <button class="num-btn btn-clear" ontouchstart="handleVirtualInput('p1','C')" onclick="handleVirtualInput('p1','C')">清除</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p1','0')" onclick="handleVirtualInput('p1','0')">0</button>
-        <button class="num-btn btn-enter" ontouchstart="handleVirtualInput('p1','E')" onclick="handleVirtualInput('p1','E')">發招</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','1')">1</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','2')">2</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','3')">3</button>
+        <button class="num-btn btn-sign" type="button" onclick="handleInput('self','-')">+/-</button>
+
+        <button class="num-btn" type="button" onclick="handleInput('self','4')">4</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','5')">5</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','6')">6</button>
+        <button class="num-btn btn-clear" type="button" onclick="handleInput('self','DEL')">⌫</button>
+
+        <button class="num-btn" type="button" onclick="handleInput('self','7')">7</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','8')">8</button>
+        <button class="num-btn" type="button" onclick="handleInput('self','9')">9</button>
+        <button class="num-btn btn-clear" type="button" onclick="handleInput('self','C')">清除</button>
+
+        <button class="num-btn" style="grid-column: span 2;" type="button" onclick="handleInput('self','0')">0</button>
+        <button class="num-btn btn-enter" style="grid-column: span 2;" type="button" onclick="handleInput('self','E')">發招 ⚡</button>
       </div>
     </div>
 
-    <!-- P2 操控面板 -->
-    <div class="player-zone" id="p2-zone">
+    <!-- P2 操作面板（線下雙人模式） -->
+    <div class="player-zone local-mode hidden" id="p2-zone">
       <div class="screen-strip">
-        <div class="quiz-exp" id="p2-exp">15 - 6 = ?</div>
+        <div class="quiz-exp" id="p2-exp">(+15) - (-6) = ?</div>
         <div class="quiz-input-box" id="p2-val"></div>
       </div>
-      <div class="numpad-grid" id="p2-numpad">
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','1')" onclick="handleVirtualInput('p2','1')">1</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','2')" onclick="handleVirtualInput('p2','2')">2</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','3')" onclick="handleVirtualInput('p2','3')">3</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','4')" onclick="handleVirtualInput('p2','4')">4</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','5')" onclick="handleVirtualInput('p2','5')">5</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','6')" onclick="handleVirtualInput('p2','6')">6</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','7')" onclick="handleVirtualInput('p2','7')">7</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','8')" onclick="handleVirtualInput('p2','8')">8</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','9')" onclick="handleVirtualInput('p2','9')">9</button>
-        <button class="num-btn btn-clear" ontouchstart="handleVirtualInput('p2','C')" onclick="handleVirtualInput('p2','C')">清除</button>
-        <button class="num-btn" ontouchstart="handleVirtualInput('p2','0')" onclick="handleVirtualInput('p2','0')">0</button>
-        <button class="num-btn btn-enter" ontouchstart="handleVirtualInput('p2','E')" onclick="handleVirtualInput('p2','E')">發招</button>
+      <div class="numpad-grid">
+        <button class="num-btn" type="button" onclick="handleInput('p2','1')">1</button>
+        <button class="num-btn" type="button" onclick="handleInput('p2','2')">2</button>
+        <button class="num-btn" type="button" onclick="handleInput('p2','3')">3</button>
+        <button class="num-btn btn-sign" type="button" onclick="handleInput('p2','-')">+/-</button>
+
+        <button class="num-btn" type="button" onclick="handleInput('p2','4')">4</button>
+        <button class="num-btn" type="button" onclick="handleInput('p2','5')">5</button>
+        <button class="num-btn" type="button" onclick="handleInput('p2','6')">6</button>
+        <button class="num-btn btn-clear" type="button" onclick="handleInput('p2','DEL')">⌫</button>
+
+        <button class="num-btn" type="button" onclick="handleInput('p2','7')">7</button>
+        <button class="num-btn" type="button" onclick="handleInput('p2','8')">8</button>
+        <button class="num-btn" type="button" onclick="handleInput('p2','9')">9</button>
+        <button class="num-btn btn-clear" type="button" onclick="handleInput('p2','C')">清除</button>
+
+        <button class="num-btn" style="grid-column: span 2;" type="button" onclick="handleInput('p2','0')">0</button>
+        <button class="num-btn btn-enter" style="grid-column: span 2;" type="button" onclick="handleInput('p2','E')">發招 ⚡</button>
       </div>
     </div>
   </div>
 
-  <!-- 主選單彈窗 -->
+  <!-- 主選單 -->
   <div class="modal" id="menu-modal">
-    <div class="menu-title">快打心算王</div>
-    <button class="btn" onclick="startPVE()">1. 單人 vs 電腦人機</button>
-    <button class="btn" onclick="openOnlinePanel()">2. 線上 4 碼開房對戰</button>
-    <button class="btn" onclick="startLocalPVP()">3. 線下大屏/平板雙人對決</button>
+    <div class="menu-title">快打心算王 ‧ 正負數對決</div>
+    <button class="btn" onclick="startPVE()">1. 單人 vs 電腦肯 (PVE)</button>
+    <button class="btn" onclick="openOnlinePanel()">2. 線上 4 碼極速開房</button>
+    <button class="btn" onclick="startLocalPVP()">3. 線下平板雙人同屏對決</button>
   </div>
 
   <!-- 線上開房選單 -->
   <div class="modal hidden" id="online-modal">
-    <div class="menu-title" style="font-size: 1.8rem;">線上 4 碼極速開房</div>
+    <div class="menu-title" style="font-size: 1.8rem;">線上 4 碼對決</div>
     <div id="my-peer-info" style="color: #94a3b8; font-size: 1.05rem; text-align: center; line-height: 1.5;">
       正在產生 4 碼房間代號...
     </div>
     <div style="display: flex; gap: 8px; align-items: center; margin-top: 6px;">
       <input type="text" id="join-room-id" class="input-field" maxlength="4" inputmode="numeric" placeholder="4 碼代號" style="width: 140px; letter-spacing: 4px;">
-      <button class="btn" onclick="joinOnlineRoom()">加入</button>
+      <button class="btn" style="min-width: 90px;" onclick="joinOnlineRoom()">加入</button>
     </div>
-    <button class="btn" style="background: #475569; color: white; margin-top: 10px;" onclick="backToMenu()">返回</button>
+    <button class="btn" style="background: #475569; color: white; margin-top: 10px; min-width: 140px;" onclick="backToMenu()">返回</button>
   </div>
 
-  <!-- KO 結算彈窗 -->
+  <!-- 結算彈窗 -->
   <div class="modal hidden" id="gameover-modal">
-    <div class="menu-title" id="winner-text">RYU WIN!</div>
+    <div class="menu-title" id="winner-text">隆勝利！</div>
     <button class="btn" onclick="backToMenu()">再來一局</button>
   </div>
 </div>
 
 <script>
-  // 音效合成模組
   const AudioCtx = window.AudioContext || window.webkitAudioContext;
   let audioCtx = null;
   function playHitSound() {
@@ -231,172 +268,192 @@
     const osc = audioCtx.createOscillator();
     const gain = audioCtx.createGain();
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(180, audioCtx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.2);
+    osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.2);
     gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
     osc.connect(gain); gain.connect(audioCtx.destination);
     osc.start(); osc.stop(audioCtx.currentTime + 0.2);
   }
 
-  // 狀態管理
   let gameMode = 'PVE';
+  let myRole = 'p1';
   let p1Hp = 100, p2Hp = 100;
-  let p1Question = null, p2Question = null;
-  let p1Input = '', p2Input = '';
+  let selfQuestion = null, p2Question = null;
+  let selfInput = '', p2Input = '';
   let projectiles = [];
   let isGameOver = false;
   let aiInterval = null;
+  let shakeTime = 0;
 
-  let peer = null, conn = null, isHost = false;
+  let p1State = { anim: 'idle', timer: 0 };
+  let p2State = { anim: 'idle', timer: 0 };
+
+  let peer = null, conn = null;
+  let currentRoomId = null;
+  let remotePeerId = null;
+  let reconnectAttempts = 0;
+  let heartbeatTimer = null;
 
   const canvas = document.getElementById('stage');
   const ctx = canvas.getContext('2d');
 
+  function fmt(n) {
+    return n < 0 ? `(${n})` : `(+${n})`;
+  }
+
   function generateQuiz() {
     const isAdd = Math.random() > 0.5;
-    if (isAdd) {
-      const a = Math.floor(Math.random() * 45) + 3;
-      const b = Math.floor(Math.random() * 45) + 3;
-      return { text: `${a} + ${b} = ?`, ans: a + b };
-    } else {
-      const a = Math.floor(Math.random() * 50) + 20;
-      const b = Math.floor(Math.random() * (a - 5)) + 3;
-      return { text: `${a} - ${b} = ?`, ans: a - b };
-    }
+    const a = (Math.floor(Math.random() * 35) + 3) * (Math.random() > 0.5 ? 1 : -1);
+    const b = (Math.floor(Math.random() * 35) + 3) * (Math.random() > 0.5 ? 1 : -1);
+    return isAdd
+      ? { text: `${fmt(a)} + ${fmt(b)} = ?`, ans: a + b }
+      : { text: `${fmt(a)} - ${fmt(b)} = ?`, ans: a - b };
   }
 
   function updateHUD() {
     document.getElementById('p1-hp').style.width = Math.max(0, p1Hp) + '%';
     document.getElementById('p2-hp').style.width = Math.max(0, p2Hp) + '%';
-    document.getElementById('p1-exp').innerText = p1Question ? p1Question.text : '';
-    document.getElementById('p2-exp').innerText = p2Question ? p2Question.text : '';
-    document.getElementById('p1-val').innerText = p1Input;
-    document.getElementById('p2-val').innerText = p2Input;
+    
+    document.getElementById('p1-exp').innerText = selfQuestion ? selfQuestion.text : '';
+    document.getElementById('p1-val').innerText = selfInput;
+
+    if (gameMode === 'LOCAL') {
+      document.getElementById('p2-exp').innerText = p2Question ? p2Question.text : '';
+      document.getElementById('p2-val').innerText = p2Input;
+    }
   }
 
   function startPVE() {
     gameMode = 'PVE';
-    document.getElementById('p1-name').innerText = "RYU (玩家)";
-    document.getElementById('p2-name').innerText = "SAGAT (電腦)";
-    document.getElementById('p2-zone').style.opacity = '0.4';
-    document.getElementById('p2-numpad').style.pointerEvents = 'none';
+    myRole = 'p1';
+    document.getElementById('p1-name').innerText = "隆 (玩家)";
+    document.getElementById('p2-name').innerText = "肯 (電腦)";
+    document.getElementById('p1-zone').classList.remove('local-mode');
+    document.getElementById('p2-zone').classList.add('hidden');
     resetGame();
 
     if (aiInterval) clearInterval(aiInterval);
     aiInterval = setInterval(() => {
       if (isGameOver || gameMode !== 'PVE') return;
-      p2Input = p2Question.ans.toString();
-      updateHUD();
-      setTimeout(() => {
-        triggerAttack('p2');
-        p2Input = '';
-        p2Question = generateQuiz();
-        updateHUD();
-      }, 400);
+      triggerAttack('p2');
     }, 4200);
   }
 
   function startLocalPVP() {
     gameMode = 'LOCAL';
-    document.getElementById('p1-name').innerText = "P1 隆 (左手操作)";
-    document.getElementById('p2-name').innerText = "P2 沙加特 (右手操作)";
-    document.getElementById('p2-zone').style.opacity = '1';
-    document.getElementById('p2-numpad').style.pointerEvents = 'auto';
+    myRole = 'p1';
+    document.getElementById('p1-name').innerText = "P1 隆 (左側)";
+    document.getElementById('p2-name').innerText = "P2 肯 (右側)";
+    document.getElementById('p1-zone').classList.add('local-mode');
+    document.getElementById('p2-zone').classList.remove('hidden');
+    document.getElementById('p2-zone').classList.add('local-mode');
     resetGame();
   }
 
   function resetGame() {
     p1Hp = 100; p2Hp = 100;
-    p1Input = ''; p2Input = '';
+    selfInput = ''; p2Input = '';
     projectiles = [];
     isGameOver = false;
-    p1Question = generateQuiz();
+    p1State = { anim: 'idle', timer: 0 };
+    p2State = { anim: 'idle', timer: 0 };
+    selfQuestion = generateQuiz();
     p2Question = generateQuiz();
     document.getElementById('menu-modal').classList.add('hidden');
     document.getElementById('online-modal').classList.add('hidden');
     document.getElementById('gameover-modal').classList.add('hidden');
+    document.getElementById('reconnect-banner').style.display = 'none';
     updateHUD();
   }
 
   function backToMenu() {
     if (aiInterval) clearInterval(aiInterval);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
     if (conn) conn.close();
     document.getElementById('menu-modal').classList.remove('hidden');
     document.getElementById('gameover-modal').classList.add('hidden');
     document.getElementById('online-modal').classList.add('hidden');
+    document.getElementById('reconnect-banner').style.display = 'none';
   }
 
   function triggerAttack(attacker) {
     playHitSound();
     if (attacker === 'p1') {
-      projectiles.push({ x: 210, y: 310, vx: 18, type: 'hadouken' });
+      p1State = { anim: 'attack', timer: 20 };
+      projectiles.push({ x: 235, y: 240, vx: 18, type: 'hadouken' });
     } else {
-      projectiles.push({ x: 814, y: 310, vx: -18, type: 'tigershot' });
+      p2State = { anim: 'attack', timer: 20 };
+      projectiles.push({ x: 789, y: 240, vx: -18, type: 'flame_hadouken' });
     }
   }
 
-  // 支援手機/平板觸控（防重複觸發）
-  let lastTouchTime = 0;
-  function handleVirtualInput(player, val) {
-    const now = Date.now();
-    if (now - lastTouchTime < 40) return; // 避免 touchstart 與 click 重複觸發
-    lastTouchTime = now;
-
+  // 乾淨且相容性極高的輸入邏輯
+  function handleInput(targetPlayer, val) {
     if (isGameOver) return;
-    if (player === 'p1') {
-      if (val === 'C') p1Input = '';
-      else if (val === 'E') checkAnswer('p1');
-      else if (p1Input.length < 4) p1Input += val;
-    } else if (player === 'p2') {
-      if (val === 'C') p2Input = '';
-      else if (val === 'E') checkAnswer('p2');
-      else if (p2Input.length < 4) p2Input += val;
+    let isSelf = (targetPlayer === 'self');
+    let str = isSelf ? selfInput : p2Input;
+
+    if (val === 'C') {
+      str = '';
+    } else if (val === 'DEL') {
+      str = str.slice(0, -1);
+    } else if (val === '-') {
+      str = str.startsWith('-') ? str.substring(1) : '-' + str;
+    } else if (val === 'E') {
+      checkAnswer(isSelf ? myRole : 'p2');
+      return;
+    } else {
+      if (str.length < 5) str += val;
     }
+
+    if (isSelf) selfInput = str;
+    else p2Input = str;
     updateHUD();
   }
 
-  // 支援電腦實體鍵盤快捷鍵
   window.addEventListener('keydown', (e) => {
     if (isGameOver) return;
     if (gameMode === 'PVE' || gameMode === 'ONLINE') {
-      if (e.key >= '0' && e.key <= '9') p1Input += e.key;
-      else if (e.key === 'Backspace') p1Input = p1Input.slice(0, -1);
-      else if (e.key === 'Enter') checkAnswer('p1');
+      if ((e.key >= '0' && e.key <= '9')) selfInput += e.key;
+      else if (e.key === '-') {
+        selfInput = selfInput.startsWith('-') ? selfInput.substring(1) : '-' + selfInput;
+      } else if (e.key === 'Backspace') selfInput = selfInput.slice(0, -1);
+      else if (e.key === 'Enter') checkAnswer(myRole);
     } else if (gameMode === 'LOCAL') {
-      // P1: 主鍵盤上方數字鍵
-      if ((e.code.startsWith('Digit') || (!e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9'))) {
-        p1Input += e.key;
-      } else if (e.code === 'Backspace') p1Input = p1Input.slice(0, -1);
-      else if (e.code === 'Enter') checkAnswer('p1');
+      if (e.code.startsWith('Digit')) selfInput += e.key;
+      else if (e.key === 'Backspace') selfInput = selfInput.slice(0, -1);
+      else if (e.key === 'Enter') checkAnswer('p1');
 
-      // P2: 右側九宮格數字鍵
-      if (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9') {
-        p2Input += e.key;
-      } else if (e.code === 'NumpadDecimal' || e.code === 'Delete') p2Input = p2Input.slice(0, -1);
+      if (e.code.startsWith('Numpad') && e.key >= '0' && e.key <= '9') p2Input += e.key;
+      else if (e.code === 'NumpadSubtract') {
+        p2Input = p2Input.startsWith('-') ? p2Input.substring(1) : '-' + p2Input;
+      } else if (e.code === 'NumpadDecimal') p2Input = p2Input.slice(0, -1);
       else if (e.code === 'NumpadEnter') checkAnswer('p2');
     }
     updateHUD();
   });
 
-  function checkAnswer(player) {
-    if (player === 'p1') {
-      if (parseInt(p1Input, 10) === p1Question.ans) {
-        triggerAttack('p1');
-        if (gameMode === 'ONLINE' && conn) conn.send({ action: 'attack' });
-        p1Question = generateQuiz();
+  function checkAnswer(role) {
+    if (role === myRole) {
+      if (parseInt(selfInput, 10) === selfQuestion.ans) {
+        triggerAttack(myRole);
+        if (gameMode === 'ONLINE' && conn && conn.open) {
+          conn.send({ action: 'attack', from: myRole });
+        }
+        selfQuestion = generateQuiz();
       }
-      p1Input = '';
-    } else if (player === 'p2') {
+      selfInput = '';
+    } else if (role === 'p2' && gameMode === 'LOCAL') {
       if (parseInt(p2Input, 10) === p2Question.ans) {
         triggerAttack('p2');
         p2Question = generateQuiz();
       }
       p2Input = '';
     }
+    updateHUD();
   }
 
-  // 4 碼線上開房
   function generateShortRoomId() {
     return Math.floor(1000 + Math.random() * 9000).toString();
   }
@@ -409,105 +466,188 @@
     if (peer) { peer.destroy(); peer = null; }
 
     const infoEl = document.getElementById('my-peer-info');
-    infoEl.innerHTML = `正在生成 4 碼房間代號...`;
+    infoEl.innerHTML = `正在產生 4 碼房間代號...`;
 
-    function initShortPeer() {
-      const shortId = generateShortRoomId();
-      peer = new Peer(shortId);
-
-      peer.on('open', (id) => {
-        infoEl.innerHTML = `房間代碼：<b style="color:#fde047; font-size:2rem; letter-spacing:6px; display:block; margin:4px 0;">${id}</b>告訴好友 4 碼即可直接連線`;
-      });
-
-      peer.on('connection', (c) => {
-        conn = c; isHost = true;
-        setupOnlineEvents();
-        startOnlineGame();
-      });
-
-      peer.on('error', (err) => {
-        if (err.type === 'unavailable-id') initShortPeer();
-      });
-    }
-    initShortPeer();
+    currentRoomId = generateShortRoomId();
+    initPeer(currentRoomId, true);
   }
 
   function joinOnlineRoom() {
     const remoteId = document.getElementById('join-room-id').value.trim();
     if (remoteId.length !== 4) return alert('請輸入 4 位數房間代碼');
-    conn = peer.connect(remoteId);
-    isHost = false;
+    remotePeerId = remoteId;
+    currentRoomId = generateShortRoomId();
+    myRole = 'p2';
+    initPeer(currentRoomId, false);
+  }
+
+  function initPeer(id, isHost) {
+    peer = new Peer(id);
+
+    peer.on('open', (actualId) => {
+      currentRoomId = actualId;
+      if (isHost) {
+        document.getElementById('my-peer-info').innerHTML = 
+          `房間代碼：<b style="color:#fde047; font-size:2.2rem; letter-spacing:6px; display:block; margin:4px 0;">${actualId}</b>告訴對手 4 碼即可對戰`;
+      } else {
+        connectToHost(remotePeerId);
+      }
+    });
+
+    peer.on('connection', (c) => {
+      conn = c;
+      remotePeerId = c.peer;
+      myRole = isHost ? 'p1' : 'p2';
+      setupOnlineEvents();
+      startOnlineGame();
+      syncCurrentState();
+    });
+
+    peer.on('error', (err) => {
+      if (err.type === 'unavailable-id') {
+        currentRoomId = generateShortRoomId();
+        initPeer(currentRoomId, isHost);
+      }
+    });
+  }
+
+  function connectToHost(targetId) {
+    conn = peer.connect(targetId, { reliable: true });
     setupOnlineEvents();
-    conn.on('open', () => startOnlineGame());
+    conn.on('open', () => {
+      startOnlineGame();
+      syncCurrentState();
+    });
   }
 
   function setupOnlineEvents() {
     conn.on('data', (data) => {
-      if (data.action === 'attack') triggerAttack(isHost ? 'p2' : 'p1');
+      if (data.action === 'attack') {
+        triggerAttack(data.from);
+      } else if (data.action === 'sync') {
+        p1Hp = data.p1Hp;
+        p2Hp = data.p2Hp;
+        updateHUD();
+      } else if (data.action === 'ping') {
+        conn.send({ action: 'pong' });
+      }
     });
+
+    conn.on('close', () => handleDisconnect());
+    conn.on('error', () => handleDisconnect());
+
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
+    heartbeatTimer = setInterval(() => {
+      if (gameMode === 'ONLINE' && conn && conn.open) {
+        conn.send({ action: 'ping' });
+      }
+    }, 2500);
+  }
+
+  function syncCurrentState() {
+    if (conn && conn.open) {
+      conn.send({
+        action: 'sync',
+        p1Hp: p1Hp,
+        p2Hp: p2Hp
+      });
+    }
+  }
+
+  function handleDisconnect() {
+    if (isGameOver || gameMode !== 'ONLINE') return;
+    document.getElementById('reconnect-banner').style.display = 'block';
+    reconnectAttempts++;
+    document.getElementById('reconnect-count').innerText = reconnectAttempts;
+
+    setTimeout(() => {
+      if (myRole === 'p2' && remotePeerId) {
+        connectToHost(remotePeerId);
+      }
+    }, 2000);
   }
 
   function startOnlineGame() {
     gameMode = 'ONLINE';
-    document.getElementById('p1-name').innerText = isHost ? "RYU (你)" : "RYU (對手)";
-    document.getElementById('p2-name').innerText = isHost ? "SAGAT (對手)" : "SAGAT (你)";
-    document.getElementById('p2-zone').style.opacity = '0.35';
-    document.getElementById('p2-numpad').style.pointerEvents = 'none';
+    document.getElementById('reconnect-banner').style.display = 'none';
+    reconnectAttempts = 0;
+
+    if (myRole === 'p1') {
+      document.getElementById('p1-name').innerText = "隆 (你)";
+      document.getElementById('p2-name').innerText = "肯 (對手)";
+    } else {
+      document.getElementById('p1-name').innerText = "隆 (對手)";
+      document.getElementById('p2-name').innerText = "肯 (你)";
+    }
+    document.getElementById('p1-zone').classList.remove('local-mode');
+    document.getElementById('p2-zone').classList.add('hidden');
     resetGame();
   }
 
-  // 繪製與碰撞迴圈
+  let frameCount = 0;
   function render() {
+    frameCount++;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 泰國大佛背景
+    ctx.save();
+    if (shakeTime > 0) {
+      shakeTime--;
+      ctx.translate((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8);
+    }
+
     const skyGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    skyGrad.addColorStop(0, "#3a684b"); skyGrad.addColorStop(1, "#16331c");
-    ctx.fillStyle = skyGrad; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    skyGrad.addColorStop(0, "#0a111c");
+    skyGrad.addColorStop(0.55, "#162842");
+    skyGrad.addColorStop(0.85, "#3d1f2b");
+    skyGrad.addColorStop(1, "#662f1f");
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = "#baa068";
-    ctx.beginPath();
-    ctx.ellipse(512, 280, 420, 140, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillStyle = "#161b22";
+    ctx.fillRect(0, 300, canvas.width, 80);
+    ctx.fillStyle = "#30363d";
+    ctx.fillRect(0, 300, canvas.width, 4);
 
-    ctx.fillStyle = "#152a13"; ctx.fillRect(0, 370, canvas.width, 90);
-    ctx.fillStyle = "#475569"; ctx.fillRect(40, 370, canvas.width - 80, 10);
+    drawRyuAnimated(ctx, 170, 300, p1State);
+    drawKenAnimated(ctx, 854, 300, p2State);
 
-    // 角色立繪
-    drawRyu(ctx, 160, 370);
-    drawSagat(ctx, 864, 370);
-
-    // 飛行氣功彈處理
     for (let i = projectiles.length - 1; i >= 0; i--) {
       const p = projectiles[i];
       p.x += p.vx;
 
       ctx.save();
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 22, 0, Math.PI * 2);
-      ctx.fillStyle = p.type === 'hadouken' ? '#38bdf8' : '#f97316';
+      ctx.arc(p.x, p.y, 24, 0, Math.PI * 2);
+      ctx.fillStyle = (p.type === 'hadouken') ? '#38bdf8' : '#ff4d00';
       ctx.shadowColor = ctx.fillStyle; ctx.shadowBlur = 18;
       ctx.fill();
 
-      ctx.fillStyle = '#ffffff';
+      ctx.fillStyle = (p.type === 'hadouken') ? '#ffffff' : '#ffea79';
       ctx.beginPath();
-      ctx.arc(p.x + (p.vx > 0 ? 4 : -4), p.y, 10, 0, Math.PI * 2);
+      ctx.arc(p.x + (p.vx > 0 ? 5 : -5), p.y, 11, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      if (p.type === 'hadouken' && p.x >= 800) {
+      if (p.type === 'hadouken' && p.x >= 810) {
         projectiles.splice(i, 1);
         p2Hp = Math.max(0, p2Hp - 25);
+        p2State = { anim: 'hurt', timer: 18 };
+        shakeTime = 8;
         updateHUD();
-        if (p2Hp <= 0) endGame("RYU (隆) 獲勝！");
-      } else if (p.type === 'tigershot' && p.x <= 220) {
+        syncCurrentState();
+        if (p2Hp <= 0) endGame("隆 獲勝！");
+      } else if (p.type === 'flame_hadouken' && p.x <= 214) {
         projectiles.splice(i, 1);
         p1Hp = Math.max(0, p1Hp - 25);
+        p1State = { anim: 'hurt', timer: 18 };
+        shakeTime = 8;
         updateHUD();
-        if (p1Hp <= 0) endGame("SAGAT (沙加特) 獲勝！");
+        syncCurrentState();
+        if (p1Hp <= 0) endGame("肯 獲勝！");
       }
     }
 
+    ctx.restore();
     requestAnimationFrame(render);
   }
 
@@ -517,38 +657,61 @@
     document.getElementById('gameover-modal').classList.remove('hidden');
   }
 
-  function drawRyu(ctx, x, y) {
-    ctx.save(); ctx.translate(x, y);
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(-28, -100, 56, 75);
-    ctx.fillRect(-30, -25, 24, 25);
-    ctx.fillRect(6, -25, 24, 25);
-    ctx.fillStyle = "#df9e6d";
-    ctx.beginPath(); ctx.arc(0, -118, 18, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#dc2626";
-    ctx.fillRect(-20, -126, 40, 9);
-    ctx.fillRect(-46, -122, 26, 5);
-    ctx.fillStyle = "#18181b";
-    ctx.fillRect(-30, -40, 60, 10);
+  // Detailed side-facing fighter drawings: guard stance, jab, recoil, and signature colors.
+  function drawFighter(ctx, x, y, state, facing, palette) {
+    ctx.save();
+    let bob = state.anim === 'idle' ? Math.sin(frameCount * 0.12) * 2 : 0;
+    let lunge = state.anim === 'attack' ? 16 : state.anim === 'hurt' ? -9 : 0;
+    ctx.translate(x + lunge * facing, y + bob);
+    ctx.scale(facing, 1);
+
+    const skin = '#e6a477', ink = '#211b1b';
+    const limb = (x1, y1, x2, y2, width, color) => {
+      ctx.strokeStyle = color; ctx.lineWidth = width; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+    };
+    // Feet and bent legs
+    limb(-8, -30, -27, -9, 18, palette.pants);
+    limb(11, -29, 28, -10, 18, palette.pants);
+    limb(-27, -9, -43, -5, 10, palette.trim);
+    limb(28, -10, 43, -6, 10, palette.trim);
+    // Gi body and belt
+    ctx.fillStyle = palette.top;
+    ctx.beginPath(); ctx.moveTo(-24,-100); ctx.lineTo(23,-100); ctx.lineTo(30,-34);
+    ctx.lineTo(10,-27); ctx.lineTo(-26,-34); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath(); ctx.moveTo(-3,-98); ctx.lineTo(13,-98); ctx.lineTo(2,-65); ctx.lineTo(-8,-59); ctx.lineTo(0,-83); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = palette.trim; ctx.fillRect(-28,-43,58,8);
+    ctx.fillStyle = palette.top; ctx.fillRect(1,-43,7,11);
+    // Guard arm and forward arm; extended fist on attack
+    limb(-14,-86,-32,-66,16,palette.top);
+    limb(-32,-66,-23,-52,13,skin);
+    if (state.anim === 'attack') {
+      limb(9,-83,35,-78,18,palette.top); limb(35,-78,57,-78,13,skin);
+      ctx.fillStyle = palette.trim; ctx.beginPath(); ctx.arc(60,-78,9,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#fff7'; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(55,-92); ctx.lineTo(76,-92); ctx.stroke();
+    } else if (state.anim === 'hurt') {
+      limb(10,-83,27,-66,16,palette.top); limb(27,-66,13,-53,13,skin);
+    } else {
+      limb(10,-83,29,-98,15,palette.top); limb(29,-98,34,-111,12,skin);
+      ctx.fillStyle=palette.trim; ctx.beginPath(); ctx.arc(35,-114,8,0,Math.PI*2); ctx.fill();
+    }
+    // Head, hair, headband and focused face
+    ctx.fillStyle=skin; ctx.beginPath(); ctx.ellipse(1,-119,17,20,0,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle=palette.hair; ctx.beginPath(); ctx.moveTo(-15,-125); ctx.lineTo(-12,-141); ctx.lineTo(-2,-135); ctx.lineTo(5,-146); ctx.lineTo(12,-134); ctx.lineTo(18,-129); ctx.lineTo(16,-121); ctx.closePath(); ctx.fill();
+    ctx.fillStyle=palette.band; ctx.fillRect(-15,-128,31,6);
+    ctx.fillStyle=ink; ctx.fillRect(8,-120,7,3); ctx.fillRect(5,-111,9,2);
+    // Dramatic outline and ground shadow
+    ctx.strokeStyle='#10151d'; ctx.lineWidth=2; ctx.strokeRect(-22,-99,44,66);
     ctx.restore();
   }
-
-  function drawSagat(ctx, x, y) {
-    ctx.save(); ctx.translate(x, y);
-    ctx.fillStyle = "#c27838";
-    ctx.fillRect(-34, -130, 68, 85);
-    ctx.fillRect(-36, -45, 28, 45);
-    ctx.fillRect(8, -45, 28, 45);
-    ctx.beginPath(); ctx.arc(0, -150, 20, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = "#09090b";
-    ctx.fillRect(-9, -158, 10, 10);
-    ctx.lineWidth = 4; ctx.strokeStyle = "#991b1b";
-    ctx.beginPath(); ctx.moveTo(-20, -120); ctx.lineTo(20, -65); ctx.stroke();
-    ctx.fillStyle = "#1d4ed8";
-    ctx.fillRect(-36, -45, 72, 38);
-    ctx.fillStyle = "#ef4444";
-    ctx.fillRect(-36, -45, 72, 7);
-    ctx.restore();
+  function drawRyuAnimated(ctx, x, y, state) {
+    if (state.timer > 0) state.timer--; else state.anim = 'idle';
+    drawFighter(ctx, x, y, state, 1, { top:'#f1f5f9', pants:'#dbe4ee', trim:'#c81e32', hair:'#25201d', band:'#d9233e' });
+  }
+  function drawKenAnimated(ctx, x, y, state) {
+    if (state.timer > 0) state.timer--; else state.anim = 'idle';
+    drawFighter(ctx, x, y, state, -1, { top:'#c62828', pants:'#a91f28', trim:'#f7c948', hair:'#f6c445', band:'#f6c445' });
   }
 
   requestAnimationFrame(render);
