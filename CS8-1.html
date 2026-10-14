@@ -135,14 +135,27 @@
       ▶ 進入實戰演練 (測試題庫)
     </button>
     
+    <div class="w-full max-w-2xl bg-slate-900/80 border border-sky-700 rounded-xl p-4 mb-3">
+      <label for="folder-csv-select" class="block text-sky-300 font-bold mb-2">內建 / 同資料夾 CSV 題庫</label>
+      <select id="folder-csv-select" class="w-full bg-slate-800 text-white px-3 py-2 rounded border border-slate-600">
+        <option value="math99">📁 國小99乘法表</option>
+        <option value="mathMul2_1">📁 國小2位數乘1位數</option>
+        <option value="mathMul2">📁 國小2位數乘法30題</option>
+        <option value="mathAddSub3">📁 國小三位數加減法20題</option>
+        <option value="mathNegativeAddSub" selected>📁 國中正負數加減法</option>
+        <option value="mathNegativeMul">📁 國中正負數乘法</option>
+      </select>
+      <p id="csv-load-status" class="text-slate-300 text-sm mt-2" role="status" aria-live="polite">已載入內建題庫</p>
+      <button id="start-btn" class="mt-3 px-8 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-lg transition-all">開始遊戲</button>
+    </div>
+
     <div class="w-full max-w-2xl border-t border-slate-700 my-2"></div>
 
-    <p class="text-slate-400 text-sm mb-4 mt-2 px-4 text-center">上傳自訂 CSV 題庫 (必備欄位: 題號, 題目, 選項A...D, 正確答案)</p>
+    <p class="text-slate-400 text-sm mb-4 mt-2 px-4 text-center">如果用 file:// 直接開啟，瀏覽器會禁止網頁自動讀取同資料夾檔案，請在此選取 CSV (必備欄位: 題號, 題目, 選項A...D, 正確答案)</p>
     <label class="mb-6 cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-500 text-white px-6 py-2 rounded-lg transition-all">
       <span id="file-name">選擇 CSV 檔案</span>
       <input type="file" id="csv-upload" accept=".csv" class="hidden">
     </label>
-    <button id="start-btn" class="px-8 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold text-lg transition-all hidden">載入出擊</button>
   </div>
 
   <!-- 暫停畫面 -->
@@ -233,6 +246,16 @@
     let enemyBulletSpeed = 40.0;
     let autoAimEnabled = true;
 
+    // 將所有題庫內建進程式
+    const cloudData = {
+      "math99": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,1 x 1 = ?,4,5,2,1,D\n2,1 x 2 = ?,7,3,2,6,C\n3,1 x 3 = ?,1,2,3,5,C\n4,1 x 4 = ?,4,3,8,5,A\n5,1 x 5 = ?,6,10,5,9,C\n6,1 x 6 = ?,5,1,12,6,D\n7,1 x 7 = ?,8,7,2,3,B\n8,1 x 8 = ?,13,9,16,8,D\n9,1 x 9 = ?,9,10,18,6,A\n10,2 x 1 = ?,6,2,3,4,B\n11,2 x 2 = ?,5,9,6,4,D\n12,2 x 3 = ?,6,4,9,8,A\n13,2 x 4 = ?,3,6,10,8,D\n14,2 x 5 = ?,8,5,7,10,D\n15,2 x 6 = ?,6,8,12,18,C\n16,2 x 7 = ?,12,21,7,14,D\n17,2 x 8 = ?,13,8,18,16,D\n18,2 x 9 = ?,22,18,16,20,B\n19,3 x 1 = ?,6,1,4,3,D\n20,3 x 2 = ?,11,3,6,5,C\n21,3 x 3 = ?,9,8,6,11,A\n22,3 x 4 = ?,9,12,8,13,B\n23,3 x 5 = ?,15,16,20,12,A\n24,3 x 6 = ?,13,15,14,18,D\n25,3 x 7 = ?,17,21,10,16,B\n26,3 x 8 = ?,24,27,28,32,A\n27,3 x 9 = ?,30,24,18,27,D\n28,4 x 1 = ?,5,3,4,7,C\n29,4 x 2 = ?,13,12,8,6,C\n30,4 x 3 = ?,12,7,11,8,A\n31,4 x 4 = ?,12,16,15,8,B\n32,4 x 5 = ?,19,9,20,16,C\n33,4 x 6 = ?,28,24,20,23,B\n34,4 x 7 = ?,24,30,32,28,D\n35,4 x 8 = ?,32,40,35,33,A\n36,4 x 9 = ?,13,36,40,32,B\n37,5 x 1 = ?,4,7,3,5,D\n38,5 x 2 = ?,10,15,12,8,A\n39,5 x 3 = ?,20,10,15,12,C\n40,5 x 4 = ?,9,25,20,21,C\n41,5 x 5 = ?,24,30,25,20,C\n42,5 x 6 = ?,11,28,25,30,D\n43,5 x 7 = ?,28,42,33,35,D\n44,5 x 8 = ?,45,44,48,40,D\n45,5 x 9 = ?,45,46,54,36,A\n46,6 x 1 = ?,12,7,6,5,C\n47,6 x 2 = ?,9,8,16,12,D\n48,6 x 3 = ?,15,9,18,19,C\n49,6 x 4 = ?,28,18,24,20,C\n50,6 x 5 = ?,35,24,30,36,C\n51,6 x 6 = ?,40,42,30,36,D\n52,6 x 7 = ?,47,35,42,13,C\n53,6 x 8 = ?,48,40,54,52,A\n54,6 x 9 = ?,51,45,54,49,C\n55,7 x 1 = ?,8,6,5,7,D\n56,7 x 2 = ?,16,21,14,12,C\n57,7 x 3 = ?,18,16,10,21,D\n58,7 x 4 = ?,27,28,24,32,B\n59,7 x 5 = ?,30,35,12,42,B\n60,7 x 6 = ?,48,37,42,35,C\n61,7 x 7 = ?,14,51,56,49,D\n62,7 x 8 = ?,15,56,58,49,B\n63,7 x 9 = ?,68,63,70,72,B\n64,8 x 1 = ?,16,9,7,8,D\n65,8 x 2 = ?,10,16,20,18,B\n66,8 x 3 = ?,32,20,24,27,C\n67,8 x 4 = ?,28,24,37,32,D\n68,8 x 5 = ?,45,43,40,41,C\n69,8 x 6 = ?,48,47,56,46,A\n70,8 x 7 = ?,56,64,49,52,A\n71,8 x 8 = ?,56,64,72,16,B\n72,8 x 9 = ?,72,17,63,80,A\n73,9 x 1 = ?,7,10,18,9,D\n74,9 x 2 = ?,13,18,27,20,B\n75,9 x 3 = ?,18,27,24,36,B\n76,9 x 4 = ?,27,13,32,36,D\n77,9 x 5 = ?,45,50,14,54,A\n78,9 x 6 = ?,52,50,59,54,D\n79,9 x 7 = ?,63,54,56,60,A\n80,9 x 8 = ?,80,69,73,72,D\n81,9 x 9 = ?,72,85,76,81,D\n`,
+      "mathNegativeMul": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(-4) x 5 = ?,-18,-20,20,18,B\n2,8 x (-15) = ?,119,120,-120,-119,C\n3,(-25) x 25 = ?,-625,625,-624,624,A\n4,(-4) x 5 = ?,20,30,-30,-20,D\n5,9 x (-8) = ?,-62,72,-72,62,C\n6,9 x (-10) = ?,90,-100,100,-90,D\n7,8 x (-5) = ?,40,41,-41,-40,D\n8,20 x (-22) = ?,440,-440,-439,439,B\n9,(-10) x 5 = ?,51,50,-50,-51,C\n10,(-18) x 22 = ?,-396,397,-397,396,A\n11,(-18) x (-23) = ?,-404,404,-414,414,D\n12,(-22) x 21 = ?,472,462,-472,-462,D\n13,25 x (-21) = ?,-525,535,525,-535,A\n14,(-9) x (-8) = ?,72,70,-72,-70,A\n15,7 x (-9) = ?,-63,63,64,-64,A\n16,2 x (-13) = ?,-24,24,26,-26,D\n17,(-19) x 17 = ?,323,-321,-323,321,C\n18,(-18) x (-16) = ?,286,-286,-288,288,D\n19,(-19) x 3 = ?,-55,57,55,-57,D\n20,(-11) x 5 = ?,55,-53,53,-55,D\n21,24 x (-18) = ?,-422,432,-432,422,C\n22,20 x (-10) = ?,200,-210,-200,210,C\n23,13 x (-7) = ?,81,91,-91,-81,C\n24,18 x (-17) = ?,-306,304,-304,306,A\n25,(-3) x (-17) = ?,-41,51,-51,41,B\n26,(-6) x (-13) = ?,-78,-79,78,79,C\n27,(-3) x (-15) = ?,47,-47,45,-45,C\n28,13 x (-16) = ?,-210,210,208,-208,D\n29,(-25) x 12 = ?,-290,300,-300,290,C\n30,12 x (-18) = ?,-216,-206,216,206,A\n31,4 x (-8) = ?,-32,-22,22,32,A\n32,(-3) x 14 = ?,32,-42,42,-32,B\n33,(-7) x 14 = ?,98,-99,99,-98,D\n34,(-3) x (-11) = ?,33,-23,23,-33,A\n35,(-21) x 6 = ?,-128,-126,128,126,B\n36,(-4) x 16 = ?,-64,65,64,-65,A\n37,(-20) x 8 = ?,162,160,-162,-160,D\n38,(-6) x (-7) = ?,-43,42,43,-42,B\n39,(-25) x (-23) = ?,565,-575,-565,575,D\n40,16 x (-24) = ?,384,-385,-384,385,C\n41,(-6) x (-2) = ?,-12,10,-10,12,D\n42,15 x (-18) = ?,-260,260,270,-270,D\n43,(-21) x 8 = ?,168,166,-166,-168,D\n44,(-15) x 8 = ?,-130,130,-120,120,C\n45,(-16) x 22 = ?,350,-352,352,-350,B\n46,(-7) x 12 = ?,84,82,-82,-84,D\n47,(-7) x 24 = ?,-168,178,168,-178,A\n48,8 x (-18) = ?,-144,142,144,-142,A\n49,(-16) x 6 = ?,-95,-96,96,95,B\n50,(-21) x 16 = ?,346,-336,-346,336,B\n`,
+      "mathNegativeAddSub": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(7) − (14) = ?,-21,-7,1,21,B\n2,(11) − (5) = ?,6,16,2,-16,A\n3,(16) + (-6) = ?,22,10,12,-22,B\n4,(-3) − (19) = ?,16,22,-24,-22,D\n5,(-6) + (-9) = ?,-19,-15,3,15,B\n6,(-4) + (-4) = ?,8,-8,-16,0,B\n7,(12) − (16) = ?,-4,-28,28,4,A\n8,(13) + (-17) = ?,-4,2,4,30,A\n9,(-19) − (8) = ?,-11,-27,-26,27,B\n10,(-10) − (-11) = ?,-7,-1,1,21,C\n11,(-12) − (-2) = ?,-10,-14,10,-6,A\n12,(-12) + (0) = ?,12,-18,-7,-12,D\n13,(12) − (13) = ?,25,3,-1,-25,C\n14,(15) − (-14) = ?,37,1,-29,29,D\n15,(11) − (-1) = ?,10,14,-12,12,D\n16,(20) + (-5) = ?,-15,15,25,-25,B\n17,(3) − (-14) = ?,17,-17,-11,27,A\n18,(-15) + (6) = ?,-9,21,-21,-11,A\n19,(-7) − (-9) = ?,16,-16,-2,2,D\n20,(2) − (-7) = ?,10,9,-5,-9,B\n`,
+      "mathAddSub3": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,516 + 108 = ?,524,624,574,724,B\n2,327 + 503 = ?,822,830,824,780,B\n3,547 + 217 = ?,764,755,769,784,A\n4,709 + 688 = ?,1407,1397,1405,1399,B\n5,190 + 500 = ?,695,690,692,687,B\n6,105 + 399 = ?,524,503,504,495,C\n7,520 + 578 = ?,1098,1078,1108,1094,A\n8,811 + 180 = ?,988,985,991,984,C\n9,541 + 642 = ?,1193,1133,1183,1186,C\n10,272 + 841 = ?,1116,1113,1106,1120,B\n11,792 - 622 = ?,170,167,70,150,A\n12,471 - 341 = ?,30,130,132,125,B\n13,231 - 218 = ?,63,7,13,19,C\n14,216 - 117 = ?,149,100,99,92,C\n15,403 - 381 = ?,18,22,14,28,B\n16,458 - 288 = ?,172,170,161,175,B\n17,404 - 108 = ?,289,396,302,296,D\n18,364 - 266 = ?,104,118,99,98,D\n19,609 - 591 = ?,15,18,27,9,B\n20,437 - 339 = ?,118,102,88,98,D\n`,
+      "mathMul2": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,51 x 66 = ?,3365,3366,3266,4366,B\n2,17 x 81 = ?,1340,1378,1377,1387,C\n3,40 x 25 = ?,990,1000,1010,999,B\n4,20 x 65 = ?,1400,1300,2300,1290,B\n5,60 x 14 = ?,830,840,841,940,B\n6,76 x 42 = ?,3292,3192,3202,3167,B\n7,77 x 37 = ?,2873,2848,2949,2849,D\n8,47 x 26 = ?,1122,1223,1222,1212,C\n9,97 x 20 = ?,1908,1940,1969,2940,B\n10,23 x 78 = ?,1784,1794,1793,1894,B\n11,66 x 11 = ?,716,727,726,1726,C\n12,24 x 53 = ?,1272,1172,2272,1372,A\n13,90 x 60 = ?,5390,5400,5500,5399,B\n14,34 x 44 = ?,1596,1491,1496,2496,C\n15,76 x 74 = ?,5634,5624,5524,5724,B\n16,57 x 98 = ?,5576,5596,5586,5486,C\n17,16 x 27 = ?,332,432,433,532,B\n18,92 x 97 = ?,8954,8924,8925,8923,B\n19,44 x 58 = ?,2452,2553,2552,2551,C\n20,28 x 57 = ?,2596,1597,1586,1596,D\n21,27 x 99 = ?,2683,2673,3673,2573,B\n22,48 x 54 = ?,2692,2591,2602,2592,D\n23,99 x 55 = ?,5473,5446,5445,5455,C\n24,12 x 83 = ?,995,986,1996,996,D\n25,21 x 85 = ?,1785,1776,1809,1775,A\n26,33 x 10 = ?,320,330,329,345,B\n27,78 x 38 = ?,2964,2974,3964,2963,A\n28,39 x 24 = ?,946,936,926,966,B\n29,75 x 20 = ?,1400,1500,1501,1490,B\n30,33 x 53 = ?,1749,1748,1745,1758,A\n`,
+      "mathMul2_1": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,70 x 6 = ?,429,420,400,410,B\n2,46 x 9 = ?,414,404,411,434,A\n3,55 x 7 = ?,375,385,395,388,B\n4,17 x 8 = ?,146,126,136,134,C\n5,29 x 7 = ?,201,193,213,203,D\n6,24 x 6 = ?,134,142,144,141,C\n7,59 x 6 = ?,354,344,364,357,A\n8,73 x 5 = ?,366,355,365,375,C\n9,62 x 8 = ?,506,496,504,486,B\n10,81 x 6 = ?,496,488,485,486,D\n11,35 x 3 = ?,106,105,103,115,B\n12,47 x 2 = ?,94,92,90,84,A\n13,38 x 5 = ?,191,180,189,190,D\n14,92 x 4 = ?,368,358,367,378,A\n15,22 x 6 = ?,132,142,122,123,A\n16,14 x 9 = ?,112,126,146,111,B\n17,57 x 2 = ?,112,134,117,114,D\n18,88 x 7 = ?,596,615,616,614,C\n19,41 x 4 = ?,154,165,174,164,D\n20,92 x 8 = ?,734,751,731,736,D\n21,70 x 8 = ?,549,560,580,547,B\n22,79 x 8 = ?,630,642,632,625,C\n23,72 x 4 = ?,292,308,289,288,D\n24,50 x 8 = ?,400,401,390,398,A\n25,91 x 5 = ?,455,453,454,475,A\n26,49 x 9 = ?,461,431,428,441,D\n27,45 x 4 = ?,181,180,193,170,B\n28,72 x 7 = ?,516,508,495,504,D\n29,97 x 2 = ?,184,204,208,194,D\n30,16 x 5 = ?,82,81,80,72,C\n`
+    };
+
     document.getElementById('speed-slider').addEventListener('input', (e) => { document.getElementById('speed-val').textContent = parseFloat(e.target.value).toFixed(1); });
     document.getElementById('fire-slider').addEventListener('input', (e) => { document.getElementById('fire-val').textContent = parseFloat(e.target.value).toFixed(1) + ' 秒'; });
 
@@ -302,23 +325,54 @@
 
     quickStartBtn.addEventListener('click', () => { startGameWithData(testData); });
 
+    const folderCsvSelect = document.getElementById('folder-csv-select');
+    const csvLoadStatus = document.getElementById('csv-load-status');
+
+    function parseQuestionCsv(csvText, sourceName) {
+      const results = Papa.parse(csvText, {
+        header: true, skipEmptyLines: true, transformHeader: h => h.trim()
+      });
+      const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
+      if (results.errors.length || validData.length === 0) {
+        questions = [];
+        startBtn.classList.add('hidden');
+        csvLoadStatus.textContent = `題庫格式錯誤：${sourceName}。請確認包含「題目」與「正確答案」欄位。`;
+        return false;
+      }
+      questions = validData;
+      fileNameDisplay.textContent = sourceName;
+      csvLoadStatus.textContent = `✓ 已選擇「${sourceName}」，共 ${validData.length} 題。按「開始遊戲」出擊。`;
+      startBtn.classList.remove('hidden');
+      return true;
+    }
+
+    function loadSelectedCloudData() {
+      const key = folderCsvSelect.value;
+      if (cloudData[key]) {
+        parseQuestionCsv(cloudData[key], folderCsvSelect.options[folderCsvSelect.selectedIndex].text);
+      }
+    }
+
+    folderCsvSelect.addEventListener('change', loadSelectedCloudData);
+    loadSelectedCloudData();
+
     fileInput.addEventListener('change', (e) => {
       const file = e.target.files[0];
-      if (file) {
-        fileNameDisplay.textContent = file.name;
-        Papa.parse(file, {
-          header: true, skipEmptyLines: true, transformHeader: h => h.trim(),
-          complete: function(results) {
-            const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
-            if (validData.length > 0) {
-              questions = validData;
-              startBtn.classList.remove('hidden');
-            } else {
-              alert(`檔案解析失敗！找不到「題目」或「正確答案」欄位。`);
-            }
+      if (!file) return;
+      fileNameDisplay.textContent = file.name;
+      Papa.parse(file, {
+        header: true, skipEmptyLines: true, transformHeader: h => h.trim(),
+        complete: function(results) {
+          const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
+          if (validData.length > 0) {
+            questions = validData;
+            csvLoadStatus.textContent = `✓ 已載入「${file.name}」，共 ${validData.length} 題。`;
+            startBtn.classList.remove('hidden');
+          } else {
+            alert(`檔案解析失敗！找不到「題目」或「正確答案」欄位。`);
           }
-        });
-      }
+        }
+      });
     });
 
     startBtn.addEventListener('click', () => { if (questions.length > 0) startGameWithData(questions); });
@@ -556,7 +610,7 @@
       const vestMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }); 
       const shirtMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.8 }); 
       const pantsMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 }); 
-      const weaponMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8 });
+      const weaponMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8 }); 
       const armorMat = new THREE.MeshStandardMaterial({ color: 0x27352c, roughness: 0.78, metalness: 0.12 });
       const trimMat = new THREE.MeshStandardMaterial({ color: 0xd2a64b, roughness: 0.55, metalness: 0.35 });
       const visorMat = new THREE.MeshStandardMaterial({ color: 0x14232b, roughness: 0.22, metalness: 0.55, emissive: 0x12313a, emissiveIntensity: 0.35 });
@@ -641,7 +695,6 @@
         yVelocity: 0 
       };
       
-      // 修復：將敵人的所有部位加入碰撞偵測，確保子彈能打到
       hitMeshes.push(torso, head, lLegMesh, rLegMesh, leftArm, rArmMesh, gun, board);
       collidableObjects.push(...hitMeshes);
       return human;
@@ -701,7 +754,6 @@
       el.className = `kill-msg ${isError ? 'error' : ''}`;
       el.textContent = msg;
       feed.appendChild(el);
-      // 手機版 killfeed 可以適度縮短時間避免擋視線
       setTimeout(() => feed.removeChild(el), isTouchDevice ? 2500 : 4000);
     }
 
@@ -759,15 +811,11 @@
         let hitObj = intersects[0].object;
         let parentObj = hitObj;
         
-        while (parentObj && parentObj.userData === undefined && parentObj.parent) {
-          parentObj = parentObj.parent;
-        }
-
-        while (parentObj && parentObj.userData && parentObj.userData.text === undefined && parentObj.parent) {
+        while (parentObj && parentObj.userData.text === undefined && parentObj.parent) {
           parentObj = parentObj.parent;
         }
         
-        if (parentObj && parentObj.userData && parentObj.userData.text !== undefined) {
+        if (parentObj && parentObj.userData.text !== undefined) {
           const aData = parentObj.userData;
           const board = aData.boardMesh;
 
@@ -805,7 +853,7 @@
     }
 
     // ==========================================
-    // 5. FPS 操作與碰撞
+    // 5. 跨裝置控制邏輯 (PC + 觸控)
     // ==========================================
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false };
@@ -1156,10 +1204,3 @@
   </script>
 </body>
 </html>
-
-
-
-
-
-
-
