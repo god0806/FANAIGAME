@@ -3,12 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>數戰空間：CS 實戰特勤訓練場 (QR直連與上帝觀戰版)</title>
+  <title>數戰空間：CS 實戰特勤訓練場 (隨時加入與動態連線版)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <!-- 引入 QR Code 生成器 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background-color: #121212; user-select: none; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: none; }
@@ -98,9 +99,10 @@
         
         <!-- 連線資訊與 QR Code 區域 -->
         <div id="multiplayer-info" class="hidden mb-4 p-4 bg-slate-800 border-2 border-rose-500 rounded-lg text-center relative">
-          <p class="text-slate-300 mb-2 font-bold text-sm">請隊員直接掃描 QR Code，或輸入代碼加入：</p>
+          <p class="text-slate-300 mb-2 font-bold text-sm">請隊員直接掃描 QR Code，支援中途加入：</p>
           <div id="qrcode-container" class="flex justify-center mb-2 bg-white p-2 rounded-lg inline-block w-40 h-40 mx-auto"></div>
-          <div class="text-4xl font-black text-rose-400 tracking-widest mt-2" id="host-room-id">生成中...</div>
+          <p class="text-slate-400 text-xs mt-1">或輸入代碼:</p>
+          <div class="text-4xl font-black text-rose-400 tracking-widest mt-1" id="host-room-id">生成中...</div>
           <p class="text-sm text-emerald-400 mt-2 font-bold" id="host-players-count">目前小隊人數: 1 / 4</p>
         </div>
 
@@ -120,7 +122,7 @@
         </label>
 
         <button id="start-btn" class="w-full mt-auto px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-black text-2xl transition-all shadow-lg border-2 border-emerald-400">
-          ▶ 開始特訓
+          ▶ 隨時出擊 (支援中途加入)
         </button>
       </div>
 
@@ -176,7 +178,7 @@
     <!-- 客機加入面板 -->
     <div id="join-panel" class="hidden w-full max-w-md bg-slate-900 p-8 rounded-xl border border-amber-500 shadow-2xl text-center mx-4">
       <h2 class="text-2xl font-black text-amber-400 mb-4">加入特勤小隊</h2>
-      <p class="text-slate-300 mb-6 text-sm">請掃描 QR Code，或手動輸入 4 碼房間代碼</p>
+      <p class="text-slate-300 mb-6 text-sm">請掃描 QR Code 或手動輸入 4 碼房間代碼</p>
       <input type="text" id="join-code-input" maxlength="4" class="w-full text-center text-5xl font-black bg-slate-800 text-white py-4 rounded-lg border-2 border-slate-500 uppercase focus:border-amber-400 outline-none mb-6 tracking-widest">
       <button id="join-btn" class="w-full px-6 py-4 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-2xl transition-all shadow-lg border-2 border-amber-400">
         🔗 連線至主機
@@ -264,7 +266,7 @@
     <div class="absolute top-4 left-4 md:bottom-8 md:top-auto md:left-8 bg-slate-900/90 border-l-4 border-amber-500 p-3 md:p-6 rounded text-white shadow-2xl max-w-xs md:max-w-4xl">
       <div class="flex justify-between items-center mb-1">
         <div class="text-sm md:text-lg text-amber-400 font-bold" id="hud-question-number">MISSION OBJECTIVE</div>
-        <div class="text-xs md:text-sm bg-rose-600 px-2 py-1 rounded font-bold ml-4 shadow-md" id="hud-team-targets">擊殺目標: 0 / 1</div>
+        <div class="text-xs md:text-sm bg-rose-600 px-2 py-1 rounded font-bold ml-4 shadow-md transition-all" id="hud-team-targets">擊殺目標: 0 / 1</div>
       </div>
       <div class="text-xl md:text-4xl font-mono leading-tight font-bold" id="hud-question">等待任務指派...</div>
     </div>
@@ -325,18 +327,18 @@
     let enemyBulletSpeed = 40.0;
     let autoAimEnabled = true;
 
-    // 內建六份完整題庫
+    // 內建完整六份題庫
     const cloudData = {
-      "math99": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,1 x 1 = ?,4,5,2,1,D\n2,1 x 2 = ?,7,3,2,6,C\n3,1 x 3 = ?,1,2,3,5,C\n4,1 x 4 = ?,4,3,8,5,A\n5,1 x 5 = ?,6,10,5,9,C\n6,1 x 6 = ?,5,1,12,6,D\n7,1 x 7 = ?,8,7,2,3,B\n8,1 x 8 = ?,13,9,16,8,D\n9,1 x 9 = ?,9,10,18,6,A\n10,2 x 1 = ?,6,2,3,4,B\n11,2 x 2 = ?,5,9,6,4,D\n12,2 x 3 = ?,6,4,9,8,A\n13,2 x 4 = ?,3,6,10,8,D\n14,2 x 5 = ?,8,5,7,10,D\n15,2 x 6 = ?,6,8,12,18,C\n16,2 x 7 = ?,12,21,7,14,D\n17,2 x 8 = ?,13,8,18,16,D\n18,2 x 9 = ?,22,18,16,20,B\n19,3 x 1 = ?,6,1,4,3,D\n20,3 x 2 = ?,11,3,6,5,C\n21,3 x 3 = ?,9,8,6,11,A\n22,3 x 4 = ?,9,12,8,13,B\n23,3 x 5 = ?,15,16,20,12,A\n24,3 x 6 = ?,13,15,14,18,D\n25,3 x 7 = ?,17,21,10,16,B\n26,3 x 8 = ?,24,27,28,32,A\n27,3 x 9 = ?,30,24,18,27,D\n28,4 x 1 = ?,5,3,4,7,C\n29,4 x 2 = ?,13,12,8,6,C\n30,4 x 3 = ?,12,7,11,8,A\n31,4 x 4 = ?,12,16,15,8,B\n32,4 x 5 = ?,19,9,20,16,C\n33,4 x 6 = ?,28,24,20,23,B\n34,4 x 7 = ?,24,30,32,28,D\n35,4 x 8 = ?,32,40,35,33,A\n36,4 x 9 = ?,13,36,40,32,B\n37,5 x 1 = ?,4,7,3,5,D\n38,5 x 2 = ?,10,15,12,8,A\n39,5 x 3 = ?,20,10,15,12,C\n40,5 x 4 = ?,9,25,20,21,C\n41,5 x 5 = ?,24,30,25,20,C\n42,5 x 6 = ?,11,28,25,30,D\n43,5 x 7 = ?,28,42,33,35,D\n44,5 x 8 = ?,45,44,48,40,D\n45,5 x 9 = ?,45,46,54,36,A\n46,6 x 1 = ?,12,7,6,5,C\n47,6 x 2 = ?,9,8,16,12,D\n48,6 x 3 = ?,15,9,18,19,C\n49,6 x 4 = ?,28,18,24,20,C\n50,6 x 5 = ?,35,24,30,36,C\n51,6 x 6 = ?,40,42,30,36,D\n52,6 x 7 = ?,47,35,42,13,C\n53,6 x 8 = ?,48,40,54,52,A\n54,6 x 9 = ?,51,45,54,49,C\n55,7 x 1 = ?,8,6,5,7,D\n56,7 x 2 = ?,16,21,14,12,C\n57,7 x 3 = ?,18,16,10,21,D\n58,7 x 4 = ?,27,28,24,32,B\n59,7 x 5 = ?,30,35,12,42,B\n60,7 x 6 = ?,48,37,42,35,C\n61,7 x 7 = ?,14,51,56,49,D\n62,7 x 8 = ?,15,56,58,49,B\n63,7 x 9 = ?,68,63,70,72,B\n64,8 x 1 = ?,16,9,7,8,D\n65,8 x 2 = ?,10,16,20,18,B\n66,8 x 3 = ?,32,20,24,27,C\n67,8 x 4 = ?,28,24,37,32,D\n68,8 x 5 = ?,45,43,40,41,C\n69,8 x 6 = ?,48,47,56,46,A\n70,8 x 7 = ?,56,64,49,52,A\n71,8 x 8 = ?,56,64,72,16,B\n72,8 x 9 = ?,72,17,63,80,A\n73,9 x 1 = ?,7,10,18,9,D\n74,9 x 2 = ?,13,18,27,20,B\n75,9 x 3 = ?,18,27,24,36,B\n76,9 x 4 = ?,27,13,32,36,D\n77,9 x 5 = ?,45,50,14,54,A\n78,9 x 6 = ?,52,50,59,54,D\n79,9 x 7 = ?,63,54,56,60,A\n80,9 x 8 = ?,80,69,73,72,D\n81,9 x 9 = ?,72,85,76,81,D`,
-      "mathMul2_1": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,45 x 6 = ?,250,279,273,270,D\n2,56 x 7 = ?,399,394,392,412,C\n3,69 x 9 = ?,620,619,621,617,C\n4,72 x 3 = ?,224,216,215,217,B\n5,93 x 4 = ?,369,367,372,352,C\n6,43 x 7 = ?,281,321,301,303,C\n7,86 x 7 = ?,602,603,604,587,A\n8,97 x 2 = ?,193,182,196,194,D\n9,16 x 5 = ?,79,80,100,89,B\n10,41 x 9 = ?,384,369,370,371,B\n11,23 x 4 = ?,92,94,91,82,A\n12,38 x 4 = ?,154,152,139,162,B\n13,84 x 3 = ?,272,244,252,262,C\n14,76 x 2 = ?,149,152,132,155,B\n15,66 x 2 = ?,133,142,132,147,C\n16,14 x 9 = ?,112,126,146,111,B\n17,57 x 2 = ?,112,134,117,114,D\n18,88 x 7 = ?,596,615,616,614,C\n19,41 x 4 = ?,154,165,174,164,D\n20,92 x 8 = ?,734,751,731,736,D\n21,70 x 8 = ?,549,560,580,547,B\n22,79 x 8 = ?,630,642,632,625,C\n23,72 x 4 = ?,292,308,289,288,D\n24,50 x 8 = ?,400,401,390,398,A\n25,91 x 5 = ?,455,453,454,475,A\n26,49 x 9 = ?,461,431,428,441,D\n27,45 x 4 = ?,181,180,193,170,B\n28,72 x 7 = ?,516,508,495,504,D\n29,97 x 2 = ?,184,204,208,194,D\n30,16 x 5 = ?,82,81,80,72,C`,
-      "mathMul2": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,51 x 66 = ?,3365,3366,3266,4366,B\n2,17 x 81 = ?,1340,1378,1377,1387,C\n3,40 x 25 = ?,990,1000,1010,999,B\n4,20 x 65 = ?,1400,1300,2300,1290,B\n5,60 x 14 = ?,830,840,841,940,B\n6,76 x 42 = ?,3292,3192,3202,3167,B\n7,77 x 37 = ?,2873,2848,2949,2849,D\n8,47 x 26 = ?,1122,1223,1222,1212,C\n9,97 x 20 = ?,1908,1940,1969,2940,B\n10,23 x 78 = ?,1784,1794,1793,1894,B\n11,66 x 11 = ?,716,727,726,1726,C\n12,24 x 53 = ?,1272,1172,2272,1372,A\n13,90 x 60 = ?,5390,5400,5500,5399,B\n14,34 x 44 = ?,1596,1491,1496,2496,C\n15,76 x 74 = ?,5634,5624,5524,5724,B\n16,57 x 98 = ?,5576,5596,5586,5486,C\n17,16 x 27 = ?,332,432,433,532,B\n18,92 x 97 = ?,8954,8924,8925,8923,B\n19,44 x 58 = ?,2452,2553,2552,2551,C\n20,28 x 57 = ?,2596,1597,1586,1596,D\n21,27 x 99 = ?,2683,2673,3673,2573,B\n22,48 x 54 = ?,2692,2591,2602,2592,D\n23,99 x 55 = ?,5473,5446,5445,5455,C\n24,12 x 83 = ?,995,986,1996,996,D\n25,21 x 85 = ?,1785,1776,1809,1775,A\n26,33 x 10 = ?,320,330,329,345,B\n27,78 x 38 = ?,2964,2974,3964,2963,A\n28,39 x 24 = ?,946,936,926,966,B\n29,75 x 20 = ?,1400,1500,1501,1490,B\n30,33 x 53 = ?,1749,1748,1745,1758,A`,
-      "mathAddSub3": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,516 + 108 = ?,524,624,574,724,B\n2,327 + 503 = ?,822,830,824,780,B\n3,547 + 217 = ?,764,755,769,784,A\n4,709 + 688 = ?,1407,1397,1405,1399,B\n5,190 + 500 = ?,695,690,692,687,B\n6,105 + 399 = ?,524,503,504,495,C\n7,520 + 578 = ?,1098,1078,1108,1094,A\n8,811 + 180 = ?,988,985,991,984,C\n9,541 + 642 = ?,1193,1133,1183,1186,C\n10,272 + 841 = ?,1116,1113,1106,1120,B\n11,792 - 622 = ?,170,167,70,150,A\n12,471 - 341 = ?,30,130,132,125,B\n13,231 - 218 = ?,63,7,13,19,C\n14,216 - 117 = ?,149,100,99,92,C\n15,403 - 381 = ?,18,22,14,28,B\n16,458 - 288 = ?,172,170,161,175,B\n17,404 - 108 = ?,289,396,302,296,D\n18,364 - 266 = ?,104,118,99,98,D\n19,609 - 591 = ?,15,18,27,9,B\n20,437 - 339 = ?,118,102,88,98,D`,
-      "mathNegativeAddSub": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(7) − (14) = ?,-21,-7,1,21,B\n2,(11) − (5) = ?,6,16,2,-16,A\n3,(16) + (-6) = ?,22,10,12,-22,B\n4,(-3) − (19) = ?,16,22,-24,-22,D\n5,(-6) + (-9) = ?,-19,-15,3,15,B\n6,(-4) + (-4) = ?,8,-8,-16,0,B\n7,(12) − (16) = ?,-4,-28,28,4,A\n8,(13) + (-17) = ?,-4,2,4,30,A\n9,(-19) − (8) = ?,-11,-27,-26,27,B\n10,(-10) − (-11) = ?,-7,-1,1,21,C\n11,(-12) − (-2) = ?,-10,-14,10,-6,A\n12,(-12) + (0) = ?,12,-18,-7,-12,D\n13,(12) − (13) = ?,25,3,-1,-25,C\n14,(15) − (-14) = ?,37,1,-29,29,D\n15,(11) − (-1) = ?,10,14,-12,12,D\n16,(20) + (-5) = ?,-15,15,25,-25,B\n17,(3) − (-14) = ?,17,-17,-11,27,A\n18,(-15) + (6) = ?,-9,21,-21,-11,A\n19,(-7) − (-9) = ?,16,-16,-2,2,D\n20,(2) − (-7) = ?,10,9,-5,-9,B`,
-      "mathNegativeMul": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(-4) x 5 = ?,-18,-20,20,18,B\n2,8 x (-15) = ?,119,120,-120,-119,C\n3,(-25) x 25 = ?,-625,625,-624,624,A\n4,(-4) x 5 = ?,20,30,-30,-20,D\n5,9 x (-8) = ?,-62,72,-72,62,C\n6,9 x (-10) = ?,90,-100,100,-90,D\n7,8 x (-5) = ?,40,41,-41,-40,D\n8,20 x (-22) = ?,440,-440,-439,439,B\n9,(-10) x 5 = ?,51,50,-50,-51,C\n10,(-18) x 22 = ?,-396,397,-397,396,A\n11,(-18) x (-23) = ?,-404,404,-414,414,D\n12,(-22) x 21 = ?,472,462,-472,-462,D\n13,25 x (-21) = ?,-525,535,525,-535,A\n14,(-9) x (-8) = ?,72,70,-72,-70,A\n15,7 x (-9) = ?,-63,63,64,-64,A\n16,2 x (-13) = ?,-24,24,26,-26,D\n17,(-19) x 17 = ?,323,-321,-323,321,C\n18,(-18) x (-16) = ?,286,-286,-288,288,D\n19,(-19) x 3 = ?,-55,57,55,-57,D\n20,(-11) x 5 = ?,55,-53,53,-55,D\n21,24 x (-18) = ?,-422,432,-432,422,C\n22,20 x (-10) = ?,200,-210,-200,210,C\n23,13 x (-7) = ?,81,91,-91,-81,C\n24,18 x (-17) = ?,-306,304,-304,306,A\n25,(-3) x (-17) = ?,-41,51,-51,41,B\n26,(-6) x (-13) = ?,-78,-79,78,79,C\n27,(-3) x (-15) = ?,47,-47,45,-45,C\n28,13 x (-16) = ?,-210,210,208,-208,D\n29,(-25) x 12 = ?,-290,300,-300,290,C\n30,12 x (-18) = ?,-216,-206,216,206,A\n31,4 x (-8) = ?,-32,-22,22,32,A\n32,(-3) x 14 = ?,32,-42,42,-32,B\n33,(-7) x 14 = ?,98,-99,99,-98,D\n34,(-3) x (-11) = ?,33,-23,23,-33,A\n35,(-21) x 6 = ?,-128,-126,128,126,B\n36,(-4) x 16 = ?,-64,65,64,-65,A\n37,(-20) x 8 = ?,162,160,-162,-160,D\n38,(-6) x (-7) = ?,-43,42,43,-42,B\n39,(-25) x (-23) = ?,565,-575,-565,575,D\n40,16 x (-24) = ?,384,-385,-384,385,C\n41,(-6) x (-2) = ?,-12,10,-10,12,D\n42,15 x (-18) = ?,-260,260,270,-270,D\n43,(-21) x 8 = ?,168,166,-166,-168,D\n44,(-15) x 8 = ?,-130,130,-120,120,C\n45,(-16) x 22 = ?,350,-352,352,-350,B\n46,(-7) x 12 = ?,84,82,-82,-84,D\n47,(-7) x 24 = ?,-168,178,168,-178,A\n48,8 x (-18) = ?,-144,142,144,-142,A\n49,(-16) x 6 = ?,-95,-96,96,95,B\n50,(-21) x 16 = ?,346,-336,-346,336,B`
+      "math99": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,1 x 1 = ?,4,5,2,1,D\n2,1 x 2 = ?,7,3,2,6,C\n3,1 x 3 = ?,1,2,3,5,C\n4,1 x 4 = ?,4,3,8,5,A\n5,1 x 5 = ?,6,10,5,9,C\n6,1 x 6 = ?,5,1,12,6,D\n7,1 x 7 = ?,8,7,2,3,B\n8,1 x 8 = ?,13,9,16,8,D\n9,1 x 9 = ?,9,10,18,6,A\n10,2 x 1 = ?,6,2,3,4,B\n11,2 x 2 = ?,5,9,6,4,D\n12,2 x 3 = ?,6,4,9,8,A\n13,2 x 4 = ?,3,6,10,8,D\n14,2 x 5 = ?,8,5,7,10,D\n15,2 x 6 = ?,6,8,12,18,C\n16,2 x 7 = ?,12,21,7,14,D\n17,2 x 8 = ?,13,8,18,16,D\n18,2 x 9 = ?,22,18,16,20,B\n19,3 x 1 = ?,6,1,4,3,D\n20,3 x 2 = ?,11,3,6,5,C\n21,3 x 3 = ?,9,8,6,11,A\n22,3 x 4 = ?,9,12,8,13,B\n23,3 x 5 = ?,15,16,20,12,A\n24,3 x 6 = ?,13,15,14,18,D\n25,3 x 7 = ?,17,21,10,16,B\n26,3 x 8 = ?,24,27,28,32,A\n27,3 x 9 = ?,30,24,18,27,D\n28,4 x 1 = ?,5,3,4,7,C\n29,4 x 2 = ?,13,12,8,6,C\n30,4 x 3 = ?,12,7,11,8,A\n31,4 x 4 = ?,12,16,15,8,B\n32,4 x 5 = ?,19,9,20,16,C\n33,4 x 6 = ?,28,24,20,23,B\n34,4 x 7 = ?,24,30,32,28,D\n35,4 x 8 = ?,32,40,35,33,A\n36,4 x 9 = ?,13,36,40,32,B\n37,5 x 1 = ?,4,7,3,5,D\n38,5 x 2 = ?,10,15,12,8,A\n39,5 x 3 = ?,20,10,15,12,C\n40,5 x 4 = ?,9,25,20,21,C\n41,5 x 5 = ?,24,30,25,20,C\n42,5 x 6 = ?,11,28,25,30,D\n43,5 x 7 = ?,28,42,33,35,D\n44,5 x 8 = ?,45,44,48,40,D\n45,5 x 9 = ?,45,46,54,36,A\n46,6 x 1 = ?,12,7,6,5,C\n47,6 x 2 = ?,9,8,16,12,D\n48,6 x 3 = ?,15,9,18,19,C\n49,6 x 4 = ?,28,18,24,20,C\n50,6 x 5 = ?,35,24,30,36,C\n51,6 x 6 = ?,40,42,30,36,D\n52,6 x 7 = ?,47,35,42,13,C\n53,6 x 8 = ?,48,40,54,52,A\n54,6 x 9 = ?,51,45,54,49,C\n55,7 x 1 = ?,8,6,5,7,D\n56,7 x 2 = ?,16,21,14,12,C\n57,7 x 3 = ?,18,16,10,21,D\n58,7 x 4 = ?,27,28,24,32,B\n59,7 x 5 = ?,30,35,12,42,B\n60,7 x 6 = ?,48,37,42,35,C\n61,7 x 7 = ?,14,51,56,49,D\n62,7 x 8 = ?,15,56,58,49,B\n63,7 x 9 = ?,68,63,70,72,B\n64,8 x 1 = ?,16,9,7,8,D\n65,8 x 2 = ?,10,16,20,18,B\n66,8 x 3 = ?,32,20,24,27,C\n67,8 x 4 = ?,28,24,37,32,D\n68,8 x 5 = ?,45,43,40,41,C\n69,8 x 6 = ?,48,47,56,46,A\n70,8 x 7 = ?,56,64,49,52,A\n71,8 x 8 = ?,56,64,72,16,B\n72,8 x 9 = ?,72,17,63,80,A\n73,9 x 1 = ?,7,10,18,9,D\n74,9 x 2 = ?,13,18,27,20,B\n75,9 x 3 = ?,18,27,24,36,B\n76,9 x 4 = ?,27,13,32,36,D\n77,9 x 5 = ?,45,50,14,54,A\n78,9 x 6 = ?,52,50,59,54,D\n79,9 x 7 = ?,63,54,56,60,A\n80,9 x 8 = ?,80,69,73,72,D\n81,9 x 9 = ?,72,85,76,81,D\n`,
+      "mathMul2_1": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,45 x 6 = ?,250,279,273,270,D\n2,56 x 7 = ?,399,394,392,412,C\n3,69 x 9 = ?,620,619,621,617,C\n4,72 x 3 = ?,224,216,215,217,B\n5,93 x 4 = ?,369,367,372,352,C\n6,43 x 7 = ?,281,321,301,303,C\n7,86 x 7 = ?,602,603,604,587,A\n8,97 x 2 = ?,193,182,196,194,D\n9,16 x 5 = ?,79,80,100,89,B\n10,41 x 9 = ?,384,369,370,371,B\n11,23 x 4 = ?,92,94,91,82,A\n12,38 x 4 = ?,154,152,139,162,B\n13,84 x 3 = ?,272,244,252,262,C\n14,76 x 2 = ?,149,152,132,155,B\n15,66 x 2 = ?,133,142,132,147,C\n16,14 x 9 = ?,112,126,146,111,B\n17,57 x 2 = ?,112,134,117,114,D\n18,88 x 7 = ?,596,615,616,614,C\n19,41 x 4 = ?,154,165,174,164,D\n20,92 x 8 = ?,734,751,731,736,D\n21,70 x 8 = ?,549,560,580,547,B\n22,79 x 8 = ?,630,642,632,625,C\n23,72 x 4 = ?,292,308,289,288,D\n24,50 x 8 = ?,400,401,390,398,A\n25,91 x 5 = ?,455,453,454,475,A\n26,49 x 9 = ?,461,431,428,441,D\n27,45 x 4 = ?,181,180,193,170,B\n28,72 x 7 = ?,516,508,495,504,D\n29,97 x 2 = ?,184,204,208,194,D\n30,16 x 5 = ?,82,81,80,72,C\n`,
+      "mathMul2": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,51 x 66 = ?,3365,3366,3266,4366,B\n2,17 x 81 = ?,1340,1378,1377,1387,C\n3,40 x 25 = ?,990,1000,1010,999,B\n4,20 x 65 = ?,1400,1300,2300,1290,B\n5,60 x 14 = ?,830,840,841,940,B\n6,76 x 42 = ?,3292,3192,3202,3167,B\n7,77 x 37 = ?,2873,2848,2949,2849,D\n8,47 x 26 = ?,1122,1223,1222,1212,C\n9,97 x 20 = ?,1908,1940,1969,2940,B\n10,23 x 78 = ?,1784,1794,1793,1894,B\n11,66 x 11 = ?,716,727,726,1726,C\n12,24 x 53 = ?,1272,1172,2272,1372,A\n13,90 x 60 = ?,5390,5400,5500,5399,B\n14,34 x 44 = ?,1596,1491,1496,2496,C\n15,76 x 74 = ?,5634,5624,5524,5724,B\n16,57 x 98 = ?,5576,5596,5586,5486,C\n17,16 x 27 = ?,332,432,433,532,B\n18,92 x 97 = ?,8954,8924,8925,8923,B\n19,44 x 58 = ?,2452,2553,2552,2551,C\n20,28 x 57 = ?,2596,1597,1586,1596,D\n21,27 x 99 = ?,2683,2673,3673,2573,B\n22,48 x 54 = ?,2692,2591,2602,2592,D\n23,99 x 55 = ?,5473,5446,5445,5455,C\n24,12 x 83 = ?,995,986,1996,996,D\n25,21 x 85 = ?,1785,1776,1809,1775,A\n26,33 x 10 = ?,320,330,329,345,B\n27,78 x 38 = ?,2964,2974,3964,2963,A\n28,39 x 24 = ?,946,936,926,966,B\n29,75 x 20 = ?,1400,1500,1501,1490,B\n30,33 x 53 = ?,1749,1748,1745,1758,A\n`,
+      "mathAddSub3": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,516 + 108 = ?,524,624,574,724,B\n2,327 + 503 = ?,822,830,824,780,B\n3,547 + 217 = ?,764,755,769,784,A\n4,709 + 688 = ?,1407,1397,1405,1399,B\n5,190 + 500 = ?,695,690,692,687,B\n6,105 + 399 = ?,524,503,504,495,C\n7,520 + 578 = ?,1098,1078,1108,1094,A\n8,811 + 180 = ?,988,985,991,984,C\n9,541 + 642 = ?,1193,1133,1183,1186,C\n10,272 + 841 = ?,1116,1113,1106,1120,B\n11,792 - 622 = ?,170,167,70,150,A\n12,471 - 341 = ?,30,130,132,125,B\n13,231 - 218 = ?,63,7,13,19,C\n14,216 - 117 = ?,149,100,99,92,C\n15,403 - 381 = ?,18,22,14,28,B\n16,458 - 288 = ?,172,170,161,175,B\n17,404 - 108 = ?,289,396,302,296,D\n18,364 - 266 = ?,104,118,99,98,D\n19,609 - 591 = ?,15,18,27,9,B\n20,437 - 339 = ?,118,102,88,98,D\n`,
+      "mathNegativeAddSub": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(7) − (14) = ?,-21,-7,1,21,B\n2,(11) − (5) = ?,6,16,2,-16,A\n3,(16) + (-6) = ?,22,10,12,-22,B\n4,(-3) − (19) = ?,16,22,-24,-22,D\n5,(-6) + (-9) = ?,-19,-15,3,15,B\n6,(-4) + (-4) = ?,8,-8,-16,0,B\n7,(12) − (16) = ?,-4,-28,28,4,A\n8,(13) + (-17) = ?,-4,2,4,30,A\n9,(-19) − (8) = ?,-11,-27,-26,27,B\n10,(-10) − (-11) = ?,-7,-1,1,21,C\n11,(-12) − (-2) = ?,-10,-14,10,-6,A\n12,(-12) + (0) = ?,12,-18,-7,-12,D\n13,(12) − (13) = ?,25,3,-1,-25,C\n14,(15) − (-14) = ?,37,1,-29,29,D\n15,(11) − (-1) = ?,10,14,-12,12,D\n16,(20) + (-5) = ?,-15,15,25,-25,B\n17,(3) − (-14) = ?,17,-17,-11,27,A\n18,(-15) + (6) = ?,-9,21,-21,-11,A\n19,(-7) − (-9) = ?,16,-16,-2,2,D\n20,(2) − (-7) = ?,10,9,-5,-9,B\n`,
+      "mathNegativeMul": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(-4) x 5 = ?,-18,-20,20,18,B\n2,8 x (-15) = ?,119,120,-120,-119,C\n3,(-25) x 25 = ?,-625,625,-624,624,A\n4,(-4) x 5 = ?,20,30,-30,-20,D\n5,9 x (-8) = ?,-62,72,-72,62,C\n6,9 x (-10) = ?,90,-100,100,-90,D\n7,8 x (-5) = ?,40,41,-41,-40,D\n8,20 x (-22) = ?,440,-440,-439,439,B\n9,(-10) x 5 = ?,51,50,-50,-51,C\n10,(-18) x 22 = ?,-396,397,-397,396,A\n11,(-18) x (-23) = ?,-404,404,-414,414,D\n12,(-22) x 21 = ?,472,462,-472,-462,D\n13,25 x (-21) = ?,-525,535,525,-535,A\n14,(-9) x (-8) = ?,72,70,-72,-70,A\n15,7 x (-9) = ?,-63,63,64,-64,A\n16,2 x (-13) = ?,-24,24,26,-26,D\n17,(-19) x 17 = ?,323,-321,-323,321,C\n18,(-18) x (-16) = ?,286,-286,-288,288,D\n19,(-19) x 3 = ?,-55,57,55,-57,D\n20,(-11) x 5 = ?,55,-53,53,-55,D\n21,24 x (-18) = ?,-422,432,-432,422,C\n22,20 x (-10) = ?,200,-210,-200,210,C\n23,13 x (-7) = ?,81,91,-91,-81,C\n24,18 x (-17) = ?,-306,304,-304,306,A\n25,(-3) x (-17) = ?,-41,51,-51,41,B\n26,(-6) x (-13) = ?,-78,-79,78,79,C\n27,(-3) x (-15) = ?,47,-47,45,-45,C\n28,13 x (-16) = ?,-210,210,208,-208,D\n29,(-25) x 12 = ?,-290,300,-300,290,C\n30,12 x (-18) = ?,-216,-206,216,206,A\n31,4 x (-8) = ?,-32,-22,22,32,A\n32,(-3) x 14 = ?,32,-42,42,-32,B\n33,(-7) x 14 = ?,98,-99,99,-98,D\n34,(-3) x (-11) = ?,33,-23,23,-33,A\n35,(-21) x 6 = ?,-128,-126,128,126,B\n36,(-4) x 16 = ?,-64,65,64,-65,A\n37,(-20) x 8 = ?,162,160,-162,-160,D\n38,(-6) x (-7) = ?,-43,42,43,-42,B\n39,(-25) x (-23) = ?,565,-575,-565,575,D\n40,16 x (-24) = ?,384,-385,-384,385,C\n41,(-6) x (-2) = ?,-12,10,-10,12,D\n42,15 x (-18) = ?,-260,260,270,-270,D\n43,(-21) x 8 = ?,168,166,-166,-168,D\n44,(-15) x 8 = ?,-130,130,-120,120,C\n45,(-16) x 22 = ?,350,-352,352,-350,B\n46,(-7) x 12 = ?,84,82,-82,-84,D\n47,(-7) x 24 = ?,-168,178,168,-178,A\n48,8 x (-18) = ?,-144,142,144,-142,A\n49,(-16) x 6 = ?,-95,-96,96,95,B\n50,(-21) x 16 = ?,346,-336,-346,336,B\n`
     };
 
     // ==========================================
-    // 1. UI、連線大廳與 QR Code 加入邏輯
+    // 1. UI、連線大廳與 QR Code 邏輯
     // ==========================================
     const btnSingle = document.getElementById('mode-single');
     const btnHost = document.getElementById('mode-host');
@@ -345,7 +347,6 @@
     const joinPanel = document.getElementById('join-panel');
     const multiInfo = document.getElementById('multiplayer-info');
 
-    // 檢查網址是否有 ?room=xxxx 參數，若有則直接進入加入模式
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
 
@@ -368,14 +369,14 @@
         joinPanel.classList.add('hidden');
         multiInfo.classList.remove('hidden');
         document.getElementById('god-mode-toggle-container').classList.remove('hidden');
-        document.getElementById('start-btn').textContent = '▶ 小隊全員出擊';
+        document.getElementById('start-btn').textContent = '▶ 隨時出擊 (支援中途加入)';
         initHostPeer();
       } else if (mode === 'join') {
         btnJoin.classList.add('ring-4', 'ring-amber-300');
         hostPanel.classList.add('hidden');
         joinPanel.classList.remove('hidden');
         
-        // QR Code 直連邏輯：自動填寫並加入
+        // QR Code 自動連線機制
         if(roomParam) {
            document.getElementById('join-code-input').value = roomParam;
            setTimeout(() => document.getElementById('join-btn').click(), 300); 
@@ -387,7 +388,6 @@
     btnHost.addEventListener('click', () => switchMode('host'));
     btnJoin.addEventListener('click', () => switchMode('join'));
     
-    // 如果網址帶有房間號，直接切換到加入模式
     if(roomParam) switchMode('join');
 
     // 檔案上傳預先解析
@@ -424,10 +424,8 @@
       });
     });
 
-    // 動態設定同步
     document.getElementById('speed-slider').addEventListener('input', (e) => { document.getElementById('speed-val').textContent = parseFloat(e.target.value).toFixed(1); });
     document.getElementById('fire-slider').addEventListener('input', (e) => { document.getElementById('fire-val').textContent = parseFloat(e.target.value).toFixed(1) + ' 秒'; });
-
     document.getElementById('difficulty-select').addEventListener('change', (e) => {
       const diff = e.target.value;
       const speedSlider = document.getElementById('speed-slider');
@@ -493,7 +491,7 @@
     godFireSlider.addEventListener('input', broadcastSettings);
 
     // ==========================================
-    // PeerJS 與 QR Code
+    // PeerJS 與 中途加入/退出邏輯
     // ==========================================
     let qrCodeObj = null;
 
@@ -511,7 +509,7 @@
         myPeerId = id;
         document.getElementById('host-room-id').textContent = code;
         
-        // 產生帶有參數的完整網址 (QR Code)
+        // 產生帶有參數的完整網址 (供學生掃描直接加入)
         let baseUrl = window.location.href.split('?')[0];
         let joinUrl = baseUrl + "?room=" + code;
         
@@ -537,7 +535,29 @@
            clientConnections[conn.peer] = conn;
            clientPlayers[conn.peer] = { colorIndex: playerIndex, pos: {x:0, y:0, z:0, ry:0}, score: 0 };
            document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
+           
            conn.send({ event: 'welcome', colorIndex: playerIndex });
+
+           // 【中途加入防護】如果遊戲已經開始，自動傳送當前狀態給遲到的學生
+           if (isGameStarted) {
+               try {
+                 conn.send({
+                   event: 'start_game', questions: questions, map: document.getElementById('map-select').value,
+                   autoAim: autoAimEnabled, speed: enemyMoveSpeed, fireBase: enemyFireBase
+                 });
+                 let syncOptions = [];
+                 agents.forEach(a => {
+                     if (!a.userData.dying) syncOptions.push({ uid: a.userData.uid, text: a.userData.text, isCorrect: a.userData.isCorrect, x: a.position.x, y: a.position.y, z: a.position.z });
+                 });
+                 conn.send({
+                    event: 'new_question', qIndex: currentQuestionIndex,
+                    qNumText: document.getElementById('hud-question-number').textContent,
+                    qTitleText: document.getElementById('hud-question').textContent,
+                    cNeeded: currentQuestionCorrectNeeded, cHits: currentQuestionCorrectHits,
+                    enemies: syncOptions
+                 });
+               } catch(e) {}
+           }
         });
 
         conn.on('data', data => {
@@ -556,6 +576,19 @@
                delete otherPlayerMeshes[conn.peer];
            }
            document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
+           
+           // 【中途斷線防護】如果有學生跳出，自動調降當前題目的過關門檻，避免剩下的人卡關
+           if (isGameStarted && currentQuestionCorrectNeeded > 1 && !isTransitioning) {
+               currentQuestionCorrectNeeded--;
+               updateTargetHUD();
+               const syncData = { event: 'update_target', cNeeded: currentQuestionCorrectNeeded };
+               for(let id in clientConnections) { try { clientConnections[id].send(syncData); } catch(e){} }
+               if (currentQuestionCorrectHits >= currentQuestionCorrectNeeded) {
+                   isTransitioning = true;
+                   currentQuestionIndex++;
+                   setTimeout(() => { if(connectionMode !== 'join') loadNextQuestionHost(); }, 1500); 
+               }
+           }
         });
       });
       
@@ -579,7 +612,7 @@
         hostConnection = peer.connect(roomPrefix + code);
         
         hostConnection.on('open', () => {
-           statusMsg.textContent = "✓ 已加入小隊！等待隊長開始特訓...";
+           statusMsg.textContent = "✓ 已加入小隊！等待隊長開始特訓或同步戰局...";
            document.getElementById('join-btn').disabled = true;
         });
 
@@ -590,6 +623,7 @@
               questions = data.questions;
               autoAimEnabled = data.autoAim;
               enemyMoveSpeed = data.speed;
+              if (data.fireBase) { enemyFireBase = data.fireBase; enemyFireRand = enemyFireBase * 0.5; }
               isGodMode = false; 
               
               currentQuestionIndex = 0;
@@ -615,6 +649,9 @@
               prevTime = performance.now();
            } else if (data.event === 'new_question') {
               clientHandleNewQuestion(data);
+           } else if (data.event === 'update_target') {
+              currentQuestionCorrectNeeded = data.cNeeded;
+              updateTargetHUD();
            } else if (data.event === 'sync') {
               clientHandleSync(data);
            } else if (data.event === 'enemy_hit') {
@@ -679,7 +716,6 @@
       buildMap(selectedMap);
       yVelocity = 0;
 
-      // 如果勾選上帝視角
       if (isGodMode) {
          document.body.classList.add('god-mode-active');
          camera.position.y = 20;
@@ -691,7 +727,7 @@
          godModeBtn.style.display = 'block'; 
          const startData = {
            event: 'start_game', questions: questions, map: selectedMap,
-           autoAim: autoAimEnabled, speed: enemyMoveSpeed
+           autoAim: autoAimEnabled, speed: enemyMoveSpeed, fireBase: enemyFireBase
          };
          for(let id in clientConnections) {
             try { clientConnections[id].send(startData); } catch(e) {}
@@ -763,7 +799,6 @@
       playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
       isTransitioning = false;
 
-      // 玩家人數：客機數量 + (主機若非上帝模式則+1)
       let playerCount = 1;
       if(connectionMode === 'host') {
          playerCount = Object.keys(clientConnections).length + (isGodMode ? 0 : 1);
@@ -824,7 +859,8 @@
             event: 'new_question', qIndex: currentQuestionIndex,
             qNumText: document.getElementById('hud-question-number').textContent,
             qTitleText: document.getElementById('hud-question').textContent,
-            cNeeded: currentQuestionCorrectNeeded, enemies: syncOptions
+            cNeeded: currentQuestionCorrectNeeded, cHits: currentQuestionCorrectHits,
+            enemies: syncOptions
          };
          for(let id in clientConnections) {
             try { clientConnections[id].send(qDataSync); } catch(e){}
@@ -837,7 +873,7 @@
       document.getElementById('hud-question-number').textContent = data.qNumText;
       document.getElementById('hud-question').textContent = data.qTitleText;
       currentQuestionCorrectNeeded = data.cNeeded;
-      currentQuestionCorrectHits = 0;
+      currentQuestionCorrectHits = data.cHits !== undefined ? data.cHits : 0; // 同步中途加入時的擊殺進度
       updateTargetHUD();
 
       agentGroup.clear(); 
@@ -855,7 +891,15 @@
     }
 
     function updateTargetHUD() {
-       document.getElementById('hud-team-targets').textContent = `擊殺目標: ${currentQuestionCorrectHits} / ${currentQuestionCorrectNeeded}`;
+       const hud = document.getElementById('hud-team-targets');
+       hud.textContent = `擊殺目標: ${currentQuestionCorrectHits} / ${currentQuestionCorrectNeeded}`;
+       // 特效閃爍
+       hud.classList.remove('bg-rose-600', 'bg-emerald-600');
+       hud.classList.add('bg-white', 'text-slate-900');
+       setTimeout(() => {
+          hud.classList.remove('bg-white', 'text-slate-900');
+          hud.classList.add(currentQuestionCorrectHits >= currentQuestionCorrectNeeded ? 'bg-emerald-600' : 'bg-rose-600');
+       }, 200);
     }
 
     function addKillfeed(msg, isError = false) {
@@ -941,9 +985,11 @@
           score = data.myScore;
           document.getElementById('hud-score').textContent = score;
        }
-       currentQuestionCorrectHits = data.cHits;
-       currentQuestionCorrectNeeded = data.cNeeded;
-       updateTargetHUD();
+       if(currentQuestionCorrectHits !== data.cHits || currentQuestionCorrectNeeded !== data.cNeeded) {
+          currentQuestionCorrectHits = data.cHits;
+          currentQuestionCorrectNeeded = data.cNeeded;
+          updateTargetHUD();
+       }
 
        data.e.forEach(eSync => {
           const agent = agents.find(a => a.userData.uid === eSync.id);
@@ -958,7 +1004,7 @@
           
           if (!otherPlayerMeshes[pSync.id]) {
              otherPlayerMeshes[pSync.id] = createPlayerMesh(pSync.c);
-             if(pSync.id === 'host' && pSync.y > 10) return; // 不渲染上帝視角的主機
+             if(pSync.id === 'host' && pSync.y > 10) return; // 上帝視角不顯示模型
              scene.add(otherPlayerMeshes[pSync.id]);
           }
           otherPlayerMeshes[pSync.id].position.set(pSync.x, pSync.y, pSync.z);
@@ -1081,7 +1127,6 @@
       agent.userData.gunMesh.getWorldPosition(startPos);
       bullet.position.copy(startPos);
 
-      // 上帝模式：敵人會尋找客機隊友作為目標，不會對上帝開槍
       let targetCamPos = camera.position.clone();
       if (isGodMode && connectionMode === 'host') {
          const keys = Object.keys(clientPlayers);
@@ -1162,7 +1207,9 @@
            if (connectionMode !== 'join') {
               handleHostEnemyHit(parentObj.userData.uid, 'host');
            } else {
-              if (hostConnection) hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid });
+              if (hostConnection) {
+                 try{ hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid }); }catch(e){}
+              }
            }
         }
       }
@@ -1175,6 +1222,8 @@
     // ==========================================
     // 5. FPS 操作與地圖
     // ==========================================
+    const raycaster = new THREE.Raycaster();
+    const screenCenter = new THREE.Vector2(0, 0);
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false, e: false, q: false };
     let joystickVector = new THREE.Vector2(0, 0);
@@ -1289,6 +1338,8 @@
     // ==========================================
     // 6. 主渲染迴圈與網路同步
     // ==========================================
+    let lastNetworkSync = 0;
+
     function animate() {
       requestAnimationFrame(animate);
       const time = performance.now();
