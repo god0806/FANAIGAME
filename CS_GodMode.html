@@ -56,6 +56,39 @@
     #god-mode-panel { position: absolute; top: 20px; right: 50%; transform: translateX(50%); background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 2px solid #38bdf8; border-radius: 12px; padding: 15px 25px; z-index: 55; pointer-events: auto; display: none; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     #qrcode-container img { margin: 0 auto; border: 4px solid white; border-radius: 8px; }
     .god-mode-active #hud-hp-container, .god-mode-active #hud-score-container, .god-mode-active .crosshair, .god-mode-active #btn-fire, .god-mode-active #btn-jump, .god-mode-active #btn-crouch { display: none !important; }
+    :root { color-scheme: dark; --ui-glass: rgba(9, 18, 32, .84); }
+    html, body { width: 100%; height: 100%; }
+    body { background: radial-gradient(ellipse at 50% 10%, #17263a 0%, #0b111b 70%); }
+    #canvas-container canvas { display: block; }
+    .screen-overlay { padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    #setup-screen { justify-content: flex-start; background: linear-gradient(145deg, rgba(7, 14, 25, .96), rgba(15, 23, 42, .92)); }
+    #setup-screen > h1 { margin-top: max(1rem, 2vh); text-shadow: 0 8px 34px rgba(14, 165, 233, .24); }
+    #setup-screen button, #setup-screen select, #setup-screen input { transition: border-color .18s ease, background-color .18s ease, transform .18s ease, box-shadow .18s ease; }
+    #setup-screen button:hover { transform: translateY(-1px); }
+    #host-panel > div, #bank-panel, #join-panel { box-shadow: 0 18px 50px rgba(0, 0, 0, .28); }
+    #bank-panel { backdrop-filter: blur(12px); }
+    #ui-layer > .absolute.bg-slate-900\/90 { background: var(--ui-glass); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+    #hud-question { text-wrap: balance; text-shadow: 0 2px 12px rgba(0,0,0,.65); }
+    #radar-container { filter: drop-shadow(0 8px 18px rgba(0,0,0,.35)); }
+    #god-mode-panel { background: var(--ui-glass); }
+    #joystick-zone { bottom: max(20px, env(safe-area-inset-bottom)); left: max(20px, env(safe-area-inset-left)); }
+    #btn-pause-mobile { top: max(20px, env(safe-area-inset-top)); right: max(20px, env(safe-area-inset-right)); backdrop-filter: blur(8px); }
+    .touch-btn { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    @media (max-width: 640px) {
+      #setup-screen { justify-content: flex-start; }
+      #setup-screen > h1 { font-size: clamp(2.2rem, 11vw, 3.4rem); }
+      #host-panel, #bank-panel, #upload-panel { padding-left: .75rem; padding-right: .75rem; }
+      #host-panel > div, #bank-panel { padding: 1rem; }
+      #multiplayer-info { padding: .75rem; }
+      #ui-layer .absolute.top-4.left-4 { max-width: calc(100vw - 2rem); padding: .7rem .85rem; }
+      #hud-question { font-size: clamp(1rem, 4.6vw, 1.45rem); line-height: 1.3; }
+      #ui-layer .absolute.bottom-4.left-4 { gap: .5rem; }
+      #ui-layer .absolute.bottom-4.left-4 > div { min-width: 4.4rem; padding: .5rem; }
+      #ui-layer .absolute.bottom-4.left-4 > div > div:last-child { font-size: 1.6rem; }
+      #killfeed { top: 180px; right: 10px; }
+      #god-mode-panel { top: max(64px, env(safe-area-inset-top)); padding: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; } }
   </style>
 </head>
 <body>
@@ -354,7 +387,7 @@
     });
 
     document.getElementById('csv-upload').addEventListener('change', (e) => {
-      const files = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
+      const files = Array.from(e.target.files).filter(f => f.name.toLowerCase().endsWith('.csv'));
       if (files.length === 0) return;
       document.getElementById('file-name').textContent = `已選取 ${files.length} 個檔案`;
       files.forEach(file => {
@@ -365,7 +398,7 @@
             complete: function(results) {
               const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
               if (validData.length > 0) {
-                const key = 'custom_' + Date.now() + '_' + file.name; cloudData[key] = event.target.result;
+                const key = 'custom_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '_' + file.name; cloudData[key] = event.target.result;
                 const option = document.createElement('option'); option.value = key; option.textContent = `📁 [自訂] ${file.name.replace('.csv','')} (共 ${validData.length} 題)`;
                 document.getElementById('bank-select').appendChild(option); document.getElementById('bank-select').value = key;
               } else alert(`檔案「${file.name}」解析失敗！請確認具備「題目」與「正確答案」欄位。`);
@@ -417,7 +450,8 @@
       });
 
       peer.on('connection', conn => {
-        if(Object.keys(clientConnections).length >= 4) { conn.send({ event: 'error', msg: '房間已滿' }); setTimeout(()=>conn.close(), 500); return; }
+        const maxClients = document.getElementById('god-mode-toggle').checked ? 4 : 3;
+        if(Object.keys(clientConnections).length >= maxClients) { conn.send({ event: 'error', msg: '房間已滿 (最多 4 名參與者)' }); setTimeout(()=>conn.close(), 500); return; }
         conn.on('open', () => {
            const playerIndex = Object.keys(clientConnections).length + 1; 
            clientConnections[conn.peer] = conn; clientPlayers[conn.peer] = { colorIndex: playerIndex, pos: {x:0, y:0, z:0, ry:0}, score: 0 };
@@ -442,6 +476,11 @@
            delete clientConnections[conn.peer]; delete clientPlayers[conn.peer];
            if (otherPlayerMeshes[conn.peer]) { scene.remove(otherPlayerMeshes[conn.peer]); delete otherPlayerMeshes[conn.peer]; }
            document.getElementById('host-players-count').textContent = `小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
+
+           if (isGameStarted && isGodMode && Object.keys(clientConnections).length === 0) {
+             showReviewScreen('小隊已全員離線');
+             return;
+           }
            
            if (isGameStarted && currentQuestionCorrectNeeded > 1 && !isTransitioning) {
                currentQuestionCorrectNeeded--; updateTargetHUD();
@@ -463,6 +502,7 @@
         myPeerId = id; hostConnection = peer.connect(roomPrefix + code);
         hostConnection.on('open', () => { statusMsg.textContent = "✓ 已加入小隊！等待隊長開始特訓或同步戰局..."; document.getElementById('join-btn').disabled = true; });
         hostConnection.on('data', data => {
+           if(data.event === 'error') { statusMsg.textContent = data.msg || '無法加入房間'; return; }
            if(data.event === 'welcome') myPlayerColorIndex = data.colorIndex;
            else if (data.event === 'start_game') {
               questions = data.questions; autoAimEnabled = data.autoAim; enemyMoveSpeed = data.speed;
@@ -497,11 +537,13 @@
     document.getElementById('start-btn').addEventListener('click', () => { 
       try {
         const csvText = cloudData[document.getElementById('bank-select').value];
+        if (!csvText) { alert('找不到這份題庫，請重新選擇或上傳 CSV。'); return; }
         Papa.parse(csvText, {
           header: true, skipEmptyLines: true, transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
           complete: function(results) {
-            const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
-            if (validData.length > 0) startGameAsHost(validData); else alert('題庫解析失敗！');
+            const validData = results.data.filter(q => q['題目']?.trim() && q['正確答案']?.trim() && ['A','B','C','D'].every(key => q[`選項${key}`]?.trim()));
+            if (results.errors.length) console.warn('CSV 解析警告：', results.errors);
+            if (validData.length > 0) startGameAsHost(validData); else alert('題庫解析失敗！請確認 CSV 至少包含「題目、選項A、選項B、選項C、選項D、正確答案」欄位及有效資料。');
           }
         });
       } catch (err) { alert("系統發生未預期錯誤: " + err.message); }
@@ -509,6 +551,10 @@
 
     function startGameAsHost(data) {
       applySettings(); questions = data; currentQuestionIndex = 0; score = 0; hp = 100; wrongAnswersLog = []; isGameOver = false; isPaused = false; gameTime = 0; myPlayerColorIndex = 0; spectateIndex = -1;
+      if (isGodMode && Object.keys(clientConnections).length === 0) {
+        alert('上帝視角為觀戰模式，請至少一位隊員加入後再開始任務。');
+        return;
+      }
       document.getElementById('hud-hp').textContent = hp; document.getElementById('hud-score').textContent = score;
 
       buildMap(document.getElementById('map-select').value); yVelocity = 0;
@@ -528,14 +574,35 @@
     }
 
     document.getElementById('restart-btn').addEventListener('click', () => {
+      if (document.pointerLockElement === document.body) document.exitPointerLock?.();
+      document.getElementById('pause-screen').style.display = 'none';
+      document.getElementById('god-mode-panel').style.display = 'none';
+      document.getElementById('open-god-mode').style.display = 'none';
       isGameStarted = false; document.getElementById('review-screen').style.display = 'none'; document.getElementById('setup-screen').style.display = 'flex';
       document.getElementById('ui-layer').style.display='none'; document.getElementById('radar-container').style.display='none'; document.getElementById('touch-ui').style.display='none';
       document.body.classList.remove('god-mode-active');
       
-      agentGroup.clear(); agents.length = 0; projectiles.forEach(p => scene.remove(p)); projectiles.length = 0; playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
-      impacts.forEach(imp => { scene.remove(imp.main); imp.debris.forEach(d => scene.remove(d.mesh)); }); impacts.length = 0;
+      clearAgentGroup(); projectiles.forEach(p => scene.remove(p)); projectiles.length = 0; playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
+      impacts.forEach(imp => { scene.remove(imp.main); imp.debris.forEach(d => scene.remove(d.mesh)); imp.main.material.dispose(); }); impacts.length = 0;
+      isGameOver = false; isPaused = false; isTransitioning = false; score = 0; hp = 100; gameTime = 0; yVelocity = 0; playerBaseY = 0; currentHeight = STAND_HEIGHT; spectateIndex = -1; spectateTargetsList = [];
+      Object.keys(keys).forEach(key => { keys[key] = false; }); joystickVector.set(0, 0);
       if(connectionMode==='join') document.getElementById('join-btn').disabled=false;
     });
+
+    function togglePause(forceState) {
+      if (!isGameStarted || isGameOver) return;
+      const pause = typeof forceState === 'boolean' ? forceState : !isPaused;
+      isPaused = pause;
+      document.getElementById('pause-screen').style.display = pause ? 'flex' : 'none';
+      if (pause) {
+        if (isTouchDevice) document.getElementById('touch-ui').style.display = 'none';
+        if (document.pointerLockElement === document.body) document.exitPointerLock?.();
+      } else {
+        prevTime = performance.now();
+        if (isTouchDevice) document.getElementById('touch-ui').style.display = 'block';
+        else document.body.requestPointerLock?.();
+      }
+    }
 
     document.addEventListener('pointerlockchange', () => {
       if (!isTouchDevice && !isGameOver && isGameStarted) {
@@ -546,6 +613,12 @@
           isPaused = false; document.getElementById('pause-screen').style.display = 'none'; document.getElementById('god-mode-panel').style.display = 'none'; prevTime = performance.now();
         }
       }
+    });
+
+    window.addEventListener('blur', () => {
+      Object.keys(keys).forEach(key => { keys[key] = false; });
+      joystickVector.set(0, 0);
+      if (isGameStarted && !isGameOver && !isTouchDevice) togglePause(true);
     });
 
     document.getElementById('btn-pause-mobile').addEventListener('click', () => {
@@ -610,7 +683,10 @@
       return mesh;
     }
 
-    function clearMap() { mapGroup.clear(); collidableObjects = []; terrainObjects = []; currentEnemySpawns = []; }
+    function clearMap() {
+      mapGroup.traverse(object => { if (object.geometry) object.geometry.dispose(); });
+      mapGroup.clear(); collidableObjects = []; terrainObjects = []; currentEnemySpawns = [];
+    }
 
     function buildMap(type) {
       clearMap();
@@ -672,6 +748,13 @@
       return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, opacity: 0.9, emissive: bgColor, emissiveIntensity: 0.5 });
     }
 
+    function setBoardMaterial(board, text, color) {
+      const previous = board.material;
+      previous?.map?.dispose();
+      previous?.dispose();
+      board.material = createHoloBoardTexture(text, color);
+    }
+
     function createHumanAgent(uid, text, isCorrect) {
       const human = new THREE.Group();
       const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.6 }), vestMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }), shirtMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.8 }), pantsMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 }), weaponMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8 }), armorMat = new THREE.MeshStandardMaterial({ color: 0x27352c, roughness: 0.78, metalness: 0.12 }), trimMat = new THREE.MeshStandardMaterial({ color: 0xd2a64b, roughness: 0.55, metalness: 0.35 }), visorMat = new THREE.MeshStandardMaterial({ color: 0x14232b, roughness: 0.22, metalness: 0.55, emissive: 0x12313a, emissiveIntensity: 0.35 }), clothMat = new THREE.MeshStandardMaterial({ color: 0x66735a, roughness: 0.95 });
@@ -689,13 +772,20 @@
       addPart(0.42, 0.17, 0.045, visorMat, 0, 2.77, 0.263); addPart(0.30, 0.16, 0.30, clothMat, 0, 2.57, 0.02); addPart(0.38, 0.055, 0.38, trimMat, 0, 2.58, 0.04); addPart(0.68, 0.68, 0.12, armorMat, 0, 1.88, 0.29); addPart(0.10, 0.72, 0.045, clothMat, -0.20, 1.87, 0.36, -0.28); addPart(0.10, 0.72, 0.045, clothMat, 0.20, 1.87, 0.36, 0.28); addPart(0.20, 0.09, 0.055, trimMat, 0, 2.05, 0.37); addPart(0.16, 0.07, 0.06, visorMat, 0, 1.91, 0.38); addPart(0.36, 0.33, 0.37, armorMat, -0.60, 2.30, 0, -0.12); addPart(0.36, 0.33, 0.37, armorMat, 0.60, 2.30, 0, 0.12); addPart(0.25, 0.28, 0.16, clothMat, -0.37, 1.52, 0.28); addPart(0.25, 0.28, 0.16, clothMat, 0.37, 1.52, 0.28); addPart(0.96, 0.13, 0.56, weaponMat, 0, 1.23, 0); addPart(0.14, 0.16, 0.12, trimMat, -0.37, 1.23, 0.30); addPart(0.14, 0.16, 0.12, trimMat, 0.37, 1.23, 0.30); addPart(0.39, 0.27, 0.39, armorMat, -0.25, 0.68, 0.12); addPart(0.39, 0.27, 0.39, armorMat, 0.25, 0.68, 0.12); addPart(0.39, 0.26, 0.62, weaponMat, -0.25, 0.12, 0.11); addPart(0.39, 0.26, 0.62, weaponMat, 0.25, 0.12, 0.11); addPart(0.14, 0.10, 0.20, visorMat, 0.60, 2.16, 0.78); addPart(0.12, 0.15, 0.18, weaponMat, 0.60, 1.83, 0.90, 0.18); addPart(0.12, 0.12, 0.18, trimMat, 0.60, 2.00, 1.31);
       const boardMat = createHoloBoardTexture(text, 'rgba(14, 165, 233, 0.8)'); const board = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.5), boardMat); board.position.y = 4.0; human.add(board);
 
-      human.userData = { uid: uid, text: text, isCorrect: isCorrect, dying: false, originalColor: 'rgba(14, 165, 233, 0.8)', boardMesh: board, gunMesh: gun, leftLeg: leftLeg, rightLeg: rightLeg, hitMeshes, walkOffset: Math.random() * Math.PI * 2, lastShootTime: performance.now() + 1000 + Math.random() * 2000, yVelocity: 0 };
+      human.userData = { uid: uid, text: text, isCorrect: isCorrect, dying: false, originalColor: 'rgba(14, 165, 233, 0.8)', boardMesh: board, gunMesh: gun, leftLeg: leftLeg, rightLeg: rightLeg, hitMeshes, walkOffset: Math.random() * Math.PI * 2, lastShootTime: 1000 + Math.random() * 2000, yVelocity: 0 };
       hitMeshes.push(torso, head, lLegMesh, rLegMesh, leftArm, rArmMesh, gun, board); collidableObjects.push(...hitMeshes);
       return human;
     }
 
     function clearAgentGroup() {
-      agents.forEach(agent => { (agent.userData.hitMeshes || []).forEach(mesh => { const index = collidableObjects.indexOf(mesh); if (index >= 0) collidableObjects.splice(index, 1); }); });
+      agents.forEach(agent => {
+        (agent.userData.hitMeshes || []).forEach(mesh => { const index = collidableObjects.indexOf(mesh); if (index >= 0) collidableObjects.splice(index, 1); });
+        agent.traverse(object => {
+          object.geometry?.dispose();
+          const materials = Array.isArray(object.material) ? object.material : [object.material];
+          materials.filter(Boolean).forEach(material => { material.map?.dispose(); material.dispose(); });
+        });
+      });
       agentGroup.clear(); agents.length = 0;
     }
 
@@ -761,12 +851,12 @@
       const aData = agent.userData; const board = aData.boardMesh;
 
       if (aData.isCorrect) {
-        board.material = createHoloBoardTexture(aData.text, 'rgba(16, 185, 129, 0.9)'); 
+        setBoardMaterial(board, aData.text, 'rgba(16, 185, 129, 0.9)');
         if(shooterPeerId === 'host' && !isGodMode) score += 100; else if(clientPlayers[shooterPeerId]) clientPlayers[shooterPeerId].score += 100;
         addKillfeed(`✓ [小隊] 擊斃目標 [${aData.text}]`); aData.dying = true; currentQuestionCorrectHits++; updateTargetHUD();
         if (currentQuestionCorrectHits >= currentQuestionCorrectNeeded) { isTransitioning = true; currentQuestionIndex++; setTimeout(() => { if(connectionMode !== 'join') loadNextQuestionHost(); }, 1500); }
       } else {
-        board.material = createHoloBoardTexture(aData.text, 'rgba(239, 68, 68, 0.9)'); 
+        setBoardMaterial(board, aData.text, 'rgba(239, 68, 68, 0.9)');
         const currentQ = questions[currentQuestionIndex];
         if (currentQ && !wrongAnswersLog.some(item => item.qIndex === currentQuestionIndex)) {
           const answerKey = String(currentQ['正確答案']).trim().toUpperCase(); const answerIndex = { A: 0, B: 1, C: 2, D: 3 }[answerKey]; const correctAnswer = answerIndex === undefined ? currentQ['正確答案'] : currentQ[`選項${answerKey}`];
@@ -774,7 +864,7 @@
         }
         if(!isGodMode) hp = Math.max(0, hp - 20); document.getElementById('hud-hp').textContent = hp;
         if(shooterPeerId === 'host' && !isGodMode) score = Math.max(0, score - 50); else if(clientPlayers[shooterPeerId]) clientPlayers[shooterPeerId].score = Math.max(0, clientPlayers[shooterPeerId].score - 50);
-        addKillfeed(`✕ [小隊] 誤殺平民 [${aData.text}]`, true); setTimeout(() => { if (!aData.dying) board.material = createHoloBoardTexture(aData.text, aData.originalColor); }, 500);
+        addKillfeed(`✕ [小隊] 誤殺平民 [${aData.text}]`, true); setTimeout(() => { if (!aData.dying) setBoardMaterial(board, aData.text, aData.originalColor); }, 500);
         if (hp <= 0 && !isGodMode) {
            showReviewScreen("KIA 任務失敗 (全隊陣亡)");
            if(connectionMode==='host'){ for(let id in clientConnections) { try{ clientConnections[id].send({ event: 'game_over', msg: "KIA 任務失敗 (全隊陣亡)" }); }catch(e){} } }
@@ -789,8 +879,8 @@
 
     function clientHandleEnemyHit(data) {
        const agent = agents.find(a => a.userData.uid === data.uid); if(!agent) return; const board = agent.userData.boardMesh;
-       if (data.isCorrect) { board.material = createHoloBoardTexture(data.text, 'rgba(16, 185, 129, 0.9)'); addKillfeed(`✓ [小隊] 擊斃目標 [${data.text}]`); agent.userData.dying = data.isDying;
-       } else { board.material = createHoloBoardTexture(data.text, 'rgba(239, 68, 68, 0.9)'); addKillfeed(`✕ [小隊] 誤殺平民 [${data.text}]`, true); setTimeout(() => { if (!agent.userData.dying) board.material = createHoloBoardTexture(data.text, agent.userData.originalColor); }, 500); }
+       if (data.isCorrect) { setBoardMaterial(board, data.text, 'rgba(16, 185, 129, 0.9)'); addKillfeed(`✓ [小隊] 擊斃目標 [${data.text}]`); agent.userData.dying = data.isDying;
+       } else { setBoardMaterial(board, data.text, 'rgba(239, 68, 68, 0.9)'); addKillfeed(`✕ [小隊] 誤殺平民 [${data.text}]`, true); setTimeout(() => { if (!agent.userData.dying) setBoardMaterial(board, data.text, agent.userData.originalColor); }, 500); }
     }
 
     function clientHandleSync(data) {
