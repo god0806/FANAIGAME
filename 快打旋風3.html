@@ -1,0 +1,637 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>快打旋風｜隆 VS 肯（全載具智慧自適應版）</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#090e20;color:#fff;
+  font-family:system-ui,'Microsoft JhengHei',sans-serif;
+  overflow-x:hidden;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+header{text-align:center;padding:10px 8px 4px}
+h1{margin:0;color:#ffd36a;font-size:clamp(20px,3.5vw,34px);text-shadow:3px 3px #b33b29}
+.sub{color:#b9c7e7;font-size:12px;margin-top:2px}
+.wrap{max-width:1120px;margin:auto;padding:0 12px}
+
+/* HUD 街機血條 */
+.hud{display:grid;grid-template-columns:1fr 90px 1fr;gap:10px;align-items:center;margin:6px 0}
+.name{font-weight:900;font-size:16px}
+.right{text-align:right}
+.bar{height:22px;border:2px solid #e7e9ff;background:#321b35;border-radius:4px;overflow:hidden;box-shadow:0 2px 8px #000}
+.fill{height:100%;width:100%;background:linear-gradient(90deg,#ff3e39,#ffcf3d);transition:width .12s}
+.kenbar{margin-left:auto;background:linear-gradient(90deg,#f8c83c,#ef473d)}
+.timer{font-size:32px;font-weight:1000;text-align:center;color:#ffe27a;text-shadow:2px 3px #a63220}
+.energy{height:8px;background:#233452;border:1px solid #8096ba;margin-top:4px}
+.energy>div{height:100%;width:0;background:#2bd9ff}
+
+/* 戰鬥舞台 */
+.stage{position:relative;border:3px solid #546b98;box-shadow:0 10px 30px #000;overflow:hidden;background:#101b36;border-radius:6px}
+.stage canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.message{position:absolute;top:23%;left:0;width:100%;text-align:center;font-size:clamp(24px,5.5vw,60px);font-weight:1000;color:#ffdf55;text-shadow:4px 5px #6d1930;pointer-events:none}
+
+/* 答題面板 */
+.panel{background:#18233d;border:1px solid #3a4c70;border-radius:10px;margin:8px 0;padding:10px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.quiz{font-size:16px}
+.quiz strong{color:#ffe075;font-size:22px;white-space:pre-wrap}
+.options{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:8px}
+button{
+  cursor:pointer;background:#263b67;border:2px solid #8198c9;border-radius:8px;
+  color:white;font-weight:800;padding:10px 12px;touch-action:manipulation;
+  font-size:15px;
+}
+button:hover{background:#365b98}
+button:active{transform:translateY(2px)}
+.options button{min-height:46px}
+
+/* 控制區域 */
+.controls-wrap{margin-top:8px}
+.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.controls button{padding:12px 4px;background:#314b79;font-size:14px}
+.hint{color:#b8c8e7;font-size:13px;line-height:1.6}
+.result{color:#ffe279;font-weight:800;min-height:20px;font-size:13px;margin-top:4px}
+.restart{background:#ad3b2c}
+footer{text-align:center;color:#8091b5;font-size:11px;padding:8px}
+
+.csvtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.upload{display:inline-block;background:#146b70;border:2px solid #78d6d7;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;font-size:13px}
+.csvtools span{font-size:12px;color:#bde8df}
+sup{font-size:.7em;line-height:0;vertical-align:super}
+
+/* ===== 載具自適應樣式 (Device Adaptations) ===== */
+/* 1. 電腦模式：隱藏冗餘觸控按鈕，提示實體鍵盤 */
+body.mode-desktop .controls-wrap{display:none}
+body.mode-desktop .desktop-only{display:block}
+body.mode-touch .desktop-only{display:none}
+
+/* 2. 平板 / 觸控模式：左右人體工學搖桿配置 (Thumb-friendly) */
+body.mode-touch .controls{
+  grid-template-columns: repeat(4, 1fr) 20px repeat(4, 1fr);
+  gap: 6px;
+}
+body.mode-touch .controls .spacer{grid-column: span 1; pointer-events: none; opacity: 0;}
+body.mode-touch .controls button{min-height: 48px; font-size: 15px;}
+
+/* 開始畫面 Overlay */
+.start-overlay{
+  position:fixed;inset:0;background:rgba(7,11,26,0.96);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;padding:15px;backdrop-filter:blur(6px);
+}
+.start-card{
+  background:linear-gradient(160deg,#192648,#0d1527);
+  border:3px solid #ffcc33;border-radius:16px;
+  max-width:540px;width:100%;padding:20px;text-align:center;
+  box-shadow:0 0 35px rgba(255,204,51,0.25),0 15px 40px #000;
+}
+.start-card h2{margin:0 0 6px;font-size:clamp(22px,4.5vw,32px);color:#ffe27a;text-shadow:3px 3px #b33b29}
+.start-card p{color:#cbd8f2;font-size:13px;line-height:1.5;margin:0 0 14px}
+.start-box{
+  background:#131c33;border:1.5px dashed #4e6594;border-radius:10px;
+  padding:12px;margin-bottom:14px;text-align:center;
+}
+.start-box .box-title{font-size:13px;color:#a9bfeb;font-weight:900;margin-bottom:8px}
+.device-badge{
+  display:inline-block;padding:4px 10px;background:#1e3860;border:1.5px solid #64ffda;
+  border-radius:20px;font-size:12px;color:#64ffda;font-weight:bold;margin-bottom:8px;
+}
+.btn-start{
+  background:linear-gradient(180deg,#ff4a36,#d4201b);
+  border:2px solid #fff;border-radius:8px;
+  font-size:clamp(17px,2.5vw,22px);padding:12px 30px;
+  color:#fff;font-weight:1000;letter-spacing:1.5px;
+  box-shadow:0 5px 0 #78100d,0 0 15px rgba(255,74,54,0.4);
+  cursor:pointer;width:100%;max-width:320px;margin-top:4px;
+}
+.btn-start:hover{filter:brightness(1.15)}
+.btn-start:active{transform:translateY(3px);box-shadow:0 2px 0 #78100d}
+.start-status{display:block;margin-top:8px;font-size:12px;font-weight:bold;color:#78d6d7}
+</style>
+</head>
+<body class="mode-touch">
+
+<!-- ===== 街機開始視窗 ===== -->
+<div id="startOverlay" class="start-overlay">
+  <div class="start-card">
+    <h2>🔥 快打旋風 · 奧義對決 🥊</h2>
+    <div id="deviceBadge" class="device-badge">🔍 正在辨識您的載具...</div>
+    <p>街機格鬥 × 答題爆氣！答對題庫獲得能量發動<strong>波動拳</strong>！<br>先載入 CSV 自訂題庫，或使用內建題庫直接開戰。</p>
+    
+    <div class="start-box">
+      <div class="box-title">【 步驟 1：題庫載入區 】</div>
+      <div class="csvtools" style="justify-content:center;margin-top:0">
+        <label class="upload">
+          📂 匯入 CSV 題庫
+          <input id="startCsvFile" type="file" accept=".csv,text/csv" hidden>
+        </label>
+        <button id="startDownloadSample" type="button">⬇ 下載 CSV 範例</button>
+      </div>
+      <span id="startCsvStatus" class="start-status">📖 預設使用：內建英文基礎題庫</span>
+    </div>
+
+    <button id="btnStartGame" class="btn-start">🔥 開始戰鬥 (PRESS START)</button>
+  </div>
+</div>
+
+<header>
+  <h1>🔥 STREET FIGHTER · 龍 VS 肯 🥊</h1>
+  <div class="sub">隆 RYU（玩家） 對戰 肯 KEN（電腦）｜街機格鬥 × CSV 自訂題庫</div>
+</header>
+
+<main class="wrap">
+  <div class="hud">
+    <div>
+      <div class="name">RYU 隆 <span id="rh">100</span> HP</div>
+      <div class="bar"><div class="fill" id="rhp"></div></div>
+      <div class="energy"><div id="re"></div></div>
+    </div>
+    <div class="timer" id="time">99</div>
+    <div>
+      <div class="name right">KEN 肯 <span id="kh">100</span> HP</div>
+      <div class="bar"><div class="fill kenbar" id="khp"></div></div>
+      <div class="energy"><div id="ke"></div></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div id="msg" class="message"></div>
+  </div>
+
+  <section class="panel">
+    <div class="row">
+      <div class="quiz">📚 題目挑戰：<strong id="word">載入中...</strong></div>
+      <button id="restart" class="restart">↻ 重新開戰</button>
+    </div>
+    <div id="options" class="options"></div>
+    <div class="csvtools">
+      <label class="upload">
+        📂 匯入 CSV 題庫
+        <input id="csvFile" type="file" accept=".csv,text/csv" hidden>
+      </label>
+      <button id="downloadSample" type="button">⬇ 下載範例</button>
+      <button id="btnToggleMode" type="button" style="background:#204369">🔄 切換載具模式</button>
+      <button id="btnReturnToStart" type="button" style="background:#3b4c6e">⚙️ 選單</button>
+      <span id="csvStatus" role="status">目前使用內建英文題庫</span>
+    </div>
+    <div id="feedback" class="result">答對題目可增加必殺技能量！</div>
+  </section>
+
+  <!-- 操控區：支援電腦與觸控雙模切換 -->
+  <section class="panel controls-panel">
+    <div class="hint desktop-only">
+      <b>💻 電腦鍵盤操作：</b>A / D 左右移動｜W 跳躍｜S 蹲下｜J 輕拳｜K 重拳｜L 踢擊｜U 波動拳（耗 30 能量）｜I 防禦。
+    </div>
+    <div class="hint" style="margin-bottom:6px">
+      <b>🎮 觸控/平板模式：</b>左手操控走位蹲跳，右手發動拳腳攻擊與波動拳！
+    </div>
+    <div class="controls-wrap">
+      <div class="controls" id="touchControls">
+        <!-- 左側手把：方向 -->
+        <button data-key="a">◀ 左</button>
+        <button data-key="d">右 ▶</button>
+        <button data-key="w">⬆ 跳</button>
+        <button data-key="s">⬇ 蹲</button>
+        <!-- 平板中間間距槽 (純 CSS 控制) -->
+        <div class="spacer"></div>
+        <!-- 右側手把：攻擊 -->
+        <button data-key="j">👊 拳</button>
+        <button data-key="k">💥 重拳</button>
+        <button data-key="l">🦵 踢</button>
+        <button data-key="u" style="background:#0f6d9e;border-color:#5cd2ff">🔵 氣功</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>原創 Canvas 格鬥角色繪製；角色外觀向經典街機格鬥致敬。支援電腦實體鍵盤、平板與手機。</footer>
+
+<script>
+const C=document.getElementById('game'),ctx=C.getContext('2d'),$=id=>document.getElementById(id);
+const W=960,H=540,ground=445;
+let keys={},shots=[],sparks=[],over=false,gameRunning=false,t=99,last=0,clock=0,msgUntil=0,customQuestions=[],questionLocked=false;
+const words=[['apple','蘋果'],['cat','小貓'],['dog','小狗'],['sun','太陽'],['moon','月亮'],['water','水'],['book','書本'],['school','學校'],['teacher','老師'],['flower','花朵'],['banana','香蕉'],['tiger','老虎'],['rain','下雨'],['star','星星'],['bread','麵包'],['fish','魚'],['bird','鳥'],['tree','樹'],['milk','牛奶'],['orange','柳丁']];
+
+// ===== 載具智慧偵測模組 (Smart Device Detection) =====
+let isTouchDevice = false;
+
+function detectDevice(){
+  const hasTouchScreen = (
+    ('ontouchstart' in window) ||
+    (navigator.maxTouchPoints > 0) ||
+    (navigator.msMaxTouchPoints > 0) ||
+    window.matchMedia('(pointer: coarse)').matches
+  );
+  
+  const isLargeScreen = window.innerWidth >= 1024 && !hasTouchScreen;
+
+  if (isLargeScreen) {
+    setDeviceMode(false, '💻 偵測為：桌上型電腦 / 筆電 (鍵盤操作優化)');
+  } else if (hasTouchScreen && window.innerWidth >= 600) {
+    setDeviceMode(true, '📱 偵測為：平板電腦 / 大觸控螢幕 (雙手人體工學模式)');
+  } else {
+    setDeviceMode(true, '📱 偵測為：智慧型手機 (橫向緊湊觸控模式)');
+  }
+}
+
+function setDeviceMode(isTouch, desc){
+  isTouchDevice = isTouch;
+  if(isTouch){
+    document.body.classList.remove('mode-desktop');
+    document.body.classList.add('mode-touch');
+  } else {
+    document.body.classList.remove('mode-touch');
+    document.body.classList.add('mode-desktop');
+  }
+  if($('deviceBadge')) $('deviceBadge').textContent = desc;
+}
+
+// 支援手動切換模式按鈕
+$('btnToggleMode').addEventListener('click', ()=>{
+  isTouchDevice = !isTouchDevice;
+  setDeviceMode(isTouchDevice, isTouchDevice ? '📱 切換為：觸控/平板按鍵模式' : '💻 切換為：桌機實體鍵盤模式');
+});
+
+window.addEventListener('resize', detectDevice);
+detectDevice();
+
+// ===== 格鬥邏輯 =====
+function fighter(x,kind){return {x,y:ground,vx:0,vy:0,hp:100,en:20,face:kind==='ryu'?1:-1,kind,act:'idle',actTime:0,cd:0,guard:false,hit:0,walk:0,attackHit:false}}
+let r,k;
+
+function textMsg(s,d=1){$('msg').textContent=s;msgUntil=performance.now()+d*1000}
+function reset(){
+  r=fighter(260,'ryu');k=fighter(700,'ken');
+  shots=[];sparks=[];over=false;t=99;clock=0;keys={};last=0;
+  updateHud();
+  textMsg('ROUND 1 · FIGHT!',1.4);
+  question();
+}
+
+function updateHud(){
+  $('rhp').style.width=r.hp+'%';$('khp').style.width=k.hp+'%';
+  $('rh').textContent=Math.ceil(r.hp);$('kh').textContent=Math.ceil(k.hp);
+  $('re').style.width=r.en+'%';$('ke').style.width=k.en+'%';
+  $('time').textContent=t;
+}
+
+function renderPowers(el,value){
+  el.replaceChildren();const str=String(value??'');const re=/\^(?:\{([^}]+)\}|\(([^)]+)\)|(-?\d+(?:\.\d+)?|[a-zA-Z]))/g;
+  let pos=0,m;
+  while((m=re.exec(str))!==null){
+    el.append(document.createTextNode(str.slice(pos,m.index)));
+    let sup=document.createElement('sup');
+    sup.textContent=m[1]??m[2]??m[3];
+    el.append(sup);
+    pos=re.lastIndex;
+  }
+  el.append(document.createTextNode(str.slice(pos)));
+}
+
+function parseCSV(input){
+  const text=input.replace(/^\uFEFF/,'');let rows=[],row=[],field='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quoted){
+      if(c==='"'&&text[i+1]==='"'){field+='"';i++}
+      else if(c==='"')quoted=false;
+      else field+=c;
+    }else if(c==='"')quoted=true;
+    else if(c===','){row.push(field);field='';}
+    else if(c==='\n'||c==='\r'){
+      if(c==='\r'&&text[i+1]==='\n')i++;
+      row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field='';
+    }else field+=c;
+  }
+  if(quoted)throw Error('CSV 引號未正確結束');
+  row.push(field);if(row.some(x=>x.trim()))rows.push(row);
+  return rows;
+}
+
+function loadCSV(text){
+  let rows=parseCSV(text);if(rows.length<2)throw Error('CSV 沒有題目資料');
+  let headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+  let required=['題號','題目','選項A','選項B','選項C','選項D','正確答案'];
+  let indices=required.map(h=>headers.indexOf(h));
+  if(indices.some(i=>i<0))throw Error('表頭必須包含：'+required.join('、'));
+  let data=[];
+  for(let [idx,row] of rows.entries()){
+    let fields=indices.map(i=>(row[i]??'').trim());
+    if(fields.every(x=>!x))continue;
+    let [id,title,a,b,c,d,correct]=fields;
+    let options=[a,b,c,d];
+    if(!title||options.some(x=>!x))throw Error('第 '+(idx+2)+' 列題目或選項為空');
+    let letter=correct.toUpperCase().replace(/^選項/,'');
+    let answer='ABCD'.includes(letter)&&letter.length===1?'ABCD'.indexOf(letter):options.indexOf(correct);
+    if(answer<0)throw Error('第 '+(idx+2)+' 列正確答案須為 A/B/C/D 或完整選項文字');
+    data.push({id,title,options,answer});
+  }
+  if(!data.length)throw Error('沒有可用的題目');
+  return data;
+}
+
+function question(){
+  questionLocked=false;let item;
+  if(customQuestions.length){
+    item=customQuestions[Math.floor(Math.random()*customQuestions.length)];
+  }else{
+    let word=words[Math.floor(Math.random()*words.length)];
+    let opts=[word[1]];
+    while(opts.length<4){
+      let v=words[Math.floor(Math.random()*words.length)][1];
+      if(!opts.includes(v))opts.push(v);
+    }
+    opts.sort(()=>Math.random()-.5);
+    item={title:word[0].toUpperCase()+' 是什麼意思？',options:opts,answer:opts.indexOf(word[1])};
+  }
+  renderPowers($('word'),item.title);
+  $('options').replaceChildren();
+  item.options.forEach((s,i)=>{
+    let b=document.createElement('button');
+    renderPowers(b,'ABCD'[i]+'. '+s);
+    b.onclick=()=>{
+      if(over||questionLocked)return;
+      questionLocked=true;
+      if(i===item.answer){
+        r.en=Math.min(100,r.en+35);
+        $('feedback').textContent='✅ 正確！波動拳能量 +35';
+        textMsg('POWER UP!',.65);
+      }else{
+        $('feedback').textContent='❌ 再試試！正確答案：'+ 'ABCD'[item.answer]+' '+item.options[item.answer];
+        r.en=Math.max(0,r.en-8);
+      }
+      updateHud();
+      setTimeout(()=>{if(!over)question()},400);
+    };
+    $('options').append(b);
+  });
+}
+
+function csvEscape(v){v=String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function downloadCSV(){
+  let sample=[['題號','題目','選項A','選項B','選項C','選項D','正確答案'],['1','2^3 等於多少？','6','8','9','12','B'],['2','(-3)^2 等於多少？','-9','-6','6','9','D'],['3','5^2 - 4^2 等於多少？','9','16','25','41','A'],['4','2^{10} 等於多少？','100','512','1024','2048','C'],['5','3^(-2) 等於多少？','1/9','-9','9','-1/9','A']];
+  let content='\uFEFF'+sample.map(row=>row.map(csvEscape).join(',')).join('\r\n');
+  let url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'}));
+  let a=document.createElement('a');a.href=url;a.download='快打旋風_數學題庫範例.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+$('downloadSample').addEventListener('click',downloadCSV);
+$('startDownloadSample').addEventListener('click',downloadCSV);
+
+async function handleCSVUpload(file){
+  if(!file)return;
+  try{
+    let data=loadCSV(await file.text());
+    customQuestions=data;
+    const msg='✅ 已成功匯入 '+data.length+' 題：'+file.name;
+    $('csvStatus').textContent=msg;
+    $('startCsvStatus').textContent=msg;
+    $('feedback').textContent='已切換成自訂 CSV 題庫，答對獲取波動拳能量！';
+    question();
+  }catch(err){
+    const errMsg='❌ 匯入失敗：'+err.message;
+    $('csvStatus').textContent=errMsg;
+    $('startCsvStatus').textContent=errMsg;
+    alert('CSV 匯入失敗：'+err.message);
+  }
+}
+
+$('csvFile').addEventListener('change',e=>{handleCSVUpload(e.target.files?.[0]);e.target.value='';});
+$('startCsvFile').addEventListener('change',e=>{handleCSVUpload(e.target.files?.[0]);e.target.value='';});
+
+$('btnStartGame').addEventListener('click',()=>{
+  $('startOverlay').style.display='none';
+  gameRunning=true;
+  reset();
+});
+
+$('btnReturnToStart').addEventListener('click',()=>{
+  gameRunning=false;
+  over=true;
+  $('startOverlay').style.display='flex';
+});
+
+function attack(f,type){
+  if(over||f.cd>0||f.hit>0)return;
+  if(type==='fire'){
+    if(f.en<30){if(f===r)textMsg('能量不足！答對題目補充',.6);return}
+    f.en-=30;f.act='fire';f.actTime=.36;f.cd=.66;
+    shots.push({x:f.x+f.face*58,y:f.y-112,dir:f.face,owner:f,life:2.1});
+    return;
+  }
+  let d={punch:[.25,.37,7,83],heavy:[.39,.65,13,98],kick:[.33,.52,10,117]}[type];
+  if(!d)return;
+  f.act=type;f.actTime=d[0];f.cd=d[1];f.attackHit=false;
+}
+
+function hit(target,source,amount,knock){
+  if(target.hit>0.15)return;
+  let guarding=target.guard&&target.y===ground;
+  let dmg=guarding?Math.max(1,Math.round(amount*.2)):amount;
+  target.hp=Math.max(0,target.hp-dmg);
+  target.hit=guarding?.08:.23;
+  target.vx=source.face*(guarding?60:knock);
+  target.en=Math.min(100,target.en+3);
+  source.en=Math.min(100,source.en+6);
+  for(let i=0;i<13;i++)sparks.push({x:target.x-source.face*25,y:target.y-115,vx:(Math.random()-.5)*240,vy:(Math.random()-.5)*220,life:.3,color:guarding?'#9ed8ff':'#ffce64'});
+  if(target.hp<=0)finish();
+  updateHud();
+}
+
+function finish(){
+  over=true;
+  textMsg(r.hp===k.hp?'DRAW!':r.hp>k.hp?'RYU WINS!':'KEN WINS!',999);
+}
+
+function act(f,dt){
+  if(f.cd>0)f.cd-=dt;if(f.hit>0)f.hit-=dt;
+  if(f.actTime>0){f.actTime-=dt;if(f.actTime<=0)f.act='idle'}
+  if(f.y<ground||f.vy<0){f.vy+=1250*dt;f.y+=f.vy*dt;if(f.y>=ground){f.y=ground;f.vy=0}}
+  f.x=Math.max(55,Math.min(905,f.x+f.vx*dt));
+  f.vx*=Math.pow(.02,dt);
+  f.walk+=Math.abs(f.vx)*dt/40;
+}
+
+function move(dt){
+  r.face=r.x<k.x?1:-1;k.face=-r.face;
+  if(r.hit<=0){
+    let dx=(keys.a?-1:0)+(keys.d?1:0);
+    r.guard=!!keys.i;
+    if(r.actTime<=0){
+      if(dx){r.vx=dx*(r.guard?100:245);r.act='walk'}else r.act=keys.s?'crouch':'idle';
+    }
+    if(keys.w&&r.y===ground&&!r.guard){r.vy=-560;r.y-=1;r.act='jump'}
+    if(keys.j)attack(r,'punch');if(keys.k)attack(r,'heavy');if(keys.l)attack(r,'kick');if(keys.u)attack(r,'fire');
+  }
+  if(k.hit<=0){
+    let dist=Math.abs(r.x-k.x),dir=r.x>k.x?1:-1;
+    k.guard=false;
+    if(k.actTime<=0){
+      if(dist>110){k.vx=dir*(dist>270?175:115);k.act='walk'}else{k.act='idle';k.vx*=.7}
+    }
+    if(k.cd<=0){
+      let q=Math.random();
+      if(dist<128){if(q<.04)attack(k,['punch','heavy','kick'][Math.floor(Math.random()*3)])}
+      else if(dist>210&&k.en>=30&&q<.012)attack(k,'fire');
+    }
+    if(r.actTime>0&&dist<145&&Math.random()<.016)k.guard=true;
+  }
+  for(let f of [r,k]){
+    if(f.actTime>0&&!f.attackHit&&['punch','heavy','kick'].includes(f.act)){
+      let target=f===r?k:r,range=f.act==='kick'?122:f.act==='heavy'?104:88;
+      let d=Math.abs(target.x-f.x);
+      if(d<range&&Math.abs(target.y-f.y)<100&&(target.x-f.x)*f.face>0){
+        hit(target,f,f.act==='heavy'?13:f.act==='kick'?10:7,f.act==='heavy'?290:200);
+        f.attackHit=true;
+      }
+    }
+  }
+  act(r,dt);act(k,dt);
+  if(Math.abs(r.x-k.x)<75){let m=(r.x+k.x)/2;r.x=m-37.5*r.face;k.x=m+37.5*r.face}
+}
+
+function background(){
+  let g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#101c40');g.addColorStop(.72,'#744458');g.addColorStop(1,'#c88367');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#f6bb8b';ctx.beginPath();ctx.arc(770,128,64,0,7);ctx.fill();
+  ctx.fillStyle='#1a2444';
+  for(let i=0;i<15;i++){
+    let h=100+(i*73)%125;
+    ctx.fillRect(i*75,ground-70-h,64,h+70);
+    for(let a=0;a<4;a++)for(let b=0;b<4;b++){
+      ctx.fillStyle=(a+b+i)%3===0?'#e6a56b':'#39445c';
+      ctx.fillRect(i*75+8+a*13,ground-56-h+b*24,6,11);
+    }
+    ctx.fillStyle='#1a2444';
+  }
+  ctx.fillStyle='#5c4558';ctx.fillRect(0,ground,960,95);
+  ctx.fillStyle='#967278';ctx.fillRect(0,ground,960,9);
+  ctx.strokeStyle='#b9918e';ctx.lineWidth=2;
+  for(let i=0;i<13;i++){ctx.beginPath();ctx.moveTo(480+(i-6)*35,ground);ctx.lineTo(480+(i-6)*120,H);ctx.stroke()}
+  for(let y=ground+20;y<H;y+=25){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  ctx.fillStyle='#a5b6ca';ctx.font='bold 16px sans-serif';ctx.fillText('STREET FIGHTER · TRAINING STAGE',18,35);
+}
+
+function limb(x1,y1,x2,y2,width,color){
+  ctx.strokeStyle='#2b2031';ctx.lineWidth=width+5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.strokeStyle=color;ctx.lineWidth=width;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+}
+
+function drawFighter(f){
+  ctx.save();ctx.translate(f.x,f.y);ctx.scale(f.face,1);
+  let bob=f.act==='walk'?Math.sin(f.walk*2)*4:0;ctx.translate(0,bob);
+  let jump=ground-f.y,crouch=f.act==='crouch'?28:0,skin='#e6ad7e',gi=f.kind==='ryu'?'#e8e4d8':'#c51f32',shadow=f.kind==='ryu'?'#b4b5b8':'#851b30',hair=f.kind==='ryu'?'#22252b':'#f2c55c',glove=f.kind==='ryu'?'#d62e35':'#6e303a';
+  ctx.fillStyle='#080e22aa';ctx.beginPath();ctx.ellipse(0,jump,53,10,0,0,Math.PI*2);ctx.fill();
+  let swing=f.act==='walk'?Math.sin(f.walk*2)*13:0,kicking=f.act==='kick';
+  limb(-18,-76+crouch,-25+swing,-10,23,gi);
+  limb(18,-76+crouch,kicking?100:24-swing,kicking?-93:-10,23,gi);
+  limb(-25+swing,-10,-26+swing,0,16,skin);
+  limb(kicking?100:24-swing,kicking?-93:-10,kicking?122:25-swing,kicking?-95:0,17,skin);
+  ctx.fillStyle=gi;ctx.strokeStyle='#252334';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(-34,-155+crouch);ctx.lineTo(33,-155+crouch);ctx.lineTo(24,-76+crouch);ctx.lineTo(-22,-76+crouch);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle=shadow;ctx.beginPath();ctx.moveTo(-8,-154+crouch);ctx.lineTo(8,-154+crouch);ctx.lineTo(-4,-90+crouch);ctx.lineTo(-19,-98+crouch);ctx.fill();
+  ctx.fillStyle=f.kind==='ryu'?'#ce252f':'#18191d';ctx.fillRect(-30,-99+crouch,61,10);ctx.fillRect(10,-93+crouch,12,32);
+  let punching=['punch','heavy','fire'].includes(f.act);
+  limb(-29,-144+crouch,-49,-104+crouch,20,skin);
+  limb(-49,-104+crouch,-26,-120+crouch,18,skin);
+  limb(27,-144+crouch,punching?92:47,punching?-129+crouch:-109+crouch,21,skin);
+  ctx.fillStyle=glove;ctx.strokeStyle='#432d39';ctx.lineWidth=3;
+  ctx.beginPath();ctx.ellipse(punching?92:47,punching?-129+crouch:-109+crouch,16,14,0,0,7);ctx.fill();ctx.stroke();
+  ctx.beginPath();ctx.ellipse(-26,-120+crouch,15,14,0,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=skin;ctx.strokeStyle='#2b2031';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(0,-180+crouch,24,28,0,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=hair;ctx.beginPath();ctx.moveTo(-24,-187+crouch);ctx.lineTo(-28,-211+crouch);ctx.lineTo(-10,-203+crouch);ctx.lineTo(0,-219+crouch);ctx.lineTo(13,-205+crouch);ctx.lineTo(27,-213+crouch);ctx.lineTo(23,-185+crouch);ctx.closePath();ctx.fill();
+  if(f.kind==='ryu'){
+    ctx.strokeStyle='#d92534';ctx.lineWidth=8;ctx.beginPath();ctx.moveTo(-25,-188+crouch);ctx.lineTo(25,-188+crouch);ctx.lineTo(53,-197+crouch);ctx.stroke();
+    ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(26,-187+crouch);ctx.lineTo(49,-173+crouch);ctx.stroke();
+  }else{
+    ctx.fillStyle=hair;ctx.beginPath();ctx.moveTo(-25,-205+crouch);ctx.lineTo(-35,-170+crouch);ctx.lineTo(-16,-177+crouch);ctx.fill();
+  }
+  ctx.fillStyle='#202131';ctx.fillRect(7,-183+crouch,7,4);
+  ctx.strokeStyle='#57362e';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(10,-169+crouch);ctx.lineTo(19,-170+crouch);ctx.stroke();
+  if(f.hit>0){ctx.globalAlpha=.35;ctx.fillStyle='#fff';ctx.fillRect(-42,-221+crouch,165,225)}
+  ctx.restore();
+}
+
+function drawShots(dt){
+  for(let i=shots.length-1;i>=0;i--){
+    let p=shots[i];p.x+=p.dir*420*dt;p.life-=dt;let target=p.owner===r?k:r;
+    if(Math.abs(p.x-target.x)<45&&Math.abs(p.y-(target.y-112))<68){
+      hit(target,p.owner,19,330);shots.splice(i,1);continue;
+    }
+    if(p.life<=0||p.x<0||p.x>960){shots.splice(i,1);continue}
+    ctx.save();ctx.translate(p.x,p.y);
+    let g=ctx.createRadialGradient(0,0,4,0,0,45);
+    g.addColorStop(0,'#ffffff');g.addColorStop(.35,'#91edff');g.addColorStop(.75,'#1689ff');g.addColorStop(1,'#0b64dd00');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,45,0,7);ctx.fill();
+    ctx.strokeStyle='#9beeff';ctx.lineWidth=4;
+    for(let a=0;a<4;a++){
+      let ang=a*Math.PI/2+performance.now()/160;
+      ctx.beginPath();ctx.arc(0,0,30,ang,ang+.8);ctx.stroke();
+    }
+    ctx.restore();
+  }
+  for(let i=sparks.length-1;i>=0;i--){
+    let s=sparks[i];s.x+=s.vx*dt;s.y+=s.vy*dt;s.life-=dt;
+    ctx.globalAlpha=Math.max(0,s.life/.3);ctx.fillStyle=s.color;ctx.fillRect(s.x,s.y,7,7);ctx.globalAlpha=1;
+    if(s.life<=0)sparks.splice(i,1);
+  }
+}
+
+function frame(now){
+  let dt=Math.min(.035,(now-(last||now))/1000);
+  last=now;
+  if(gameRunning && !over){
+    clock+=dt;
+    if(clock>=1){
+      clock-=1;t=Math.max(0,t-1);
+      if(t===0)finish();
+      updateHud();
+    }
+    move(dt);
+  }
+  background();
+  drawFighter(r);
+  drawFighter(k);
+  drawShots(dt);
+  if(now>msgUntil&&!over)$('msg').textContent='';
+  requestAnimationFrame(frame);
+}
+
+// 實體鍵盤事件
+window.addEventListener('keydown',e=>{
+  if(!gameRunning)return;
+  let key=e.key.toLowerCase();
+  if('adwsjklui'.includes(key)){keys[key]=true;e.preventDefault()}
+  if(key==='enter'&&over)reset();
+});
+window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);
+window.addEventListener('blur',()=>keys={});
+
+// 觸控虛擬鍵盤事件
+document.querySelectorAll('[data-key]').forEach(b=>{
+  let key=b.dataset.key;
+  b.addEventListener('pointerdown',e=>{
+    if(!gameRunning)return;
+    e.preventDefault();keys[key]=true;b.setPointerCapture(e.pointerId);
+  });
+  for(let ev of ['pointerup','pointercancel','lostpointercapture'])b.addEventListener(ev,()=>keys[key]=false);
+});
+
+$('restart').onclick=reset;
+
+// 初始化角色站姿，等待點選開始
+r=fighter(260,'ryu');k=fighter(700,'ken');
+updateHud();
+question();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
