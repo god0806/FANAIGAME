@@ -1,0 +1,540 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>快打旋風｜心算奧義對決（純答題版）</title>
+<style>
+*{box-sizing:border-box}
+body{
+  margin:0;background:#090e20;color:#fff;
+  font-family:system-ui,'Microsoft JhengHei',sans-serif;
+  overflow-x:hidden;
+  padding-bottom:env(safe-area-inset-bottom, 0px);
+}
+header{text-align:center;padding:8px 8px 2px}
+h1{margin:0;color:#ffd36a;font-size:clamp(18px,3vw,30px);text-shadow:3px 3px #b33b29}
+.sub{color:#b9c7e7;font-size:12px;margin-top:2px}
+.wrap{max-width:980px;margin:auto;padding:0 12px}
+
+/* HUD 街機血條 */
+.hud{display:grid;grid-template-columns:1fr 80px 1fr;gap:10px;align-items:center;margin:6px 0}
+.name{font-weight:900;font-size:15px}
+.right{text-align:right}
+.bar{height:20px;border:2px solid #e7e9ff;background:#321b35;border-radius:4px;overflow:hidden;box-shadow:0 2px 8px #000}
+.fill{height:100%;width:100%;background:linear-gradient(90deg,#ff3e39,#ffcf3d);transition:width .2s ease-out}
+.kenbar{margin-left:auto;background:linear-gradient(90deg,#f8c83c,#ef473d)}
+.timer{font-size:26px;font-weight:1000;text-align:center;color:#ffe27a;text-shadow:2px 3px #a63220}
+
+/* 戰鬥舞台 */
+.stage{position:relative;border:3px solid #546b98;box-shadow:0 10px 30px #000;overflow:hidden;background:#101b36;border-radius:8px}
+.stage canvas{display:block;width:100%;height:auto;aspect-ratio:16/9}
+.message{position:absolute;top:20%;left:0;width:100%;text-align:center;font-size:clamp(24px,5.5vw,55px);font-weight:1000;color:#ffdf55;text-shadow:4px 5px #6d1930;pointer-events:none}
+
+/* 答題面板 */
+.panel{background:#18233d;border:1px solid #3a4c70;border-radius:10px;margin:8px 0;padding:12px}
+.row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px}
+.quiz{font-size:17px}
+.quiz strong{color:#ffe075;font-size:24px;white-space:pre-wrap}
+.options{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:10px}
+button{
+  cursor:pointer;background:#263b67;border:2px solid #8198c9;border-radius:8px;
+  color:white;font-weight:800;padding:12px 14px;touch-action:manipulation;
+  font-size:16px;
+}
+button:hover{background:#365b98}
+button:active{transform:translateY(2px)}
+.options button{min-height:50px;font-size:17px}
+.options button.good{background:#15803d;border-color:#4ade80}
+.options button.bad{background:#b91c1c;border-color:#f87171}
+
+.result{color:#ffe279;font-weight:800;min-height:22px;font-size:14px;margin-top:8px}
+.restart{background:#ad3b2c}
+footer{text-align:center;color:#8091b5;font-size:11px;padding:8px}
+
+.csvtools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+.upload{display:inline-block;background:#146b70;border:2px solid #78d6d7;border-radius:8px;padding:8px 12px;font-weight:800;cursor:pointer;font-size:13px}
+.csvtools span{font-size:12px;color:#bde8df}
+sup{font-size:.7em;line-height:0;vertical-align:super}
+
+/* 開始畫面 Overlay */
+.start-overlay{
+  position:fixed;inset:0;background:rgba(7,11,26,0.96);
+  display:flex;align-items:center;justify-content:center;
+  z-index:9999;padding:15px;backdrop-filter:blur(6px);
+}
+.start-card{
+  background:linear-gradient(160deg,#192648,#0d1527);
+  border:3px solid #ffcc33;border-radius:16px;
+  max-width:520px;width:100%;padding:22px;text-align:center;
+  box-shadow:0 0 35px rgba(255,204,51,0.25),0 15px 40px #000;
+}
+.start-card h2{margin:0 0 6px;font-size:clamp(22px,4.5vw,32px);color:#ffe27a;text-shadow:3px 3px #b33b29}
+.start-card p{color:#cbd8f2;font-size:13px;line-height:1.6;margin:0 0 16px}
+.start-box{
+  background:#131c33;border:1.5px dashed #4e6594;border-radius:10px;
+  padding:12px;margin-bottom:16px;text-align:center;
+}
+.start-box .box-title{font-size:13px;color:#a9bfeb;font-weight:900;margin-bottom:8px}
+.btn-start{
+  background:linear-gradient(180deg,#ff4a36,#d4201b);
+  border:2px solid #fff;border-radius:8px;
+  font-size:clamp(17px,2.5vw,22px);padding:12px 30px;
+  color:#fff;font-weight:1000;letter-spacing:1.5px;
+  box-shadow:0 5px 0 #78100d,0 0 15px rgba(255,74,54,0.4);
+  cursor:pointer;width:100%;max-width:320px;margin-top:6px;
+}
+.btn-start:hover{filter:brightness(1.15)}
+.btn-start:active{transform:translateY(3px);box-shadow:0 2px 0 #78100d}
+.start-status{display:block;margin-top:8px;font-size:12px;font-weight:bold;color:#78d6d7}
+</style>
+</head>
+<body>
+
+<!-- 開始畫面 -->
+<div id="startOverlay" class="start-overlay">
+  <div class="start-card">
+    <h2>🔥 快打旋風 · 奧義對決 🥊</h2>
+    <p>純答題對戰簡易版！<strong>答對自動發動波動拳，答錯遭受紅蓮反擊！</strong><br>無需移動或手動出招，專注答題即可取勝。</p>
+    
+    <div class="start-box">
+      <div class="box-title">【 題庫載入區 】</div>
+      <div class="csvtools" style="justify-content:center;margin-top:0">
+        <label class="upload">
+          📂 匯入 CSV 題庫
+          <input id="startCsvFile" type="file" accept=".csv,text/csv" hidden>
+        </label>
+        <button id="startDownloadSample" type="button">⬇ 下載 CSV 範例</button>
+      </div>
+      <span id="startCsvStatus" class="start-status">📖 預設使用：內建數學運算題庫</span>
+    </div>
+
+    <button id="btnStartGame" class="btn-start">🔥 開始戰鬥 (PRESS START)</button>
+  </div>
+</div>
+
+<header>
+  <h1>🔥 STREET FIGHTER · 答題對決 🥊</h1>
+  <div class="sub">隆 RYU（玩家）VS 肯 KEN（電腦）｜答對出招 · 全自動打擊</div>
+</header>
+
+<main class="wrap">
+  <div class="hud">
+    <div>
+      <div class="name">RYU 隆 <span id="rh">100</span> HP</div>
+      <div class="bar"><div class="fill" id="rhp"></div></div>
+    </div>
+    <div class="timer" id="time">VS</div>
+    <div>
+      <div class="name right">KEN 肯 <span id="kh">100</span> HP</div>
+      <div class="bar"><div class="fill kenbar" id="khp"></div></div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <canvas id="game" width="960" height="540"></canvas>
+    <div id="msg" class="message"></div>
+  </div>
+
+  <section class="panel">
+    <div class="row">
+      <div class="quiz">📚 奧義題目：<strong id="word">題目載入中...</strong></div>
+      <button id="restart" class="restart">↻ 重新開戰</button>
+    </div>
+    <div id="options" class="options"></div>
+    <div class="csvtools">
+      <label class="upload">
+        📂 匯入 CSV 題庫
+        <input id="csvFile" type="file" accept=".csv,text/csv" hidden>
+      </label>
+      <button id="downloadSample" type="button">⬇ 下載範例</button>
+      <button id="btnReturnToStart" type="button" style="background:#3b4c6e">⚙️ 選單</button>
+      <span id="csvStatus" role="status">目前使用內建數學題庫</span>
+    </div>
+    <div id="feedback" class="result">點選正確答案發動波動拳！</div>
+  </section>
+</main>
+
+<footer>純答題自動戰鬥模式；角色外觀向經典街機格鬥致敬。支援電腦實體鍵盤、平板與手機。</footer>
+
+<script>
+const C=document.getElementById('game'),ctx=C.getContext('2d'),$=id=>document.getElementById(id);
+const W=960,H=540,ground=445;
+let shots=[],sparks=[],over=false,gameRunning=false,last=0,msgUntil=0,customQuestions=[],questionLocked=false;
+
+// 預設數學題庫
+const defaultMathQuestions=[
+  {title:'(-15) + (+8) = ?', options:['-7','7','-23','23'], answer:0},
+  {title:'(+12) - (-9) = ?', options:['3','-3','21','-21'], answer:2},
+  {title:'(-24) - (+16) = ?', options:['-8','8','-40','40'], answer:2},
+  {title:'2^3 等於多少？', options:['6','8','9','12'], answer:1},
+  {title:'(-3)^2 等於多少？', options:['-9','-6','6','9'], answer:3},
+  {title:'5^2 - 4^2 等於多少？', options:['9','16','25','41'], answer:0},
+  {title:'(-7) + (-18) = ?', options:['-25','25','-11','11'], answer:0},
+  {title:'30 - (-15) = ?', options:['15','-15','45','-45'], answer:2}
+];
+
+function fighter(x,kind){
+  return {x,y:ground,hp:100,face:kind==='ryu'?1:-1,kind,act:'idle',actTime:0,hit:0,walk:0}
+}
+let r,k;
+
+function textMsg(s,d=1){$('msg').textContent=s;msgUntil=performance.now()+d*1000}
+function reset(){
+  r=fighter(260,'ryu');k=fighter(700,'ken');
+  shots=[];sparks=[];over=false;last=0;
+  updateHud();
+  textMsg('ROUND 1 · FIGHT!',1.2);
+  question();
+}
+
+function updateHud(){
+  $('rhp').style.width=r.hp+'%';$('khp').style.width=k.hp+'%';
+  $('rh').textContent=Math.ceil(r.hp);$('kh').textContent=Math.ceil(k.hp);
+}
+
+function renderPowers(el,value){
+  el.replaceChildren();const str=String(value??'');const re=/\^(?:\{([^}]+)\}|\(([^)]+)\)|(-?\d+(?:\.\d+)?|[a-zA-Z]))/g;
+  let pos=0,m;
+  while((m=re.exec(str))!==null){
+    el.append(document.createTextNode(str.slice(pos,m.index)));
+    let sup=document.createElement('sup');
+    sup.textContent=m[1]??m[2]??m[3];
+    el.append(sup);
+    pos=re.lastIndex;
+  }
+  el.append(document.createTextNode(str.slice(pos)));
+}
+
+function parseCSV(input){
+  const text=input.replace(/^\uFEFF/,'');let rows=[],row=[],field='',quoted=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i];
+    if(quoted){
+      if(c==='"'&&text[i+1]==='"'){field+='"';i++}
+      else if(c==='"')quoted=false;
+      else field+=c;
+    }else if(c==='"')quoted=true;
+    else if(c===','){row.push(field);field='';}
+    else if(c==='\n'||c==='\r'){
+      if(c==='\r'&&text[i+1]==='\n')i++;
+      row.push(field);if(row.some(x=>x.trim()))rows.push(row);row=[];field='';
+    }else field+=c;
+  }
+  if(quoted)throw Error('CSV 引號未正確結束');
+  row.push(field);if(row.some(x=>x.trim()))rows.push(row);
+  return rows;
+}
+
+function loadCSV(text){
+  let rows=parseCSV(text);if(rows.length<2)throw Error('CSV 沒有題目資料');
+  let headers=rows.shift().map(x=>x.trim().replace(/^\uFEFF/,''));
+  let required=['題號','題目','選項A','選項B','選項C','選項D','正確答案'];
+  let indices=required.map(h=>headers.indexOf(h));
+  if(indices.some(i=>i<0))throw Error('表頭必須包含：'+required.join('、'));
+  let data=[];
+  for(let [idx,row] of rows.entries()){
+    let fields=indices.map(i=>(row[i]??'').trim());
+    if(fields.every(x=>!x))continue;
+    let [id,title,a,b,c,d,correct]=fields;
+    let options=[a,b,c,d];
+    if(!title||options.some(x=>!x))throw Error('第 '+(idx+2)+' 列題目或選項為空');
+    let letter=correct.toUpperCase().replace(/^選項/,'');
+    let answer='ABCD'.includes(letter)&&letter.length===1?'ABCD'.indexOf(letter):options.indexOf(correct);
+    if(answer<0)throw Error('第 '+(idx+2)+' 列正確答案須為 A/B/C/D 或完整選項文字');
+    data.push({id,title,options,answer});
+  }
+  if(!data.length)throw Error('沒有可用的題目');
+  return data;
+}
+
+function question(){
+  questionLocked=false;let item;
+  let qPool = customQuestions.length ? customQuestions : defaultMathQuestions;
+  item = qPool[Math.floor(Math.random()*qPool.length)];
+
+  renderPowers($('word'),item.title);
+  $('options').replaceChildren();
+  item.options.forEach((s,i)=>{
+    let b=document.createElement('button');
+    renderPowers(b,'ABCD'[i]+'. '+s);
+    b.onclick=()=>{
+      if(over||questionLocked)return;
+      questionLocked=true;
+
+      if(i===item.answer){
+        b.classList.add('good');
+        $('feedback').textContent='✅ 答對！隆發動波動拳！';
+        textMsg('HADOKEN!', 0.8);
+        triggerAttack(r, 'blue');
+      }else{
+        b.classList.add('bad');
+        let correctBtn = $('options').children[item.answer];
+        if(correctBtn) correctBtn.classList.add('good');
+        $('feedback').textContent='❌ 答錯！肯展開紅蓮反擊！ 正確答案：'+ 'ABCD'[item.answer]+'. '+item.options[item.answer];
+        textMsg('COUNTER!', 0.8);
+        triggerAttack(k, 'red');
+      }
+
+      setTimeout(()=>{
+        if(!over) question();
+      }, 1200);
+    };
+    $('options').append(b);
+  });
+}
+
+function triggerAttack(attacker, color){
+  attacker.act = 'fire';
+  attacker.actTime = 0.45;
+  shots.push({
+    x: attacker.x + attacker.face * 60,
+    y: attacker.y - 110,
+    dir: attacker.face,
+    owner: attacker,
+    color: color,
+    life: 2.2
+  });
+}
+
+function hit(target,source,amount,knock){
+  target.hp = Math.max(0, target.hp - amount);
+  target.hit = 0.28;
+  target.act = 'hit';
+  target.actTime = 0.3;
+  for(let i=0;i<15;i++) sparks.push({
+    x: target.x,
+    y: target.y - 110,
+    vx: (Math.random()-.5)*260,
+    vy: (Math.random()-.5)*240,
+    life: .3,
+    color: source.kind==='ryu' ? '#5cd2ff' : '#ff7733'
+  });
+  if(target.hp<=0) finish();
+  updateHud();
+}
+
+function finish(){
+  over=true;
+  textMsg(r.hp<=0 ? 'KEN WINS! (挑戰失敗)' : 'RYU WINS! (K.O.)', 999);
+}
+
+function csvEscape(v){v=String(v);return /[",\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;}
+function downloadCSV(){
+  let sample=[
+    ['題號','題目','選項A','選項B','選項C','選項D','正確答案'],
+    ['1','(-15) + (+8) = ?','-7','7','-23','23','A'],
+    ['2','(+12) - (-9) = ?','3','-3','21','-21','C'],
+    ['3','2^3 等於多少？','6','8','9','12','B'],
+    ['4','(-3)^2 等於多少？','-9','-6','6','9','D'],
+    ['5','5^2 - 4^2 等於多少？','9','16','25','41','A']
+  ];
+  let content='\uFEFF'+sample.map(row=>row.map(csvEscape).join(',')).join('\r\n');
+  let url=URL.createObjectURL(new Blob([content],{type:'text/csv;charset=utf-8'}));
+  let a=document.createElement('a');a.href=url;a.download='快打旋風_答題對決範例.csv';a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+}
+
+$('downloadSample').addEventListener('click',downloadCSV);
+$('startDownloadSample').addEventListener('click',downloadCSV);
+
+async function handleCSVUpload(file){
+  if(!file)return;
+  try{
+    let data=loadCSV(await file.text());
+    customQuestions=data;
+    const msg='✅ 已匯入 '+data.length+' 題：'+file.name;
+    $('csvStatus').textContent=msg;
+    $('startCsvStatus').textContent=msg;
+    $('feedback').textContent='已切換成自訂 CSV 題庫！';
+    question();
+  }catch(err){
+    const errMsg='❌ 匯入失敗：'+err.message;
+    $('csvStatus').textContent=errMsg;
+    $('startCsvStatus').textContent=errMsg;
+    alert('CSV 匯入失敗：'+err.message);
+  }
+}
+
+$('csvFile').addEventListener('change',e=>{handleCSVUpload(e.target.files?.[0]);e.target.value='';});
+$('startCsvFile').addEventListener('change',e=>{handleCSVUpload(e.target.files?.[0]);e.target.value='';});
+
+$('btnStartGame').addEventListener('click',()=>{
+  $('startOverlay').style.display='none';
+  gameRunning=true;
+  reset();
+});
+
+$('btnReturnToStart').addEventListener('click',()=>{
+  gameRunning=false;
+  over=true;
+  $('startOverlay').style.display='flex';
+});
+
+$('restart').onclick=reset;
+
+function background(){
+  let g=ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#101c40');g.addColorStop(.72,'#744458');g.addColorStop(1,'#c88367');
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#f6bb8b';ctx.beginPath();ctx.arc(770,128,64,0,7);ctx.fill();
+  ctx.fillStyle='#1a2444';
+  for(let i=0;i<15;i++){
+    let h=100+(i*73)%125;
+    ctx.fillRect(i*75,ground-70-h,64,h+70);
+    for(let a=0;a<4;a++)for(let b=0;b<4;b++){
+      ctx.fillStyle=(a+b+i)%3===0?'#e6a56b':'#39445c';
+      ctx.fillRect(i*75+8+a*13,ground-56-h+b*24,6,11);
+    }
+    ctx.fillStyle='#1a2444';
+  }
+  ctx.fillStyle='#5c4558';ctx.fillRect(0,ground,960,95);
+  ctx.fillStyle='#967278';ctx.fillRect(0,ground,960,9);
+  ctx.strokeStyle='#b9918e';ctx.lineWidth=2;
+  for(let i=0;i<13;i++){ctx.beginPath();ctx.moveTo(480+(i-6)*35,ground);ctx.lineTo(480+(i-6)*120,H);ctx.stroke()}
+  for(let y=ground+20;y<H;y+=25){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke()}
+  ctx.fillStyle='#a5b6ca';ctx.font='bold 16px sans-serif';ctx.fillText('STREET FIGHTER · MATH BATTLE',18,35);
+}
+
+function limb(x1,y1,x2,y2,width,color){
+  ctx.strokeStyle='#2b2031';ctx.lineWidth=width+5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+  ctx.strokeStyle=color;ctx.lineWidth=width;
+  ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();
+}
+
+function drawFighter(f, now){
+  ctx.save();
+  ctx.translate(f.x,f.y);
+  ctx.scale(f.face,1);
+
+  // 待機呼吸律動
+  let idleBob = (f.act==='idle') ? Math.sin(now/180)*3 : 0;
+  ctx.translate(0, idleBob);
+
+  let skin='#e6ad7e',gi=f.kind==='ryu'?'#e8e4d8':'#c51f32',shadow=f.kind==='ryu'?'#b4b5b8':'#851b30',hair=f.kind==='ryu'?'#22252b':'#f2c55c',glove=f.kind==='ryu'?'#d62e35':'#6e303a';
+  
+  // 影子
+  ctx.fillStyle='#080e22aa';ctx.beginPath();ctx.ellipse(0,0,53,10,0,0,Math.PI*2);ctx.fill();
+
+  // 雙腿
+  limb(-18,-76,-25,-10,23,gi);
+  limb(18,-76,24,-10,23,gi);
+  limb(-25,-10,-26,0,16,skin);
+  limb(24,-10,25,0,17,skin);
+
+  // 軀幹道服
+  ctx.fillStyle=gi;ctx.strokeStyle='#252334';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(-34,-155);ctx.lineTo(33,-155);ctx.lineTo(24,-76);ctx.lineTo(-22,-76);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle=shadow;ctx.beginPath();ctx.moveTo(-8,-154);ctx.lineTo(8,-154);ctx.lineTo(-4,-90);ctx.lineTo(-19,-98);ctx.fill();
+  ctx.fillStyle=f.kind==='ryu'?'#ce252f':'#18191d';ctx.fillRect(-30,-99,61,10);ctx.fillRect(10,-93,12,32);
+
+  // 雙臂與出招姿態
+  let isFiring = (f.act === 'fire');
+  if(isFiring){
+    // 推掌出招
+    limb(-20,-144,30,-120,20,skin);
+    limb(20,-144,80,-120,21,skin);
+    ctx.fillStyle=glove;
+    ctx.beginPath();ctx.ellipse(82,-120,16,14,0,0,7);ctx.fill();
+  } else {
+    limb(-29,-144,-49,-104,20,skin);
+    limb(-49,-104,-26,-120,18,skin);
+    limb(27,-144,47,-109,21,skin);
+    ctx.fillStyle=glove;ctx.strokeStyle='#432d39';ctx.lineWidth=3;
+    ctx.beginPath();ctx.ellipse(47,-109,16,14,0,0,7);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.ellipse(-26,-120,15,14,0,0,7);ctx.fill();ctx.stroke();
+  }
+
+  // 頭部與頭髮
+  ctx.fillStyle=skin;ctx.strokeStyle='#2b2031';ctx.lineWidth=4;
+  ctx.beginPath();ctx.ellipse(0,-180,24,28,0,0,7);ctx.fill();ctx.stroke();
+  ctx.fillStyle=hair;
+  ctx.beginPath();ctx.moveTo(-24,-187);ctx.lineTo(-28,-211);ctx.lineTo(-10,-203);ctx.lineTo(0,-219);ctx.lineTo(13,-205);ctx.lineTo(27,-213);ctx.lineTo(23,-185);ctx.closePath();ctx.fill();
+  
+  if(f.kind==='ryu'){
+    ctx.strokeStyle='#d92534';ctx.lineWidth=8;
+    ctx.beginPath();ctx.moveTo(-25,-188);ctx.lineTo(25,-188);ctx.lineTo(53,-197);ctx.stroke();
+  }else{
+    ctx.fillStyle=hair;ctx.beginPath();ctx.moveTo(-25,-205);ctx.lineTo(-35,-170);ctx.lineTo(-16,-177);ctx.fill();
+  }
+
+  // 受創白閃
+  if(f.hit>0){
+    ctx.globalAlpha=.45;ctx.fillStyle='#fff';
+    ctx.fillRect(-45,-220,170,225);
+  }
+  ctx.restore();
+}
+
+function drawShots(dt){
+  for(let i=shots.length-1;i>=0;i--){
+    let p=shots[i];
+    p.x += p.dir * 460 * dt;
+    p.life -= dt;
+    let target = (p.owner === r) ? k : r;
+
+    // 命中判定
+    if(Math.abs(p.x - target.x) < 45){
+      hit(target, p.owner, 25, 200);
+      shots.splice(i, 1);
+      continue;
+    }
+    if(p.life <= 0 || p.x < 0 || p.x > W){
+      shots.splice(i, 1);
+      continue;
+    }
+
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    let g = ctx.createRadialGradient(0,0,4, 0,0,45);
+    if(p.color === 'blue'){
+      g.addColorStop(0,'#ffffff');g.addColorStop(.35,'#91edff');g.addColorStop(.75,'#1689ff');g.addColorStop(1,'#0b64dd00');
+    } else {
+      g.addColorStop(0,'#ffffff');g.addColorStop(.35,'#ffe066');g.addColorStop(.75,'#ff4400');g.addColorStop(1,'#ff440000');
+    }
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,45,0,7);ctx.fill();
+    ctx.restore();
+  }
+
+  // 粒子特效
+  for(let i=sparks.length-1;i>=0;i--){
+    let s=sparks[i];
+    s.x += s.vx*dt; s.y += s.vy*dt; s.life -= dt;
+    ctx.globalAlpha = Math.max(0, s.life/.3);
+    ctx.fillStyle = s.color;
+    ctx.fillRect(s.x, s.y, 6, 6);
+    ctx.globalAlpha = 1;
+    if(s.life <= 0) sparks.splice(i, 1);
+  }
+}
+
+function frame(now){
+  let dt = Math.min(.035, (now-(last||now))/1000);
+  last = now;
+
+  if(gameRunning && !over){
+    if(r.actTime > 0){ r.actTime -= dt; if(r.actTime <= 0) r.act = 'idle'; }
+    if(k.actTime > 0){ k.actTime -= dt; if(k.actTime <= 0) k.act = 'idle'; }
+    if(r.hit > 0) r.hit -= dt;
+    if(k.hit > 0) k.hit -= dt;
+  }
+
+  background();
+  drawFighter(r, now);
+  drawFighter(k, now);
+  drawShots(dt);
+
+  if(now > msgUntil && !over) $('msg').textContent = '';
+  requestAnimationFrame(frame);
+}
+
+// 初始化
+r = fighter(260,'ryu');
+k = fighter(700,'ken');
+updateHud();
+question();
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
