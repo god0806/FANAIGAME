@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>數戰空間：CS 實戰特勤訓練場 (隨時加入與動態連線版)</title>
+  <title>數戰空間：CS 實戰特勤訓練場 (全特效與自訂匯入版)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/nipplejs/0.10.1/nipplejs.min.js"></script>
+  <!-- 引入 PeerJS 與 QRCode.js 用於多人連線與一鍵加入 -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-  <!-- 引入 QR Code 生成器 -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
     body { margin: 0; overflow: hidden; background-color: #121212; user-select: none; font-family: 'Segoe UI', Tahoma, sans-serif; touch-action: none; }
@@ -27,14 +27,14 @@
     #damage-overlay { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; box-shadow: inset 0 0 0px rgba(239, 68, 68, 0); pointer-events: none; transition: box-shadow 0.2s; z-index: 15; }
     #damage-overlay.hurt { box-shadow: inset 0 0 150px rgba(239, 68, 68, 0.9); }
 
-    .screen-overlay { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.95); z-index: 50; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; overflow-y: auto;}
+    .screen-overlay { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(15, 23, 42, 0.95); z-index: 50; display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; }
     #pause-screen { display: none; background: rgba(0, 0, 0, 0.85); z-index: 40; cursor: pointer; }
     #review-screen { display: none; background: rgba(15, 23, 42, 0.98); z-index: 60; }
     
-    input[type=range] { accent-color: #38bdf8; cursor: pointer; pointer-events: auto;}
-    input[type=checkbox] { width: 1.2rem; height: 1.2rem; accent-color: #10b981; cursor: pointer; pointer-events: auto;}
+    input[type=range] { accent-color: #38bdf8; cursor: pointer; }
+    input[type=checkbox] { width: 1.2rem; height: 1.2rem; accent-color: #10b981; cursor: pointer; }
     
-    #killfeed { position: absolute; top: 220px; right: 20px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; z-index: 11; }
+    #killfeed { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; z-index: 11; }
     .kill-msg { background: rgba(0,0,0,0.8); padding: 8px 16px; border-radius: 4px; color: white; font-family: monospace; font-size: 1.1rem; animation: fadeOut 4s forwards; border-right: 4px solid #10b981; }
     .kill-msg.error { border-right-color: #ef4444; }
     @keyframes fadeOut { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; display: none; } }
@@ -48,90 +48,59 @@
     #btn-fire:active { background: rgba(225, 29, 72, 0.7); }
     #btn-jump { width: 60px; height: 60px; }
     #btn-crouch { width: 60px; height: 60px; }
-    
-    #btn-pause-mobile { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); padding: 8px 16px; background: rgba(0,0,0,0.5); border: 1px solid white; color: white; border-radius: 8px; pointer-events: auto; font-weight: bold; z-index: 30; }
+    #btn-pause-mobile { position: absolute; top: 20px; right: 20px; padding: 8px 16px; background: rgba(0,0,0,0.5); border: 1px solid white; color: white; border-radius: 8px; pointer-events: auto; font-weight: bold; z-index: 30; }
 
     .custom-scroll::-webkit-scrollbar { width: 8px; }
     .custom-scroll::-webkit-scrollbar-track { background: #1e293b; border-radius: 4px; }
     .custom-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
 
-    :root { color-scheme: dark; }
-    .screen-overlay { padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom)); }
-    #ui-layer > .absolute.bg-slate-900\/90 { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); background: rgba(9, 18, 32, .82); }
-    #hud-question { text-wrap: balance; text-shadow: 0 2px 12px rgba(0,0,0,.65); }
-    .crosshair::before, .crosshair::after { box-shadow: 0 0 6px rgba(0,0,0,.9); }
-    #joystick-zone { bottom: max(20px, env(safe-area-inset-bottom)); left: max(20px, env(safe-area-inset-left)); }
-    
-    #god-mode-panel { position: absolute; top: 20px; right: 50%; transform: translateX(50%); background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 2px solid #38bdf8; border-radius: 12px; padding: 15px 25px; z-index: 35; pointer-events: auto; display: none; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+    /* 上帝視角介面控制 */
+    #god-mode-panel { position: absolute; top: 20px; right: 50%; transform: translateX(50%); background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 2px solid #38bdf8; border-radius: 12px; padding: 15px 25px; z-index: 55; pointer-events: auto; display: none; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     #qrcode-container img { margin: 0 auto; border: 4px solid white; border-radius: 8px; }
 
-    /* 上帝視角模式下的介面隱藏 */
+    /* 上帝模式隱藏玩家UI */
     .god-mode-active #hud-hp-container, .god-mode-active #hud-score-container, .god-mode-active .crosshair, .god-mode-active #btn-fire, .god-mode-active #btn-jump, .god-mode-active #btn-crouch, .god-mode-active #stance-indicator { display: none !important; }
-
-    @media (max-width: 640px) {
-      #ui-layer .absolute.top-4.left-4 { max-width: calc(100vw - 2rem); padding: .7rem .85rem; }
-      #hud-question { font-size: clamp(1rem, 4.6vw, 1.45rem); line-height: 1.3; }
-      #ui-layer .absolute.bottom-4.left-4 { gap: .5rem; }
-      #ui-layer .absolute.bottom-4.left-4 > div { min-width: 4.4rem; padding: .5rem; }
-      #ui-layer .absolute.bottom-4.left-4 > div > div:last-child { font-size: 1.6rem; }
-      .touch-btn { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-      #killfeed { top: 180px; }
-      #god-mode-panel { top: 70px; padding: 10px; }
-    }
   </style>
 </head>
 <body>
 
-  <!-- 初始設定與大廳畫面 -->
-  <div id="setup-screen" class="screen-overlay py-8 z-50">
+  <!-- 設定畫面 -->
+  <div id="setup-screen" class="screen-overlay overflow-y-auto py-8 z-50">
     <h1 class="text-4xl md:text-6xl font-black text-white mb-2 md:mb-4 tracking-wider italic text-center">TACTICAL <span class="text-sky-500">MATH</span></h1>
     <p class="text-emerald-400 font-bold mb-4" id="device-info">系統偵測中...</p>
     
+    <!-- 模式選擇 -->
     <div class="flex flex-wrap justify-center gap-4 mb-6 w-full max-w-4xl px-4">
-      <button id="mode-single" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold border-2 border-sky-400 transition-all">👤 單機特訓</button>
+      <button id="mode-single" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold border-2 border-sky-400 transition-all ring-4 ring-sky-300">👤 單機特訓</button>
       <button id="mode-host" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold border-2 border-rose-400 transition-all">📡 建立多人房間 (主機)</button>
       <button id="mode-join" class="flex-1 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold border-2 border-amber-400 transition-all">🔗 加入特勤小隊 (客機)</button>
     </div>
 
     <!-- 主機/單機 設定面板 -->
     <div id="host-panel" class="w-full max-w-4xl flex flex-col md:flex-row gap-6 px-4">
-      <div class="bg-slate-900 md:w-1/2 p-6 rounded-xl border border-slate-600 shadow-lg flex flex-col">
-        
-        <!-- 連線資訊與 QR Code 區域 -->
-        <div id="multiplayer-info" class="hidden mb-4 p-4 bg-slate-800 border-2 border-rose-500 rounded-lg text-center relative">
-          <p class="text-slate-300 mb-2 font-bold text-sm">請隊員直接掃描 QR Code，支援中途加入：</p>
-          <div id="qrcode-container" class="flex justify-center mb-2 bg-white p-2 rounded-lg inline-block w-40 h-40 mx-auto"></div>
-          <p class="text-slate-400 text-xs mt-1">或輸入代碼:</p>
-          <div class="text-4xl font-black text-rose-400 tracking-widest mt-1" id="host-room-id">生成中...</div>
-          <p class="text-sm text-emerald-400 mt-2 font-bold" id="host-players-count">目前小隊人數: 1 / 4</p>
+      <div class="text-slate-300 md:w-1/3 leading-relaxed bg-slate-800/50 p-6 rounded-xl border border-slate-600 shadow-lg text-sm md:text-base flex flex-col justify-between">
+        <div>
+            <div class="font-bold text-rose-400 mb-2 text-lg border-b border-slate-700 pb-2">【特勤作戰指令】</div>
+            <span class="text-white font-bold">電腦端</span>: WASD 移動，滑鼠瞄準與左鍵射擊，空白鍵跳躍，Shift 蹲下。<br><br>
+            <span class="text-white font-bold">手機平板</span>: 左搖桿移動，右半螢幕滑動瞄準，按鈕操作跳躍/蹲下/開火。
         </div>
 
-        <div class="font-bold text-emerald-400 mb-2 text-xl border-b border-slate-700 pb-2">📁 選擇作戰題庫</div>
-        <select id="bank-select" class="w-full bg-slate-800 text-white font-bold px-4 py-3 rounded outline-none border border-slate-500 text-base md:text-lg cursor-pointer mb-4 mt-2">
-          <option value="math99">內建：國小 99 乘法表</option>
-          <option value="mathMul2_1">內建：國小 2 位數乘 1 位數</option>
-          <option value="mathMul2">內建：國小 2 位數乘法 30 題</option>
-          <option value="mathAddSub3">內建：國小三位數加減法</option>
-          <option value="mathNegativeAddSub">內建：國中正負數加減法</option>
-          <option value="mathNegativeMul" selected>內建：國中正負數乘法</option>
-        </select>
-
-        <label class="block w-full text-center cursor-pointer bg-slate-800 hover:bg-slate-700 border-2 border-dashed border-sky-500 text-sky-400 font-bold px-4 py-2 rounded-lg transition-all text-sm mb-4">
-          <span id="upload-status">或點此上傳自訂 CSV (可多選)</span>
-          <input type="file" id="csv-upload" accept=".csv" multiple class="hidden">
-        </label>
-
-        <button id="start-btn" class="w-full mt-auto px-6 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-black text-2xl transition-all shadow-lg border-2 border-emerald-400">
-          ▶ 隨時出擊 (支援中途加入)
-        </button>
+        <!-- 連線資訊與 QR Code 區域 -->
+        <div id="multiplayer-info" class="hidden mt-4 p-4 bg-slate-800 border-2 border-rose-500 rounded-lg text-center relative">
+            <p class="text-slate-300 mb-2 font-bold text-sm">請隊員掃描加入 (支援中途加入)：</p>
+            <div id="qrcode-container" class="flex justify-center mb-2 bg-white p-2 rounded-lg inline-block w-32 h-32 mx-auto"></div>
+            <p class="text-slate-400 text-xs mt-1">或輸入代碼:</p>
+            <div class="text-3xl font-black text-rose-400 tracking-widest mt-1" id="host-room-id">生成中...</div>
+            <p class="text-sm text-emerald-400 mt-2 font-bold" id="host-players-count">小隊人數: 1 / 4</p>
+        </div>
       </div>
 
-      <div class="bg-slate-900 md:w-1/2 p-6 rounded-xl border border-slate-600 shadow-lg flex flex-col justify-between">
+      <div class="bg-slate-900 md:w-2/3 p-6 rounded-xl border border-slate-600 shadow-lg flex flex-col justify-between">
         
         <!-- 上帝視角開關 -->
         <div id="god-mode-toggle-container" class="hidden mb-4 p-3 bg-indigo-900/50 border border-indigo-500 rounded-lg flex items-center gap-3">
-          <input type="checkbox" id="god-mode-toggle" class="w-5 h-5 accent-indigo-500">
-          <label for="god-mode-toggle" class="text-indigo-200 font-bold cursor-pointer select-none text-sm md:text-base">啟用上帝視角 (主機純觀戰，不參與對戰)</label>
+            <input type="checkbox" id="god-mode-toggle" class="w-5 h-5 accent-indigo-500">
+            <label for="god-mode-toggle" class="text-indigo-200 font-bold cursor-pointer select-none text-sm md:text-base">啟用上帝視角 (主機純觀戰，不參與對戰)</label>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 mb-4">
@@ -144,7 +113,7 @@
             </select>
           </div>
           <div class="flex-1">
-            <label class="text-amber-400 font-bold mb-1 block">戰鬥初始難度：</label>
+            <label class="text-amber-400 font-bold mb-1 block">戰鬥難易度：</label>
             <select id="difficulty-select" class="w-full bg-slate-800 text-white font-bold px-3 py-2 rounded outline-none border border-amber-500">
               <option value="easy">簡單 (固定靶 / 射速慢)</option>
               <option value="normal" selected>標準 (會找掩體 / 射速中)</option>
@@ -153,14 +122,14 @@
           </div>
         </div>
 
-        <div class="flex flex-col gap-4 mb-4">
-          <div>
+        <div class="flex flex-col sm:flex-row gap-6 mb-4">
+          <div class="flex-1">
             <label class="text-slate-200 font-bold mb-1 flex justify-between text-sm">
               <span>敵人移動速度</span> <span id="speed-val" class="text-sky-400">4.0</span>
             </label>
             <input type="range" id="speed-slider" min="0" max="12" step="0.5" value="4.0" class="w-full">
           </div>
-          <div>
+          <div class="flex-1">
             <label class="text-slate-200 font-bold mb-1 flex justify-between text-sm">
               <span>敵人開火間隔</span> <span id="fire-val" class="text-sky-400">2.0 秒</span>
             </label>
@@ -185,9 +154,39 @@
       </button>
       <p id="join-status-msg" class="text-sky-400 mt-4 font-bold"></p>
     </div>
+
+    <!-- 題庫選擇區塊 (主機/單機模式才顯示) -->
+    <div id="bank-panel" class="w-full max-w-4xl bg-slate-900/80 border border-sky-700 rounded-xl p-6 mt-3 mb-3 shadow-2xl">
+      <div class="flex flex-col md:flex-row gap-6 items-end">
+        <div class="flex-1 w-full">
+            <label for="bank-select" class="block text-sky-300 font-bold mb-2 text-xl">選擇作戰題庫</label>
+            <select id="bank-select" class="w-full bg-slate-800 text-white font-bold px-4 py-4 rounded outline-none border border-slate-500 text-lg cursor-pointer">
+              <option value="math99">📁 國小 99 乘法表</option>
+              <option value="mathMul2_1">📁 國小 2 位數乘 1 位數</option>
+              <option value="mathMul2">📁 國小 2 位數乘法 30 題</option>
+              <option value="mathAddSub3">📁 國小三位數加減法 20 題</option>
+              <option value="mathNegativeAddSub">📁 國中正負數加減法</option>
+              <option value="mathNegativeMul" selected>📁 國中正負數乘法</option>
+            </select>
+        </div>
+        <button id="start-btn" class="w-full md:w-auto px-12 py-4 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-black text-2xl transition-all shadow-lg border-2 border-emerald-400">
+            ▶ 選擇題庫並出擊
+        </button>
+      </div>
+    </div>
+
+    <div id="upload-panel" class="w-full max-w-4xl">
+        <p class="text-slate-400 text-sm mb-4 mt-2 px-4 text-center">或者您可以手動上傳自訂的 CSV 題庫檔案 (必備欄位: 題號, 題目, 選項A...D, 正確答案)</p>
+        <div class="flex justify-center">
+            <label class="mb-6 cursor-pointer bg-slate-800 hover:bg-slate-700 border border-slate-500 text-white px-8 py-3 rounded-lg transition-all font-bold">
+            <span id="file-name">上傳自訂 CSV 檔案</span>
+            <input type="file" id="csv-upload" accept=".csv" multiple class="hidden">
+            </label>
+        </div>
+    </div>
   </div>
 
-  <!-- 遊戲中暫停畫面 -->
+  <!-- 暫停畫面 -->
   <div id="pause-screen" class="screen-overlay">
     <h2 class="text-4xl md:text-6xl font-black text-white mb-6 tracking-widest drop-shadow-2xl">遊戲暫停</h2>
     <div class="text-xl md:text-2xl text-white font-bold bg-sky-600/80 hover:bg-sky-500 px-8 py-4 rounded-xl border-2 border-sky-400 transition-all shadow-[0_0_20px_rgba(14,165,233,0.8)] text-center">
@@ -202,7 +201,8 @@
     
     <div class="bg-slate-800 border border-slate-600 rounded-lg p-4 md:p-6 w-full max-w-3xl mb-8 shadow-2xl">
       <h3 class="text-amber-400 font-bold text-xl md:text-2xl mb-4 border-b border-slate-700 pb-2">誤擊紀錄 (錯題本)</h3>
-      <ul id="mistake-list" class="max-h-[40vh] overflow-y-auto custom-scroll pr-4 space-y-4"></ul>
+      <ul id="mistake-list" class="max-h-[40vh] overflow-y-auto custom-scroll pr-4 space-y-4">
+      </ul>
     </div>
 
     <button id="restart-btn" class="px-8 md:px-10 py-3 md:py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold text-xl md:text-2xl transition-all shadow-lg border-2 border-sky-400">
@@ -219,7 +219,7 @@
     <div class="text-center text-xs font-bold text-emerald-400 mt-1 drop-shadow-md tracking-widest">RADAR</div>
   </div>
 
-  <!-- 上帝視角控制面板 (僅主機顯示) -->
+  <!-- 上帝視角控制面板 -->
   <div id="god-mode-panel">
     <div class="flex justify-between items-center border-b border-slate-600 pb-2 mb-3">
       <h3 class="text-sky-400 font-black text-lg">⚙️ 上帝視角 (即時調控)</h3>
@@ -239,11 +239,9 @@
         <input type="range" id="god-fire-slider" min="0.5" max="5.0" step="0.1" value="2.0" class="w-full">
       </div>
     </div>
-    <p class="text-xs text-slate-400 mt-3 text-center">調整後將即時同步給所有隊員</p>
-    <p class="text-xs text-indigo-400 mt-1 text-center">操作方式：WASD 平移，E 上升，Q 下降</p>
+    <p class="text-xs text-slate-400 mt-3 text-center">調整後將即時同步給所有隊員 (操作：WASD 平移，E 上升，Q 下降)</p>
   </div>
-  <!-- 主機專屬：呼叫上帝視角的按鈕 -->
-  <button id="open-god-mode" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-full border border-indigo-300 z-20 shadow-lg pointer-events-auto text-sm backdrop-blur-sm">
+  <button id="open-god-mode" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-full border border-indigo-300 z-[55] shadow-lg pointer-events-auto text-sm backdrop-blur-sm">
     👁️ 觀戰控制
   </button>
 
@@ -262,11 +260,10 @@
   <div id="ui-layer">
     <div class="absolute bottom-10 left-1/2 -translate-x-1/2 text-white/50 font-bold text-lg md:text-xl tracking-widest" id="stance-indicator">[ STANDING ]</div>
 
-    <!-- 進度與任務指示器 -->
     <div class="absolute top-4 left-4 md:bottom-8 md:top-auto md:left-8 bg-slate-900/90 border-l-4 border-amber-500 p-3 md:p-6 rounded text-white shadow-2xl max-w-xs md:max-w-4xl">
       <div class="flex justify-between items-center mb-1">
-        <div class="text-sm md:text-lg text-amber-400 font-bold" id="hud-question-number">MISSION OBJECTIVE</div>
-        <div class="text-xs md:text-sm bg-rose-600 px-2 py-1 rounded font-bold ml-4 shadow-md transition-all" id="hud-team-targets">擊殺目標: 0 / 1</div>
+          <div class="text-sm md:text-lg text-amber-400 font-bold" id="hud-question-number">MISSION OBJECTIVE</div>
+          <div class="text-xs md:text-sm bg-rose-600 px-2 py-1 rounded font-bold ml-4 shadow-md transition-all" id="hud-team-targets">擊殺目標: 0 / 1</div>
       </div>
       <div class="text-xl md:text-4xl font-mono leading-tight font-bold" id="hud-question">等待任務指派...</div>
     </div>
@@ -288,13 +285,12 @@
 
   <script>
     // ==========================================
-    // 0. 基礎資料與全域變數
+    // 0. 裝置偵測與全域設定
     // ==========================================
     const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     document.getElementById('device-info').textContent = isTouchDevice ? "✓ 偵測為觸控裝置 (啟用雙搖桿模式)" : "✓ 偵測為電腦端 (啟用鍵鼠 FPS 模式)";
 
-    let loadedBanks = {}; 
-    let currentQuestions = [];
+    let questions = [];
     let currentQuestionIndex = 0;
     let score = 0;
     let hp = 100;
@@ -304,22 +300,6 @@
     let isPaused = false;
     let wrongAnswersLog = [];
     let gameTime = 0; 
-    
-    // 多人連線與上帝視角變數
-    let connectionMode = 'single'; // single, host, join
-    let isGodMode = false; 
-    let peer = null;
-    let myPeerId = null;
-    let roomPrefix = 'TCMATH-'; 
-    let hostConnection = null; 
-    let clientConnections = {}; 
-    let clientPlayers = {}; 
-    let otherPlayerMeshes = {}; 
-    let hostPosSync = {x:0, y:0, z:0, ry:0};
-    let currentQuestionCorrectNeeded = 1;
-    let currentQuestionCorrectHits = 0;
-    const playerColors = [0x3b82f6, 0xef4444, 0x22c55e, 0xa855f7]; 
-    let myPlayerColorIndex = 0;
 
     let enemyMoveSpeed = 4.0;
     let enemyFireBase = 2000;
@@ -327,7 +307,24 @@
     let enemyBulletSpeed = 40.0;
     let autoAimEnabled = true;
 
-    // 內建完整六份題庫
+    // 連線相關變數
+    let connectionMode = 'single';
+    let isGodMode = false;
+    let peer = null;
+    let myPeerId = null;
+    let roomPrefix = 'TCMATH-';
+    let hostConnection = null;
+    let clientConnections = {};
+    let clientPlayers = {};
+    let otherPlayerMeshes = {};
+    let hostPosSync = {x:0, y:0, z:0, ry:0};
+    let currentQuestionCorrectNeeded = 1;
+    let currentQuestionCorrectHits = 0;
+    const playerColors = [0x3b82f6, 0xef4444, 0x22c55e, 0xa855f7];
+    let myPlayerColorIndex = 0;
+    let qrCodeObj = null;
+
+    // 六份題庫完全內建，字串化封裝
     const cloudData = {
       "math99": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,1 x 1 = ?,4,5,2,1,D\n2,1 x 2 = ?,7,3,2,6,C\n3,1 x 3 = ?,1,2,3,5,C\n4,1 x 4 = ?,4,3,8,5,A\n5,1 x 5 = ?,6,10,5,9,C\n6,1 x 6 = ?,5,1,12,6,D\n7,1 x 7 = ?,8,7,2,3,B\n8,1 x 8 = ?,13,9,16,8,D\n9,1 x 9 = ?,9,10,18,6,A\n10,2 x 1 = ?,6,2,3,4,B\n11,2 x 2 = ?,5,9,6,4,D\n12,2 x 3 = ?,6,4,9,8,A\n13,2 x 4 = ?,3,6,10,8,D\n14,2 x 5 = ?,8,5,7,10,D\n15,2 x 6 = ?,6,8,12,18,C\n16,2 x 7 = ?,12,21,7,14,D\n17,2 x 8 = ?,13,8,18,16,D\n18,2 x 9 = ?,22,18,16,20,B\n19,3 x 1 = ?,6,1,4,3,D\n20,3 x 2 = ?,11,3,6,5,C\n21,3 x 3 = ?,9,8,6,11,A\n22,3 x 4 = ?,9,12,8,13,B\n23,3 x 5 = ?,15,16,20,12,A\n24,3 x 6 = ?,13,15,14,18,D\n25,3 x 7 = ?,17,21,10,16,B\n26,3 x 8 = ?,24,27,28,32,A\n27,3 x 9 = ?,30,24,18,27,D\n28,4 x 1 = ?,5,3,4,7,C\n29,4 x 2 = ?,13,12,8,6,C\n30,4 x 3 = ?,12,7,11,8,A\n31,4 x 4 = ?,12,16,15,8,B\n32,4 x 5 = ?,19,9,20,16,C\n33,4 x 6 = ?,28,24,20,23,B\n34,4 x 7 = ?,24,30,32,28,D\n35,4 x 8 = ?,32,40,35,33,A\n36,4 x 9 = ?,13,36,40,32,B\n37,5 x 1 = ?,4,7,3,5,D\n38,5 x 2 = ?,10,15,12,8,A\n39,5 x 3 = ?,20,10,15,12,C\n40,5 x 4 = ?,9,25,20,21,C\n41,5 x 5 = ?,24,30,25,20,C\n42,5 x 6 = ?,11,28,25,30,D\n43,5 x 7 = ?,28,42,33,35,D\n44,5 x 8 = ?,45,44,48,40,D\n45,5 x 9 = ?,45,46,54,36,A\n46,6 x 1 = ?,12,7,6,5,C\n47,6 x 2 = ?,9,8,16,12,D\n48,6 x 3 = ?,15,9,18,19,C\n49,6 x 4 = ?,28,18,24,20,C\n50,6 x 5 = ?,35,24,30,36,C\n51,6 x 6 = ?,40,42,30,36,D\n52,6 x 7 = ?,47,35,42,13,C\n53,6 x 8 = ?,48,40,54,52,A\n54,6 x 9 = ?,51,45,54,49,C\n55,7 x 1 = ?,8,6,5,7,D\n56,7 x 2 = ?,16,21,14,12,C\n57,7 x 3 = ?,18,16,10,21,D\n58,7 x 4 = ?,27,28,24,32,B\n59,7 x 5 = ?,30,35,12,42,B\n60,7 x 6 = ?,48,37,42,35,C\n61,7 x 7 = ?,14,51,56,49,D\n62,7 x 8 = ?,15,56,58,49,B\n63,7 x 9 = ?,68,63,70,72,B\n64,8 x 1 = ?,16,9,7,8,D\n65,8 x 2 = ?,10,16,20,18,B\n66,8 x 3 = ?,32,20,24,27,C\n67,8 x 4 = ?,28,24,37,32,D\n68,8 x 5 = ?,45,43,40,41,C\n69,8 x 6 = ?,48,47,56,46,A\n70,8 x 7 = ?,56,64,49,52,A\n71,8 x 8 = ?,56,64,72,16,B\n72,8 x 9 = ?,72,17,63,80,A\n73,9 x 1 = ?,7,10,18,9,D\n74,9 x 2 = ?,13,18,27,20,B\n75,9 x 3 = ?,18,27,24,36,B\n76,9 x 4 = ?,27,13,32,36,D\n77,9 x 5 = ?,45,50,14,54,A\n78,9 x 6 = ?,52,50,59,54,D\n79,9 x 7 = ?,63,54,56,60,A\n80,9 x 8 = ?,80,69,73,72,D\n81,9 x 9 = ?,72,85,76,81,D\n`,
       "mathMul2_1": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,45 x 6 = ?,250,279,273,270,D\n2,56 x 7 = ?,399,394,392,412,C\n3,69 x 9 = ?,620,619,621,617,C\n4,72 x 3 = ?,224,216,215,217,B\n5,93 x 4 = ?,369,367,372,352,C\n6,43 x 7 = ?,281,321,301,303,C\n7,86 x 7 = ?,602,603,604,587,A\n8,97 x 2 = ?,193,182,196,194,D\n9,16 x 5 = ?,79,80,100,89,B\n10,41 x 9 = ?,384,369,370,371,B\n11,23 x 4 = ?,92,94,91,82,A\n12,38 x 4 = ?,154,152,139,162,B\n13,84 x 3 = ?,272,244,252,262,C\n14,76 x 2 = ?,149,152,132,155,B\n15,66 x 2 = ?,133,142,132,147,C\n16,14 x 9 = ?,112,126,146,111,B\n17,57 x 2 = ?,112,134,117,114,D\n18,88 x 7 = ?,596,615,616,614,C\n19,41 x 4 = ?,154,165,174,164,D\n20,92 x 8 = ?,734,751,731,736,D\n21,70 x 8 = ?,549,560,580,547,B\n22,79 x 8 = ?,630,642,632,625,C\n23,72 x 4 = ?,292,308,289,288,D\n24,50 x 8 = ?,400,401,390,398,A\n25,91 x 5 = ?,455,453,454,475,A\n26,49 x 9 = ?,461,431,428,441,D\n27,45 x 4 = ?,181,180,193,170,B\n28,72 x 7 = ?,516,508,495,504,D\n29,97 x 2 = ?,184,204,208,194,D\n30,16 x 5 = ?,82,81,80,72,C\n`,
@@ -337,17 +334,16 @@
       "mathNegativeMul": `題號,題目,選項A,選項B,選項C,選項D,正確答案\n1,(-4) x 5 = ?,-18,-20,20,18,B\n2,8 x (-15) = ?,119,120,-120,-119,C\n3,(-25) x 25 = ?,-625,625,-624,624,A\n4,(-4) x 5 = ?,20,30,-30,-20,D\n5,9 x (-8) = ?,-62,72,-72,62,C\n6,9 x (-10) = ?,90,-100,100,-90,D\n7,8 x (-5) = ?,40,41,-41,-40,D\n8,20 x (-22) = ?,440,-440,-439,439,B\n9,(-10) x 5 = ?,51,50,-50,-51,C\n10,(-18) x 22 = ?,-396,397,-397,396,A\n11,(-18) x (-23) = ?,-404,404,-414,414,D\n12,(-22) x 21 = ?,472,462,-472,-462,D\n13,25 x (-21) = ?,-525,535,525,-535,A\n14,(-9) x (-8) = ?,72,70,-72,-70,A\n15,7 x (-9) = ?,-63,63,64,-64,A\n16,2 x (-13) = ?,-24,24,26,-26,D\n17,(-19) x 17 = ?,323,-321,-323,321,C\n18,(-18) x (-16) = ?,286,-286,-288,288,D\n19,(-19) x 3 = ?,-55,57,55,-57,D\n20,(-11) x 5 = ?,55,-53,53,-55,D\n21,24 x (-18) = ?,-422,432,-432,422,C\n22,20 x (-10) = ?,200,-210,-200,210,C\n23,13 x (-7) = ?,81,91,-91,-81,C\n24,18 x (-17) = ?,-306,304,-304,306,A\n25,(-3) x (-17) = ?,-41,51,-51,41,B\n26,(-6) x (-13) = ?,-78,-79,78,79,C\n27,(-3) x (-15) = ?,47,-47,45,-45,C\n28,13 x (-16) = ?,-210,210,208,-208,D\n29,(-25) x 12 = ?,-290,300,-300,290,C\n30,12 x (-18) = ?,-216,-206,216,206,A\n31,4 x (-8) = ?,-32,-22,22,32,A\n32,(-3) x 14 = ?,32,-42,42,-32,B\n33,(-7) x 14 = ?,98,-99,99,-98,D\n34,(-3) x (-11) = ?,33,-23,23,-33,A\n35,(-21) x 6 = ?,-128,-126,128,126,B\n36,(-4) x 16 = ?,-64,65,64,-65,A\n37,(-20) x 8 = ?,162,160,-162,-160,D\n38,(-6) x (-7) = ?,-43,42,43,-42,B\n39,(-25) x (-23) = ?,565,-575,-565,575,D\n40,16 x (-24) = ?,384,-385,-384,385,C\n41,(-6) x (-2) = ?,-12,10,-10,12,D\n42,15 x (-18) = ?,-260,260,270,-270,D\n43,(-21) x 8 = ?,168,166,-166,-168,D\n44,(-15) x 8 = ?,-130,130,-120,120,C\n45,(-16) x 22 = ?,350,-352,352,-350,B\n46,(-7) x 12 = ?,84,82,-82,-84,D\n47,(-7) x 24 = ?,-168,178,168,-178,A\n48,8 x (-18) = ?,-144,142,144,-142,A\n49,(-16) x 6 = ?,-95,-96,96,95,B\n50,(-21) x 16 = ?,346,-336,-346,336,B\n`
     };
 
-    // ==========================================
-    // 1. UI、連線大廳與 QR Code 加入邏輯
-    // ==========================================
+    // 模式切換
     const btnSingle = document.getElementById('mode-single');
     const btnHost = document.getElementById('mode-host');
     const btnJoin = document.getElementById('mode-join');
     const hostPanel = document.getElementById('host-panel');
     const joinPanel = document.getElementById('join-panel');
     const multiInfo = document.getElementById('multiplayer-info');
+    const bankPanel = document.getElementById('bank-panel');
+    const uploadPanel = document.getElementById('upload-panel');
 
-    // 檢查網址是否有 ?room=xxxx 參數，若有則直接進入加入模式
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get('room');
 
@@ -363,21 +359,27 @@
         joinPanel.classList.add('hidden');
         multiInfo.classList.add('hidden');
         document.getElementById('god-mode-toggle-container').classList.add('hidden');
-        document.getElementById('start-btn').textContent = '▶ 開始單機特訓';
+        document.getElementById('start-btn').textContent = '▶ 選擇題庫並出擊 (單機)';
+        bankPanel.classList.remove('hidden');
+        uploadPanel.classList.remove('hidden');
       } else if (mode === 'host') {
         btnHost.classList.add('ring-4', 'ring-rose-300');
         hostPanel.classList.remove('hidden');
         joinPanel.classList.add('hidden');
         multiInfo.classList.remove('hidden');
         document.getElementById('god-mode-toggle-container').classList.remove('hidden');
-        document.getElementById('start-btn').textContent = '▶ 隨時出擊 (支援中途加入)';
+        document.getElementById('start-btn').textContent = '▶ 建立任務並出擊 (支援中途加入)';
+        bankPanel.classList.remove('hidden');
+        uploadPanel.classList.remove('hidden');
         initHostPeer();
       } else if (mode === 'join') {
         btnJoin.classList.add('ring-4', 'ring-amber-300');
         hostPanel.classList.add('hidden');
         joinPanel.classList.remove('hidden');
+        bankPanel.classList.add('hidden');
+        uploadPanel.classList.add('hidden');
         
-        // QR Code 直連邏輯：自動填寫並加入
+        // QR Code 直連邏輯
         if(roomParam) {
            document.getElementById('join-code-input').value = roomParam;
            setTimeout(() => document.getElementById('join-btn').click(), 300); 
@@ -388,45 +390,11 @@
     btnSingle.addEventListener('click', () => switchMode('single'));
     btnHost.addEventListener('click', () => switchMode('host'));
     btnJoin.addEventListener('click', () => switchMode('join'));
-    
-    // 如果網址帶有房間號，直接切換到加入模式
+
+    // 如果網址帶有房間號，直接切換到加入模式並自動連線
     if(roomParam) switchMode('join');
 
-    // 檔案上傳預先解析
-    const fileInput = document.getElementById('csv-upload');
-    const bankSelect = document.getElementById('bank-select');
-    fileInput.addEventListener('change', (e) => {
-      const files = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
-      if (files.length === 0) return;
-      document.getElementById('upload-status').textContent = `已選取 ${files.length} 個檔案`;
-
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onload = function(event) {
-          const csvText = event.target.result;
-          Papa.parse(csvText, {
-            header: true, skipEmptyLines: true, transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
-            complete: function(results) {
-              const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
-              if (validData.length > 0) {
-                const key = 'custom_' + Date.now() + '_' + file.name;
-                cloudData[key] = csvText;
-                const option = document.createElement('option');
-                option.value = key;
-                option.textContent = `📁 [自訂] ${file.name.replace('.csv','')} (共 ${validData.length} 題)`;
-                bankSelect.appendChild(option);
-                bankSelect.value = key;
-              } else {
-                alert(`檔案「${file.name}」解析失敗！請確認具備「題目」與「正確答案」欄位。`);
-              }
-            }
-          });
-        };
-        reader.readAsText(file);
-      });
-    });
-
-    // 動態設定同步
+    // UI 與設定事件
     document.getElementById('speed-slider').addEventListener('input', (e) => { document.getElementById('speed-val').textContent = parseFloat(e.target.value).toFixed(1); });
     document.getElementById('fire-slider').addEventListener('input', (e) => { document.getElementById('fire-val').textContent = parseFloat(e.target.value).toFixed(1) + ' 秒'; });
 
@@ -441,6 +409,46 @@
       document.getElementById('fire-val').textContent = parseFloat(fireSlider.value).toFixed(1) + ' 秒';
     });
 
+    const fileInput = document.getElementById('csv-upload');
+    const fileNameDisplay = document.getElementById('file-name');
+    const bankSelect = document.getElementById('bank-select');
+
+    // 手動上傳 CSV
+    fileInput.addEventListener('change', (e) => {
+      const files = Array.from(e.target.files).filter(f => f.name.endsWith('.csv'));
+      if (files.length === 0) return;
+
+      fileNameDisplay.textContent = `已選取 ${files.length} 個檔案`;
+
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const csvText = event.target.result;
+          Papa.parse(csvText, {
+            header: true, skipEmptyLines: true, transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
+            complete: function(results) {
+              const validData = results.data.filter(q => q['題目'] !== undefined && q['正確答案'] !== undefined);
+              if (validData.length > 0) {
+                const key = 'custom_' + Date.now() + '_' + file.name;
+                cloudData[key] = csvText;
+                
+                const option = document.createElement('option');
+                option.value = key;
+                option.textContent = `📁 [自訂] ${file.name.replace('.csv','')} (共 ${validData.length} 題)`;
+                bankSelect.appendChild(option);
+                
+                bankSelect.value = key;
+              } else {
+                alert(`檔案「${file.name}」解析失敗！請確認具備「題目」與「正確答案」欄位。`);
+              }
+            }
+          });
+        };
+        reader.readAsText(file);
+      });
+    });
+
+    // 應用設定
     function applySettings() {
       enemyMoveSpeed = parseFloat(document.getElementById('speed-slider').value);
       enemyFireBase = parseFloat(document.getElementById('fire-slider').value) * 1000;
@@ -451,16 +459,15 @@
       isGodMode = document.getElementById('god-mode-toggle').checked && connectionMode === 'host';
     }
 
-    // 上帝視角控制
+    // 上帝模式控制面板
     const godModeBtn = document.getElementById('open-god-mode');
     const godModePanel = document.getElementById('god-mode-panel');
     const closeGodModeBtn = document.getElementById('close-god-mode');
     const godSpeedSlider = document.getElementById('god-speed-slider');
     const godFireSlider = document.getElementById('god-fire-slider');
-    
-    godModeBtn.addEventListener('click', () => {
-      isPaused = true;
-      document.exitPointerLock();
+
+    godModeBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); 
       godModePanel.style.display = 'block';
       godSpeedSlider.value = enemyMoveSpeed;
       godFireSlider.value = enemyFireBase / 1000;
@@ -470,9 +477,12 @@
 
     closeGodModeBtn.addEventListener('click', () => {
       godModePanel.style.display = 'none';
-      if(!isTouchDevice) document.body.requestPointerLock();
-      isPaused = false;
-      prevTime = performance.now();
+      if(!isTouchDevice) {
+        document.body.requestPointerLock();
+      } else {
+        isPaused = false;
+        prevTime = performance.now();
+      }
     });
 
     function broadcastSettings() {
@@ -494,11 +504,10 @@
     godSpeedSlider.addEventListener('input', broadcastSettings);
     godFireSlider.addEventListener('input', broadcastSettings);
 
-    // ==========================================
-    // PeerJS 與 中途加入/退出邏輯
-    // ==========================================
-    let qrCodeObj = null;
 
+    // ==========================================
+    // PeerJS 連線邏輯
+    // ==========================================
     function generateRoomCode() {
       return Math.random().toString(36).substring(2, 6).toUpperCase();
     }
@@ -513,7 +522,7 @@
         myPeerId = id;
         document.getElementById('host-room-id').textContent = code;
         
-        // 產生帶有參數的完整網址 (供學生掃描直接加入)
+        // 產生帶有參數的完整網址 (供掃描直接加入)
         let baseUrl = window.location.href.split('?')[0];
         let joinUrl = baseUrl + "?room=" + code;
         
@@ -521,7 +530,7 @@
         qrContainer.innerHTML = ""; 
         qrCodeObj = new QRCode(qrContainer, {
             text: joinUrl, 
-            width: 140, height: 140,
+            width: 120, height: 120,
             colorDark : "#e11d48", colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
         });
@@ -538,11 +547,11 @@
            const playerIndex = Object.keys(clientConnections).length + 1; 
            clientConnections[conn.peer] = conn;
            clientPlayers[conn.peer] = { colorIndex: playerIndex, pos: {x:0, y:0, z:0, ry:0}, score: 0 };
-           document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
+           document.getElementById('host-players-count').textContent = `小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
            
            conn.send({ event: 'welcome', colorIndex: playerIndex });
 
-           // 【中途加入防護】如果遊戲已經開始，自動傳送當前狀態給遲到的學生
+           // 中途加入防護
            if (isGameStarted) {
                try {
                  conn.send({
@@ -579,9 +588,9 @@
                scene.remove(otherPlayerMeshes[conn.peer]);
                delete otherPlayerMeshes[conn.peer];
            }
-           document.getElementById('host-players-count').textContent = `目前小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
+           document.getElementById('host-players-count').textContent = `小隊人數: ${Object.keys(clientConnections).length + (document.getElementById('god-mode-toggle').checked ? 0 : 1)} / 4`;
            
-           // 【中途斷線防護】如果有學生跳出，自動調降當前題目的過關門檻，避免剩下的人卡關
+           // 中途斷線防護
            if (isGameStarted && currentQuestionCorrectNeeded > 1 && !isTransitioning) {
                currentQuestionCorrectNeeded--;
                updateTargetHUD();
@@ -628,7 +637,7 @@
               autoAimEnabled = data.autoAim;
               enemyMoveSpeed = data.speed;
               if (data.fireBase) { enemyFireBase = data.fireBase; enemyFireRand = enemyFireBase * 0.5; }
-              isGodMode = false; 
+              isGodMode = false; // 客機強制不是上帝
               
               currentQuestionIndex = 0;
               score = 0; hp = 100; wrongAnswersLog = [];
@@ -677,17 +686,13 @@
     });
 
     // ==========================================
-    // 啟動遊戲 (堅不可摧的錯誤捕捉)
+    // 遊戲開始流程 (單機 / 主機)
     // ==========================================
     document.getElementById('start-btn').addEventListener('click', () => { 
       try {
         const selectedBankName = bankSelect.value;
         const csvText = cloudData[selectedBankName];
-        if (!csvText) {
-           alert("未找到選擇的題庫資料！");
-           return;
-        }
-
+        
         Papa.parse(csvText, {
           header: true, skipEmptyLines: true, transformHeader: h => h.replace(/^\uFEFF/, '').trim(),
           complete: function(results) {
@@ -695,7 +700,7 @@
             if (validData.length > 0) {
               startGameAsHost(validData);
             } else {
-              alert('題庫內容格式錯誤！(缺乏題目或正確答案欄位)');
+              alert('題庫解析失敗！');
             }
           }
         });
@@ -720,7 +725,7 @@
       buildMap(selectedMap);
       yVelocity = 0;
 
-      // 如果勾選上帝視角
+      // 根據勾選狀態設定上帝模式
       if (isGodMode) {
          document.body.classList.add('god-mode-active');
          camera.position.y = 20;
@@ -729,7 +734,6 @@
       }
 
       if (connectionMode === 'host') {
-         godModeBtn.style.display = 'block'; 
          const startData = {
            event: 'start_game', questions: questions, map: selectedMap,
            autoAim: autoAimEnabled, speed: enemyMoveSpeed, fireBase: enemyFireBase
@@ -757,6 +761,227 @@
       loadNextQuestionHost(); 
     }
 
+    document.getElementById('restart-btn').addEventListener('click', () => {
+      isGameStarted = false; 
+      document.getElementById('review-screen').style.display = 'none';
+      document.getElementById('setup-screen').style.display = 'flex';
+      document.getElementById('ui-layer').style.display='none';
+      document.getElementById('radar-container').style.display='none';
+      document.getElementById('touch-ui').style.display='none';
+      document.body.classList.remove('god-mode-active');
+      
+      agentGroup.clear();
+      agents.length = 0;
+      projectiles.forEach(p => scene.remove(p)); projectiles.length = 0;
+      playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
+      
+      impacts.forEach(imp => {
+        scene.remove(imp.main);
+        imp.debris.forEach(d => scene.remove(d.mesh));
+      });
+      impacts.length = 0;
+      
+      if(connectionMode==='join') document.getElementById('join-btn').disabled=false;
+    });
+
+    document.addEventListener('pointerlockchange', () => {
+      if (!isTouchDevice && !isGameOver && isGameStarted) {
+        if (document.pointerLockElement !== document.body) {
+          isPaused = true;
+          document.getElementById('pause-screen').style.display = 'flex';
+          if (isGodMode) document.getElementById('open-god-mode').style.display = 'block';
+        } else {
+          isPaused = false;
+          document.getElementById('pause-screen').style.display = 'none';
+          document.getElementById('god-mode-panel').style.display = 'none';
+          prevTime = performance.now();
+        }
+      }
+    });
+
+    document.getElementById('btn-pause-mobile').addEventListener('click', () => {
+      if(!isGameStarted || isGameOver) return; 
+      isPaused = true;
+      document.getElementById('pause-screen').style.display = 'flex';
+      document.getElementById('touch-ui').style.display = 'none';
+    });
+
+    document.getElementById('pause-screen').addEventListener('click', () => {
+      if (!isGameOver && isGameStarted && hp > 0) {
+        isPaused = false;
+        document.getElementById('pause-screen').style.display = 'none';
+        prevTime = performance.now();
+        if (isTouchDevice) {
+          document.getElementById('touch-ui').style.display = 'block';
+        } else {
+          document.body.requestPointerLock();
+        }
+      }
+    });
+
+    function showReviewScreen(titleText) {
+      isGameOver = true;
+      isGameStarted = false; 
+      isPaused = true;
+      if(!isTouchDevice) document.exitPointerLock?.();
+      document.getElementById('pause-screen').style.display = 'none';
+      document.getElementById('ui-layer').style.display = 'none';
+      document.getElementById('touch-ui').style.display = 'none';
+      
+      const reviewScreen = document.getElementById('review-screen');
+      document.getElementById('review-title').textContent = titleText;
+      
+      const listEl = document.getElementById('mistake-list');
+      listEl.innerHTML = '';
+
+      if (wrongAnswersLog.length === 0) {
+        listEl.innerHTML = `<li class="text-emerald-400 font-bold text-xl py-4 text-center">🏆 太神啦！特戰菁英，無任何錯題！</li>`;
+      } else {
+        wrongAnswersLog.forEach(log => {
+          listEl.innerHTML += `
+            <li class="mb-3 bg-slate-700/50 p-4 rounded-lg border-l-4 border-rose-500">
+              <div class="text-slate-200 text-lg mb-2">📡 任務: <span class="font-bold">${log.question}</span></div>
+              <div class="grid grid-cols-2 gap-4 text-md">
+                <div class="text-emerald-400">✅ 正解: <span class="font-bold">${log.correct}</span></div>
+                <div class="text-rose-400">❌ 誤擊: <span class="font-bold line-through">${log.picked}</span></div>
+              </div>
+            </li>
+          `;
+        });
+      }
+      reviewScreen.style.display = 'flex';
+    }
+
+    // ==========================================
+    // 2. Three.js 場景建構與地圖
+    // ==========================================
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x87CEEB);
+    scene.fog = new THREE.Fog(0x87CEEB, 20, 100);
+
+    const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+    let playerBaseY = 0;
+    const STAND_HEIGHT = 1.7;
+    const CROUCH_HEIGHT = 0.9;
+    let currentHeight = STAND_HEIGHT;
+
+    const renderer = new THREE.WebGLRenderer({ antialias: !isTouchDevice, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouchDevice ? 1.5 : 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = !isTouchDevice;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    renderer.outputEncoding = THREE.sRGBEncoding;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+    scene.background = new THREE.Color(0x101a27);
+    scene.fog = new THREE.Fog(0x101a27, 48, 125);
+    scene.add(new THREE.HemisphereLight(0xb9ddff, 0x3a2d20, 0.85));
+    const dirLight = new THREE.DirectionalLight(0xfff5b6, 1.0); 
+    dirLight.position.set(20, 50, 20);
+    dirLight.castShadow = true;
+    dirLight.shadow.camera.left = -50; dirLight.shadow.camera.right = 50;
+    dirLight.shadow.camera.top = 50; dirLight.shadow.camera.bottom = -50;
+    scene.add(dirLight);
+
+    const mapGroup = new THREE.Group();
+    scene.add(mapGroup);
+    let collidableObjects = []; 
+    let terrainObjects = []; 
+    let currentEnemySpawns = [];
+
+    const bloodGroundMat = new THREE.MeshStandardMaterial({ color: 0x888888, roughness: 1.0 }); 
+    const bloodWallMat = new THREE.MeshStandardMaterial({ color: 0x998877, roughness: 0.9 }); 
+    const bloodCenterMat = new THREE.MeshStandardMaterial({ color: 0x665544, roughness: 0.9 }); 
+    const crateMat = new THREE.MeshStandardMaterial({ color: 0x8b5a2b, roughness: 0.8 }); 
+
+    const dustGroundMat = new THREE.MeshStandardMaterial({ color: 0xd2b48c, roughness: 1.0 }); 
+    const dustWallMat = new THREE.MeshStandardMaterial({ color: 0xc2b280, roughness: 0.9 }); 
+    const metalMat = new THREE.MeshStandardMaterial({ color: 0x5a6370, metalness: 0.7, roughness: 0.3 }); 
+
+    const iceGroundMat = new THREE.MeshStandardMaterial({ color: 0xe0f7fa, roughness: 0.8 }); 
+    const iceWallMat = new THREE.MeshStandardMaterial({ color: 0x90caf9, roughness: 0.6, metalness: 0.2 }); 
+
+    function createMapElement(geo, mat, x, y, z, rotX = 0, rotY = 0, rotZ = 0) {
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.position.set(x, y, z);
+      mesh.rotation.set(rotX, rotY, rotZ);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      mapGroup.add(mesh);
+      collidableObjects.push(mesh);
+      terrainObjects.push(mesh);
+      return mesh;
+    }
+
+    function clearMap() {
+      mapGroup.clear();
+      collidableObjects = [];
+      terrainObjects = [];
+      currentEnemySpawns = [];
+    }
+
+    function buildMap(type) {
+      clearMap();
+      if (type === 'bloodstrike') {
+        createMapElement(new THREE.BoxGeometry(60, 1, 60), bloodGroundMat, 0, -0.5, 0); 
+        createMapElement(new THREE.BoxGeometry(60, 15, 2), bloodWallMat, 0, 7.5, -30); 
+        createMapElement(new THREE.BoxGeometry(60, 15, 2), bloodWallMat, 0, 7.5, 30);  
+        createMapElement(new THREE.BoxGeometry(2, 15, 60), bloodWallMat, -30, 7.5, 0); 
+        createMapElement(new THREE.BoxGeometry(2, 15, 60), bloodWallMat, 30, 7.5, 0);  
+        createMapElement(new THREE.BoxGeometry(16, 4, 4), bloodCenterMat, 0, 2, 0);
+        createMapElement(new THREE.BoxGeometry(4, 4, 16), bloodCenterMat, 0, 2, 0);
+
+        const cornerOffsets = [{x: 23, z: 23}, {x: -23, z: 23}, {x: 23, z: -23}, {x: -23, z: -23}];
+        cornerOffsets.forEach(pos => {
+          createMapElement(new THREE.BoxGeometry(4, 3, 4), crateMat, pos.x, 1.5, pos.z);
+          createMapElement(new THREE.BoxGeometry(3, 2, 3), crateMat, pos.x, 4.0, pos.z);
+        });
+        createMapElement(new THREE.BoxGeometry(2, 3, 10), bloodWallMat, 12, 1.5, 0);
+        createMapElement(new THREE.BoxGeometry(2, 3, 10), bloodWallMat, -12, 1.5, 0);
+        createMapElement(new THREE.BoxGeometry(10, 3, 2), bloodWallMat, 0, 1.5, 12);
+        createMapElement(new THREE.BoxGeometry(10, 3, 2), bloodWallMat, 0, 1.5, -12);
+
+        currentEnemySpawns = [{ x: 5, y: 0, z: 5 }, { x: -5, y: 0, z: 5 }, { x: 5, y: 0, z: -5 }, { x: -5, y: 0, z: -5 }, {x:15, y:0, z:15},{x:-15, y:0, z:15},{x:15, y:0, z:-15},{x:-15, y:0, z:-15}, {x:0, y:0, z:20},{x:0, y:0, z:-20}];
+        playerBaseY = 0; camera.position.set(0, playerBaseY + currentHeight, 25);
+
+      } else if (type === 'dust') {
+        createMapElement(new THREE.BoxGeometry(100, 1, 100), dustGroundMat, 0, -0.5, 0); 
+        createMapElement(new THREE.BoxGeometry(100, 15, 2), dustWallMat, 0, 7.5, -50); 
+        createMapElement(new THREE.BoxGeometry(100, 15, 2), dustWallMat, 0, 7.5, 50);  
+        createMapElement(new THREE.BoxGeometry(2, 15, 100), dustWallMat, -50, 7.5, 0); 
+        createMapElement(new THREE.BoxGeometry(2, 15, 100), dustWallMat, 50, 7.5, 0);  
+        createMapElement(new THREE.BoxGeometry(20, 3, 25), dustWallMat, -25, 1.5, -25); 
+        createMapElement(new THREE.BoxGeometry(6, 0.5, 18), metalMat, -12, 1.5, -25, 0, 0, Math.PI/12); 
+        for (let i = 0; i < 5; i++) {
+          createMapElement(new THREE.BoxGeometry(6, 0.6, 2), dustWallMat, -20, 0.3 + i * 0.6, -9 - i * 2);
+        }
+        createMapElement(new THREE.BoxGeometry(3, 3, 3), crateMat, -30, 4.5, -30); 
+        createMapElement(new THREE.BoxGeometry(2, 2, 2), crateMat, 15, 1, 10);
+        createMapElement(new THREE.BoxGeometry(2, 2, 2), crateMat, -10, 1, 20);
+        createMapElement(new THREE.CylinderGeometry(1.5, 1.5, 10, 16), metalMat, 25, 5, -25); 
+
+        currentEnemySpawns = [{ x: -25, y: 3, z: -35 }, { x: 25, y: 0, z: -25 }, { x: -10, y: 0, z: 15 }, { x: 15, y: 0, z: 20 }, {x:0, y:0, z:0},{x:-30, y:0, z:10},{x:30, y:0, z:10},{x:-20, y:0, z:-20},{x:20, y:0, z:-20},{x:0, y:0, z:30}];
+        playerBaseY = 0; camera.position.set(0, playerBaseY + currentHeight, 40);
+
+      } else if (type === 'iceworld') {
+        createMapElement(new THREE.BoxGeometry(40, 1, 40), iceGroundMat, 0, -0.5, 0); 
+        createMapElement(new THREE.BoxGeometry(40, 10, 2), iceWallMat, 0, 5, -20); 
+        createMapElement(new THREE.BoxGeometry(40, 10, 2), iceWallMat, 0, 5, 20);  
+        createMapElement(new THREE.BoxGeometry(2, 10, 40), iceWallMat, -20, 5, 0); 
+        createMapElement(new THREE.BoxGeometry(2, 10, 40), iceWallMat, 20, 5, 0);  
+        createMapElement(new THREE.BoxGeometry(4, 5, 4), iceWallMat, 10, 2.5, 10);
+        createMapElement(new THREE.BoxGeometry(4, 5, 4), iceWallMat, -10, 2.5, 10);
+        createMapElement(new THREE.BoxGeometry(4, 5, 4), iceWallMat, 10, 2.5, -10);
+        createMapElement(new THREE.BoxGeometry(4, 5, 4), iceWallMat, -10, 2.5, -10);
+        createMapElement(new THREE.BoxGeometry(6, 3, 2), iceWallMat, 0, 1.5, 0);
+
+        currentEnemySpawns = [{ x: 15, y: 0, z: -15 }, { x: -15, y: 0, z: -15 }, { x: 15, y: 0, z: -5 }, { x: -15, y: 0, z: -5 }, {x:15, y:0, z:5},{x:-15, y:0, z:5},{x:15, y:0, z:15},{x:-15, y:0, z:15},{x:0, y:0, z:15},{x:0, y:0, z:-15}];
+        playerBaseY = 0; camera.position.set(0, playerBaseY + currentHeight, 15);
+      }
+    }
+
     // ==========================================
     // 三維隊友模型
     // ==========================================
@@ -781,8 +1006,152 @@
     }
 
     // ==========================================
-    // 遊戲邏輯與同步 (Host vs Client)
+    // 3. 機甲生成邏輯與火花特效
     // ==========================================
+    const agents = [];
+    const projectiles = []; 
+    const playerProjectiles = []; 
+    const impacts = []; 
+    const agentGroup = new THREE.Group();
+    scene.add(agentGroup);
+
+    const sparkGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
+    function createImpactEffect(pos, colorHex) {
+      const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 1 });
+      const mainSpark = new THREE.Mesh(sparkGeo, mat);
+      mainSpark.position.copy(pos);
+      mainSpark.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
+      scene.add(mainSpark);
+      
+      const debrisList = [];
+      for(let i=0; i<4; i++){
+         const deb = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), mat);
+         deb.position.copy(pos);
+         const vel = new THREE.Vector3(Math.random()-0.5, Math.random(), Math.random()-0.5).normalize().multiplyScalar(4 + Math.random()*4);
+         scene.add(deb);
+         debrisList.push({ mesh: deb, vel: vel });
+      }
+      impacts.push({ main: mainSpark, debris: debrisList, timer: 0.25 });
+    }
+
+    function createHoloBoardTexture(text, bgColor) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = bgColor; ctx.fillRect(0, 0, 512, 256);
+      ctx.strokeStyle = 'white'; ctx.lineWidth = 10; ctx.strokeRect(6, 6, 500, 244); 
+      ctx.fillStyle = 'white'; 
+      ctx.font = `bold ${String(text).length > 4 ? 80 : 120}px Arial`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 128); 
+      return new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true, opacity: 0.9, emissive: bgColor, emissiveIntensity: 0.5 });
+    }
+
+    function createHumanAgent(uid, text, isCorrect) {
+      const human = new THREE.Group();
+      
+      const skinMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.6 }); 
+      const vestMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.9 }); 
+      const shirtMat = new THREE.MeshStandardMaterial({ color: 0xef4444, roughness: 0.8 }); 
+      const pantsMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 }); 
+      const weaponMat = new THREE.MeshStandardMaterial({ color: 0x000000, metalness: 0.8 }); 
+      const armorMat = new THREE.MeshStandardMaterial({ color: 0x27352c, roughness: 0.78, metalness: 0.12 });
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0xd2a64b, roughness: 0.55, metalness: 0.35 });
+      const visorMat = new THREE.MeshStandardMaterial({ color: 0x14232b, roughness: 0.22, metalness: 0.55, emissive: 0x12313a, emissiveIntensity: 0.35 });
+      const clothMat = new THREE.MeshStandardMaterial({ color: 0x66735a, roughness: 0.95 });
+      const agentGeometryCache = createHumanAgent.geometryCache || (createHumanAgent.geometryCache = new Map());
+      const hitMeshes = [];
+      const addPart = (w, h, d, material, x, y, z, rz = 0, rx = 0) => {
+        const key = `${w}:${h}:${d}`;
+        if (!agentGeometryCache.has(key)) agentGeometryCache.set(key, new THREE.BoxGeometry(w, h, d));
+        const mesh = new THREE.Mesh(agentGeometryCache.get(key), material);
+        mesh.position.set(x, y, z); mesh.rotation.set(rx, 0, rz);
+        mesh.castShadow = true; mesh.receiveShadow = true; human.add(mesh); hitMeshes.push(mesh);
+        return mesh;
+      };
+
+      const torso = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.2, 0.5), vestMat);
+      torso.position.y = 1.8; torso.castShadow = true; human.add(torso);
+
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), skinMat);
+      head.position.y = 2.7; head.castShadow = true; human.add(head);
+
+      const leftLeg = new THREE.Group();
+      leftLeg.position.set(-0.25, 1.2, 0); 
+      const lLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2, 0.35), pantsMat);
+      lLegMesh.position.y = -0.6; lLegMesh.castShadow = true; leftLeg.add(lLegMesh);
+      human.add(leftLeg);
+
+      const rightLeg = new THREE.Group();
+      rightLeg.position.set(0.25, 1.2, 0);
+      const rLegMesh = new THREE.Mesh(new THREE.BoxGeometry(0.35, 1.2, 0.35), pantsMat);
+      rLegMesh.position.y = -0.6; rLegMesh.castShadow = true; rightLeg.add(rLegMesh);
+      human.add(rightLeg);
+
+      const leftArm = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.3), shirtMat);
+      leftArm.position.set(-0.65, 1.9, 0); leftArm.rotation.z = Math.PI / 16; human.add(leftArm);
+
+      const rightArm = new THREE.Group();
+      rightArm.position.set(0.6, 2.2, 0); 
+      const rArmMesh = new THREE.Mesh(new THREE.BoxGeometry(0.3, 1.0, 0.3), shirtMat);
+      rArmMesh.position.set(0, -0.2, 0.4); rArmMesh.rotation.x = -Math.PI / 2.2; rightArm.add(rArmMesh);
+      const gun = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.25, 0.8), weaponMat);
+      gun.position.set(0, -0.2, 0.9); rightArm.add(gun); human.add(rightArm);
+
+      const helmet = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 8), armorMat);
+      helmet.scale.set(1, 0.78, 0.9); helmet.position.set(0, 2.94, 0); helmet.castShadow = true; human.add(helmet); hitMeshes.push(helmet);
+      addPart(0.42, 0.17, 0.045, visorMat, 0, 2.77, 0.263);
+      addPart(0.30, 0.16, 0.30, clothMat, 0, 2.57, 0.02);
+      addPart(0.38, 0.055, 0.38, trimMat, 0, 2.58, 0.04);
+      addPart(0.68, 0.68, 0.12, armorMat, 0, 1.88, 0.29);
+      addPart(0.10, 0.72, 0.045, clothMat, -0.20, 1.87, 0.36, -0.28);
+      addPart(0.10, 0.72, 0.045, clothMat, 0.20, 1.87, 0.36, 0.28);
+      addPart(0.20, 0.09, 0.055, trimMat, 0, 2.05, 0.37);
+      addPart(0.16, 0.07, 0.06, visorMat, 0, 1.91, 0.38);
+      addPart(0.36, 0.33, 0.37, armorMat, -0.60, 2.30, 0, -0.12);
+      addPart(0.36, 0.33, 0.37, armorMat, 0.60, 2.30, 0, 0.12);
+      addPart(0.25, 0.28, 0.16, clothMat, -0.37, 1.52, 0.28);
+      addPart(0.25, 0.28, 0.16, clothMat, 0.37, 1.52, 0.28);
+      addPart(0.96, 0.13, 0.56, weaponMat, 0, 1.23, 0);
+      addPart(0.14, 0.16, 0.12, trimMat, -0.37, 1.23, 0.30);
+      addPart(0.14, 0.16, 0.12, trimMat, 0.37, 1.23, 0.30);
+      addPart(0.39, 0.27, 0.39, armorMat, -0.25, 0.68, 0.12);
+      addPart(0.39, 0.27, 0.39, armorMat, 0.25, 0.68, 0.12);
+      addPart(0.39, 0.26, 0.62, weaponMat, -0.25, 0.12, 0.11);
+      addPart(0.39, 0.26, 0.62, weaponMat, 0.25, 0.12, 0.11);
+      addPart(0.14, 0.10, 0.20, visorMat, 0.60, 2.16, 0.78);
+      addPart(0.12, 0.15, 0.18, weaponMat, 0.60, 1.83, 0.90, 0.18);
+      addPart(0.12, 0.12, 0.18, trimMat, 0.60, 2.00, 1.31);
+
+      const boardMat = createHoloBoardTexture(text, 'rgba(14, 165, 233, 0.8)'); 
+      const board = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 1.5), boardMat);
+      board.position.y = 4.0; human.add(board);
+
+      human.userData = { 
+        uid: uid,
+        text: text, isCorrect: isCorrect, dying: false, originalColor: 'rgba(14, 165, 233, 0.8)',
+        boardMesh: board, gunMesh: gun, leftLeg: leftLeg, rightLeg: rightLeg, hitMeshes,
+        walkOffset: Math.random() * Math.PI * 2, 
+        lastShootTime: performance.now() + 1000 + Math.random() * 2000,
+        yVelocity: 0 
+      };
+      
+      hitMeshes.push(torso, head, lLegMesh, rLegMesh, leftArm, rArmMesh, gun, board);
+      collidableObjects.push(...hitMeshes);
+      return human;
+    }
+
+    function clearAgentGroup() {
+      agents.forEach(agent => {
+        (agent.userData.hitMeshes || []).forEach(mesh => {
+          const index = collidableObjects.indexOf(mesh);
+          if (index >= 0) collidableObjects.splice(index, 1);
+        });
+      });
+      agentGroup.clear();
+      agents.length = 0;
+    }
+
     function loadNextQuestionHost() {
       if (currentQuestionIndex >= questions.length) {
         showReviewScreen("MISSION ACCOMPLISHED! 訓練完成");
@@ -798,13 +1167,12 @@
       document.getElementById('hud-question-number').textContent = `MISSION NO. ${qData['題號'] || (currentQuestionIndex+1)}`;
       document.getElementById('hud-question').textContent = qData['題目'];
 
-      agentGroup.clear(); 
-      agents.length = 0;
+      clearAgentGroup(); 
       projectiles.forEach(p => scene.remove(p)); projectiles.length = 0;
       playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
       isTransitioning = false;
 
-      // 玩家人數：客機數量 + (主機若非上帝模式則+1)
+      // 決定過關所需擊殺數：客機數量 + (主機若非上帝模式則+1)
       let playerCount = 1;
       if(connectionMode === 'host') {
          playerCount = Object.keys(clientConnections).length + (isGodMode ? 0 : 1);
@@ -815,6 +1183,7 @@
       currentQuestionCorrectHits = 0;
       updateTargetHUD();
 
+      // 產生正確與錯誤選項
       const correctOpt = String(qData['正確答案']).trim().toUpperCase();
       const allOpts = [String(qData['選項A']), String(qData['選項B']), String(qData['選項C']), String(qData['選項D'])];
       const ansMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
@@ -827,39 +1196,34 @@
       if(wrongOpts.length === 0) wrongOpts = ["錯誤A", "錯誤B", "錯誤C"];
 
       let options = [];
+      // 放足夠的正確答案給所有玩家打
       for(let i=0; i<playerCount; i++) {
          options.push({ uid: `c_${i}`, text: correctText, isCorrect: true });
       }
+      // 放足夠的錯誤答案混淆視聽
       let wrongCount = 4 + Math.floor(playerCount/2);
       for(let i=0; i<wrongCount; i++) {
          options.push({ uid: `w_${i}`, text: wrongOpts[i % wrongOpts.length], isCorrect: false });
       }
       options.sort(() => Math.random() - 0.5); 
 
-      let spawns = [];
-      if(document.getElementById('map-select').value === 'bloodstrike'){
-         spawns = [{x:5,z:5},{x:-5,z:5},{x:5,z:-5},{x:-5,z:-5}, {x:15,z:15},{x:-15,z:15},{x:15,z:-15},{x:-15,z:-15}, {x:0,z:20},{x:0,z:-20}];
-      } else if (document.getElementById('map-select').value === 'dust'){
-         spawns = [{x:-25,z:-35},{x:25,z:-25},{x:-10,z:15},{x:15,z:20}, {x:0,z:0},{x:-30,z:10},{x:30,z:10},{x:-20,z:-20},{x:20,z:-20},{x:0,z:30}];
-      } else {
-         spawns = [{x:15,z:-15},{x:-15,z:-15},{x:15,z:-5},{x:-15,z:-5}, {x:15,z:5},{x:-15,z:5},{x:15,z:15},{x:-15,z:15},{x:0,z:15},{x:0,z:-15}];
-      }
-      const shuffledSpawns = spawns.sort(() => 0.5 - Math.random());
-
+      const shuffledSpawns = [...currentEnemySpawns].sort(() => 0.5 - Math.random());
       let syncOptions = [];
+
       options.forEach((opt, index) => {
-        const spawnPoint = shuffledSpawns[index % shuffledSpawns.length];
         const agent = createHumanAgent(opt.uid, opt.text, opt.isCorrect);
-        agent.position.set(spawnPoint.x, 0, spawnPoint.z);
+        const spawnPoint = shuffledSpawns[index % shuffledSpawns.length];
+        agent.position.set(spawnPoint.x, 10, spawnPoint.z); // 空中生成
         agentGroup.add(agent);
         agents.push(agent);
-        
+
         syncOptions.push({
            uid: opt.uid, text: opt.text, isCorrect: opt.isCorrect, 
-           x: spawnPoint.x, y: 0, z: spawnPoint.z
+           x: spawnPoint.x, y: 10, z: spawnPoint.z
         });
       });
 
+      // 同步新題目給所有客機
       if (connectionMode === 'host') {
          const qDataSync = {
             event: 'new_question', qIndex: currentQuestionIndex,
@@ -882,8 +1246,7 @@
       currentQuestionCorrectHits = data.cHits !== undefined ? data.cHits : 0; 
       updateTargetHUD();
 
-      agentGroup.clear(); 
-      agents.length = 0;
+      clearAgentGroup();
       projectiles.forEach(p => scene.remove(p)); projectiles.length = 0;
       playerProjectiles.forEach(p => scene.remove(p)); playerProjectiles.length = 0;
       isTransitioning = false;
@@ -940,6 +1303,15 @@
         }
       } else {
         board.material = createHoloBoardTexture(aData.text, 'rgba(239, 68, 68, 0.9)'); 
+        
+        const currentQ = questions[currentQuestionIndex];
+        if (currentQ && !wrongAnswersLog.some(item => item.qIndex === currentQuestionIndex)) {
+          const answerKey = String(currentQ['正確答案']).trim().toUpperCase();
+          const answerIndex = { A: 0, B: 1, C: 2, D: 3 }[answerKey];
+          const correctAnswer = answerIndex === undefined ? currentQ['正確答案'] : currentQ[`選項${answerKey}`];
+          wrongAnswersLog.push({ qIndex: currentQuestionIndex, question: currentQ['題目'], correct: correctAnswer, picked: aData.text });
+        }
+        
         if(!isGodMode) hp = Math.max(0, hp - 20); 
         document.getElementById('hud-hp').textContent = hp;
         
@@ -959,6 +1331,7 @@
         }
       }
 
+      // 同步給客機
       if (connectionMode === 'host') {
          const hitData = { event: 'enemy_hit', uid: enemyUid, isCorrect: aData.isCorrect, text: aData.text, isDying: aData.dying };
          for(let id in clientConnections) {
@@ -999,7 +1372,7 @@
        data.e.forEach(eSync => {
           const agent = agents.find(a => a.userData.uid === eSync.id);
           if(agent && !agent.userData.dying) {
-             agent.position.set(eSync.x, agent.position.y, eSync.z);
+             agent.position.set(eSync.x, eSync.y, eSync.z);
           }
        });
 
@@ -1009,12 +1382,243 @@
           
           if (!otherPlayerMeshes[pSync.id]) {
              otherPlayerMeshes[pSync.id] = createPlayerMesh(pSync.c);
-             if(pSync.id === 'host' && pSync.y > 10) return; // 上帝視角不顯示模型
+             if(pSync.id === 'host' && pSync.y > 10) return; // 上帝不顯示
              scene.add(otherPlayerMeshes[pSync.id]);
           }
           otherPlayerMeshes[pSync.id].position.set(pSync.x, pSync.y, pSync.z);
           otherPlayerMeshes[pSync.id].rotation.y = pSync.ry;
        });
+    }
+
+    // ==========================================
+    // 4. 武器系統與傷害
+    // ==========================================
+    const projectileGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6); 
+    projectileGeo.rotateX(Math.PI / 2);
+    const projectileMat = new THREE.MeshBasicMaterial({ color: 0xff5500 }); 
+    
+    const playerProjectileGeo = new THREE.CylinderGeometry(0.04, 0.04, 2.5, 6); 
+    playerProjectileGeo.rotateX(Math.PI / 2);
+    const playerProjectileMat = new THREE.MeshBasicMaterial({ color: 0xffff00 }); 
+
+    function enemyShoot(agent) {
+      if (isTransitioning) return;
+      const bullet = new THREE.Mesh(projectileGeo, projectileMat);
+      
+      const startPos = new THREE.Vector3();
+      agent.userData.gunMesh.getWorldPosition(startPos);
+      bullet.position.copy(startPos);
+
+      // 上帝模式：尋找客機，不打上帝
+      let targetCamPos = camera.position.clone();
+      if (isGodMode && connectionMode === 'host') {
+         const keys = Object.keys(clientPlayers);
+         if(keys.length > 0) {
+            const randId = keys[Math.floor(Math.random() * keys.length)];
+            targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z);
+         } else {
+            return; 
+         }
+      }
+
+      const direction = new THREE.Vector3();
+      direction.subVectors(targetCamPos, startPos).normalize();
+      
+      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction);
+      bullet.userData = { velocity: direction.multiplyScalar(enemyBulletSpeed), aliveTimer: 2.0 }; 
+      scene.add(bullet); projectiles.push(bullet);
+    }
+
+    function takeDamage(amount) {
+      if(isTransitioning || hp <= 0 || isGodMode) return;
+      hp = Math.max(0, hp - amount);
+      document.getElementById('hud-hp').textContent = hp;
+      
+      const damageOverlay = document.getElementById('damage-overlay');
+      damageOverlay.classList.add('hurt');
+      setTimeout(() => damageOverlay.classList.remove('hurt'), 300);
+      
+      if (hp <= 0) {
+        showReviewScreen("KIA 任務失敗 (陣亡)");
+        if (connectionMode === 'host') {
+           for(let id in clientConnections) {
+             try{ clientConnections[id].send({ event: 'game_over', msg: "KIA 任務失敗 (全隊陣亡)" }); }catch(e){}
+           }
+        }
+      }
+    }
+
+    function fireWeapon() {
+      if (hp <= 0 || isTransitioning || isGameOver || isPaused || isGodMode) return;
+
+      const crosshair = document.getElementById('crosshair');
+      crosshair.classList.add('fire');
+      setTimeout(() => crosshair.classList.remove('fire'), 80);
+      
+      const bullet = new THREE.Mesh(playerProjectileGeo, playerProjectileMat);
+      const startPos = camera.position.clone();
+      startPos.y -= 0.2;
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+      startPos.add(right.multiplyScalar(0.2));
+      bullet.position.copy(startPos);
+
+      raycaster.setFromCamera(screenCenter, camera);
+      const direction = raycaster.ray.direction.clone().normalize();
+      
+      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction);
+      bullet.userData = { velocity: direction.clone().multiplyScalar(150.0), aliveTimer: 1.0 }; 
+      scene.add(bullet); 
+      playerProjectiles.push(bullet);
+
+      // 主機立即判定
+      const checkObjects = [...collidableObjects];
+      agents.forEach(a => {
+        if(a.userData.hitMeshes && !a.userData.dying) checkObjects.push(...a.userData.hitMeshes);
+      });
+
+      const intersects = raycaster.intersectObjects(checkObjects, true);
+
+      if (intersects.length > 0) {
+        createImpactEffect(intersects[0].point, 0xffff00);
+        
+        let hitObj = intersects[0].object;
+        let parentObj = hitObj;
+        while (parentObj && (!parentObj.userData || parentObj.userData.text === undefined) && parentObj.parent) {
+          parentObj = parentObj.parent;
+        }
+        
+        if (parentObj && parentObj.userData && parentObj.userData.text !== undefined && !parentObj.userData.dying) {
+           if (connectionMode !== 'join') {
+              handleHostEnemyHit(parentObj.userData.uid, 'host');
+           } else {
+              if (hostConnection) {
+                 try{ hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid }); }catch(e){}
+              }
+           }
+        }
+      }
+
+      euler.setFromQuaternion(camera.quaternion);
+      euler.x += 0.015; 
+      camera.quaternion.setFromEuler(euler);
+    }
+
+    // ==========================================
+    // 5. FPS 操作與碰撞
+    // ==========================================
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false, e: false, q: false };
+    let joystickVector = new THREE.Vector2(0, 0);
+
+    let yVelocity = 0;
+    const gravity = -60.0;
+    const jumpSpeed = 22.0;
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isTouchDevice && document.pointerLockElement === document.body && !isGameOver && !isPaused && hp > 0) {
+        euler.setFromQuaternion(camera.quaternion);
+        euler.y -= e.movementX * 0.002; 
+        euler.x -= e.movementY * 0.002; 
+        euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x));
+        camera.quaternion.setFromEuler(euler);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = true;
+      if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = true;
+      if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = true;
+      if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = true;
+      if(e.code === 'Space') keys.jump = true;
+      if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = true;
+      if(e.code === 'KeyE') keys.e = true; 
+      if(e.code === 'KeyQ') keys.q = true;
+    });
+    
+    document.addEventListener('keyup', (e) => {
+      if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = false;
+      if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = false;
+      if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = false;
+      if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false;
+      if(e.code === 'Space') keys.jump = false;
+      if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = false;
+      if(e.code === 'KeyE') keys.e = false; 
+      if(e.code === 'KeyQ') keys.q = false;
+    });
+
+    const raycaster = new THREE.Raycaster();
+    const screenCenter = new THREE.Vector2(0, 0);
+
+    document.addEventListener('mousedown', (e) => {
+      if (!isTouchDevice && document.pointerLockElement === document.body) {
+        if (e.button === 0) fireWeapon(); 
+      }
+    });
+
+    let touchControlsInitialized = false;
+    function initTouchControls() {
+      if (touchControlsInitialized) return;
+      touchControlsInitialized = true;
+      const joystickManager = nipplejs.create({ zone: document.getElementById('joystick-zone'), mode: 'static', position: { left: '50%', top: '50%' }, color: '#38bdf8' });
+      joystickManager.on('move', (evt, data) => { joystickVector.set(data.vector.x, data.vector.y); });
+      joystickManager.on('end', () => { joystickVector.set(0, 0); });
+
+      let lastTouchX = 0, lastTouchY = 0, lookTouchId = null;
+      const lookZone = document.getElementById('look-zone');
+      lookZone.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        for(let i=0; i<e.changedTouches.length; i++){
+          if(lookTouchId === null) {
+            lookTouchId = e.changedTouches[i].identifier;
+            lastTouchX = e.changedTouches[i].clientX;
+            lastTouchY = e.changedTouches[i].clientY;
+          }
+        }
+      }, { passive: false });
+
+      lookZone.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        if(isPaused || isGameOver) return;
+        for(let i=0; i<e.changedTouches.length; i++){
+          if(e.changedTouches[i].identifier === lookTouchId) {
+            const touch = e.changedTouches[i];
+            euler.setFromQuaternion(camera.quaternion);
+            euler.y -= (touch.clientX - lastTouchX) * 0.005; 
+            euler.x -= (touch.clientY - lastTouchY) * 0.005;
+            euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x));
+            camera.quaternion.setFromEuler(euler);
+            lastTouchX = touch.clientX;
+            lastTouchY = touch.clientY;
+          }
+        }
+      }, { passive: false });
+
+      lookZone.addEventListener('touchend', (e) => {
+        for(let i=0; i<e.changedTouches.length; i++){
+          if(e.changedTouches[i].identifier === lookTouchId) lookTouchId = null;
+        }
+      });
+
+      const btnJump = document.getElementById('btn-jump');
+      btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; });
+      btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys.jump = false; });
+      
+      const btnCrouch = document.getElementById('btn-crouch');
+      btnCrouch.addEventListener('touchstart', (e) => { e.preventDefault(); keys.crouch = true; });
+      btnCrouch.addEventListener('touchend', (e) => { e.preventDefault(); keys.crouch = false; });
+
+      const btnFire = document.getElementById('btn-fire');
+      btnFire.addEventListener('touchstart', (e) => { e.preventDefault(); fireWeapon(); });
+    }
+
+    const collisionRaycaster = new THREE.Raycaster();
+    function checkHorizontalCollision(pos, dir, distance, objectsArray = collidableObjects) {
+      collisionRaycaster.set(pos, dir);
+      const intersects = collisionRaycaster.intersectObjects(objectsArray, false);
+      if (intersects.length > 0 && intersects[0].distance < distance) {
+        if (Math.abs(intersects[0].face.normal.y) < 0.5) return true; 
+      }
+      return false; 
     }
 
     // ==========================================
@@ -1093,259 +1697,10 @@
       }
     }
 
-    // ==========================================
-    // 4. 武器系統與傷害特效 (火花)
-    // ==========================================
-    const projectileGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6); 
-    projectileGeo.rotateX(Math.PI / 2);
-    const projectileMat = new THREE.MeshBasicMaterial({ color: 0xff5500 }); 
-    
-    const playerProjectileGeo = new THREE.CylinderGeometry(0.04, 0.04, 2.5, 6); 
-    playerProjectileGeo.rotateX(Math.PI / 2);
-    const playerProjectileMat = new THREE.MeshBasicMaterial({ color: 0xffff00 }); 
-
-    const impacts = []; 
-    const sparkGeo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-    function createImpactEffect(pos, colorHex) {
-      const mat = new THREE.MeshBasicMaterial({ color: colorHex, transparent: true, opacity: 1 });
-      const mainSpark = new THREE.Mesh(sparkGeo, mat);
-      mainSpark.position.copy(pos);
-      mainSpark.rotation.set(Math.random()*Math.PI, Math.random()*Math.PI, Math.random()*Math.PI);
-      scene.add(mainSpark);
-      
-      const debrisList = [];
-      for(let i=0; i<4; i++){
-         const deb = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.06), mat);
-         deb.position.copy(pos);
-         const vel = new THREE.Vector3(Math.random()-0.5, Math.random(), Math.random()-0.5).normalize().multiplyScalar(4 + Math.random()*4);
-         scene.add(deb);
-         debrisList.push({ mesh: deb, vel: vel });
-      }
-      impacts.push({ main: mainSpark, debris: debrisList, timer: 0.25 });
-    }
-
-    function enemyShoot(agent) {
-      if (isTransitioning) return;
-      const bullet = new THREE.Mesh(projectileGeo, projectileMat);
-      
-      const startPos = new THREE.Vector3();
-      agent.userData.gunMesh.getWorldPosition(startPos);
-      bullet.position.copy(startPos);
-
-      // 上帝模式：敵人會尋找客機隊友作為目標，不會對上帝開槍
-      let targetCamPos = camera.position.clone();
-      if (isGodMode && connectionMode === 'host') {
-         const keys = Object.keys(clientPlayers);
-         if(keys.length > 0) {
-            const randId = keys[Math.floor(Math.random() * keys.length)];
-            targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z);
-         } else {
-            return; 
-         }
-      }
-
-      const direction = new THREE.Vector3();
-      direction.subVectors(targetCamPos, startPos).normalize();
-      
-      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction);
-      bullet.userData = { velocity: direction.multiplyScalar(enemyBulletSpeed), aliveTimer: 2.0 }; 
-      scene.add(bullet); projectiles.push(bullet);
-    }
-
-    function takeDamage(amount) {
-      if(isTransitioning || hp <= 0 || isGodMode) return; 
-      hp = Math.max(0, hp - amount);
-      document.getElementById('hud-hp').textContent = hp;
-      
-      const damageOverlay = document.getElementById('damage-overlay');
-      damageOverlay.classList.add('hurt');
-      setTimeout(() => damageOverlay.classList.remove('hurt'), 300);
-      
-      if (hp <= 0) {
-        showReviewScreen("KIA 任務失敗 (陣亡)");
-        if (connectionMode === 'host') {
-           for(let id in clientConnections) {
-             try{ clientConnections[id].send({ event: 'game_over', msg: "KIA 任務失敗 (全隊陣亡)" }); }catch(e){}
-           }
-        }
-      }
-    }
-
-    function fireWeapon() {
-      if (hp <= 0 || isTransitioning || isGameOver || isPaused || isGodMode) return; 
-
-      const crosshair = document.getElementById('crosshair');
-      crosshair.classList.add('fire');
-      setTimeout(() => crosshair.classList.remove('fire'), 80);
-      
-      const bullet = new THREE.Mesh(playerProjectileGeo, playerProjectileMat);
-      const startPos = camera.position.clone();
-      startPos.y -= 0.2;
-      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
-      startPos.add(right.multiplyScalar(0.2));
-      bullet.position.copy(startPos);
-
-      raycaster.setFromCamera(screenCenter, camera);
-      const direction = raycaster.ray.direction.clone().normalize();
-      
-      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction);
-      bullet.userData = { velocity: direction.clone().multiplyScalar(200.0), aliveTimer: 1.0 }; 
-      scene.add(bullet); 
-      playerProjectiles.push(bullet);
-
-      const checkObjects = [...collidableObjects];
-      agents.forEach(a => {
-        if(a.userData.hitMeshes && !a.userData.dying) checkObjects.push(...a.userData.hitMeshes);
-      });
-
-      const intersects = raycaster.intersectObjects(checkObjects, true);
-
-      if (intersects.length > 0) {
-        createImpactEffect(intersects[0].point, 0xffff00);
-        let hitObj = intersects[0].object;
-        let parentObj = hitObj;
-        
-        while (parentObj && (!parentObj.userData || parentObj.userData.text === undefined) && parentObj.parent) {
-          parentObj = parentObj.parent;
-        }
-        
-        if (parentObj && parentObj.userData && parentObj.userData.text !== undefined && !parentObj.userData.dying) {
-           if (connectionMode !== 'join') {
-              handleHostEnemyHit(parentObj.userData.uid, 'host');
-           } else {
-              if (hostConnection) {
-                 try{ hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid }); }catch(e){}
-              }
-           }
-        }
-      }
-
-      euler.setFromQuaternion(camera.quaternion);
-      euler.x += 0.015; 
-      camera.quaternion.setFromEuler(euler);
-    }
 
     // ==========================================
-    // 5. FPS 操作與地圖
+    // 6. 主渲染迴圈與物理更新 
     // ==========================================
-    const raycaster = new THREE.Raycaster();
-    const screenCenter = new THREE.Vector2(0, 0);
-    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-    const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false, e: false, q: false };
-    let joystickVector = new THREE.Vector2(0, 0);
-    let yVelocity = 0;
-    const gravity = -60.0;
-    const jumpSpeed = 22.0;
-
-    document.addEventListener('mousemove', (e) => {
-      if (!isTouchDevice && document.pointerLockElement === document.body && !isGameOver && !isPaused && hp > 0) {
-        euler.setFromQuaternion(camera.quaternion);
-        euler.y -= e.movementX * 0.002; 
-        euler.x -= e.movementY * 0.002; 
-        euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x));
-        camera.quaternion.setFromEuler(euler);
-      }
-    });
-
-    document.addEventListener('keydown', (e) => {
-      if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = true;
-      if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = true;
-      if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = true;
-      if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = true;
-      if(e.code === 'Space') keys.jump = true;
-      if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = true;
-      if(e.code === 'KeyE') keys.e = true; 
-      if(e.code === 'KeyQ') keys.q = true; 
-    });
-    
-    document.addEventListener('keyup', (e) => {
-      if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = false;
-      if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = false;
-      if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = false;
-      if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false;
-      if(e.code === 'Space') keys.jump = false;
-      if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = false;
-      if(e.code === 'KeyE') keys.e = false;
-      if(e.code === 'KeyQ') keys.q = false;
-    });
-
-    document.addEventListener('mousedown', (e) => {
-      if (!isTouchDevice && document.pointerLockElement === document.body) {
-        if (e.button === 0) fireWeapon(); 
-      }
-    });
-
-    let touchControlsInitialized = false;
-    function initTouchControls() {
-      if (touchControlsInitialized) return;
-      touchControlsInitialized = true;
-      const joystickManager = nipplejs.create({ zone: document.getElementById('joystick-zone'), mode: 'static', position: { left: '50%', top: '50%' }, color: '#38bdf8' });
-      joystickManager.on('move', (evt, data) => { joystickVector.set(data.vector.x, data.vector.y); });
-      joystickManager.on('end', () => { joystickVector.set(0, 0); });
-
-      let lastTouchX = 0, lastTouchY = 0, lookTouchId = null;
-      const lookZone = document.getElementById('look-zone');
-      lookZone.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        for(let i=0; i<e.changedTouches.length; i++){
-          if(lookTouchId === null) {
-            lookTouchId = e.changedTouches[i].identifier;
-            lastTouchX = e.changedTouches[i].clientX;
-            lastTouchY = e.changedTouches[i].clientY;
-          }
-        }
-      }, { passive: false });
-
-      lookZone.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        if(isPaused || isGameOver) return;
-        for(let i=0; i<e.changedTouches.length; i++){
-          if(e.changedTouches[i].identifier === lookTouchId) {
-            const touch = e.changedTouches[i];
-            euler.setFromQuaternion(camera.quaternion);
-            euler.y -= (touch.clientX - lastTouchX) * 0.005; 
-            euler.x -= (touch.clientY - lastTouchY) * 0.005;
-            euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x));
-            camera.quaternion.setFromEuler(euler);
-            lastTouchX = touch.clientX;
-            lastTouchY = touch.clientY;
-          }
-        }
-      }, { passive: false });
-
-      lookZone.addEventListener('touchend', (e) => {
-        for(let i=0; i<e.changedTouches.length; i++){
-          if(e.changedTouches[i].identifier === lookTouchId) lookTouchId = null;
-        }
-      });
-
-      const btnJump = document.getElementById('btn-jump');
-      btnJump.addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; });
-      btnJump.addEventListener('touchend', (e) => { e.preventDefault(); keys.jump = false; });
-      
-      const btnCrouch = document.getElementById('btn-crouch');
-      btnCrouch.addEventListener('touchstart', (e) => { e.preventDefault(); keys.crouch = true; });
-      btnCrouch.addEventListener('touchend', (e) => { e.preventDefault(); keys.crouch = false; });
-
-      const btnFire = document.getElementById('btn-fire');
-      btnFire.addEventListener('touchstart', (e) => { e.preventDefault(); fireWeapon(); });
-    }
-
-    const collisionRaycaster = new THREE.Raycaster();
-    function checkHorizontalCollision(pos, dir, distance) {
-      collisionRaycaster.set(pos, dir);
-      const intersects = collisionRaycaster.intersectObjects(collidableObjects, false);
-      if (intersects.length > 0 && intersects[0].distance < distance) {
-        if (Math.abs(intersects[0].face.normal.y) < 0.5) return true; 
-      }
-      return false; 
-    }
-
-    // ==========================================
-    // 6. 主渲染迴圈與網路同步
-    // ==========================================
-    let lastNetworkSync = 0;
-
     function animate() {
       requestAnimationFrame(animate);
       const time = performance.now();
@@ -1371,9 +1726,11 @@
       }
 
       if (isGameStarted && !isGameOver && !isPaused && hp > 0) {
+        
         gameTime += delta * 1000;
         updateRadar();
 
+        // --- 連線同步廣播 ---
         if (connectionMode === 'host' && time - lastNetworkSync > 50) {
            let syncP = [];
            syncP.push({ id: 'host', x: camera.position.x, y: camera.position.y, z: camera.position.z, ry: euler.y, c: 0 });
@@ -1400,21 +1757,25 @@
            lastNetworkSync = time;
         }
 
+        // --- 輔助瞄準 ---
         if (autoAimEnabled && !isTransitioning && !isGodMode) {
           let closestAgent = null;
           let minDist = 0.25; 
+
           agents.forEach(agent => {
             if (agent.userData.dying) return;
+            
             const dirToAgent = new THREE.Vector3().subVectors(agent.position, camera.position);
             const distToAgent = dirToAgent.length();
             dirToAgent.normalize();
             collisionRaycaster.set(camera.position, dirToAgent);
-            const hits = collisionRaycaster.intersectObjects(collidableObjects, false);
+            const hits = collisionRaycaster.intersectObjects(terrainObjects, false);
             if (hits.length > 0 && hits[0].distance < distToAgent - 1.0) return; 
             
             const screenPos = agent.position.clone();
             screenPos.y += 1.5; 
             screenPos.project(camera);
+
             if (screenPos.z < 1) {
               const distToCenter = Math.sqrt(screenPos.x * screenPos.x + screenPos.y * screenPos.y);
               if (distToCenter < minDist) {
@@ -1439,6 +1800,7 @@
           document.getElementById('crosshair').classList.remove('locked');
         }
 
+        // --- 敵人 AI 運算 (只有單機或主機運算) ---
         if (connectionMode !== 'join') {
            agents.forEach(agent => {
              if (agent.userData.dying) {
@@ -1446,6 +1808,7 @@
                agent.rotation.x -= 5 * delta;
              } else {
                agent.lookAt(camera.position.x, agent.position.y, camera.position.z);
+               
                const dist = agent.position.distanceTo(camera.position);
                let isMoving = false;
                
@@ -1456,13 +1819,14 @@
                  
                  const moveStepX = dir.x * enemyMoveSpeed * delta;
                  const moveStepZ = dir.z * enemyMoveSpeed * delta;
+                 
                  const enemyCheckOrigin = new THREE.Vector3(agent.position.x, agent.position.y + 0.5, agent.position.z);
                  
-                 if (Math.abs(moveStepX) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(Math.sign(moveStepX), 0, 0), Math.abs(moveStepX) + 1.2)) {
+                 if (Math.abs(moveStepX) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(Math.sign(moveStepX), 0, 0), Math.abs(moveStepX) + 1.2, terrainObjects)) {
                    agent.position.x += moveStepX;
                    isMoving = true;
                  }
-                 if (Math.abs(moveStepZ) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(0, 0, Math.sign(moveStepZ)), Math.abs(moveStepZ) + 1.2)) {
+                 if (Math.abs(moveStepZ) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(0, 0, Math.sign(moveStepZ)), Math.abs(moveStepZ) + 1.2, terrainObjects)) {
                    agent.position.z += moveStepZ;
                    isMoving = true;
                  }
@@ -1470,6 +1834,7 @@
 
                const walkSpeed = 10;
                const walkTime = isMoving ? (gameTime / 1000 * walkSpeed + agent.userData.walkOffset) : 0;
+               
                agent.userData.leftLeg.rotation.x = Math.sin(walkTime) * 0.4;
                agent.userData.rightLeg.rotation.x = Math.sin(walkTime + Math.PI) * 0.4;
                
@@ -1477,7 +1842,7 @@
                const agentFeetPos = agent.position.clone();
                agentFeetPos.y += 2.0; 
                collisionRaycaster.set(agentFeetPos, new THREE.Vector3(0, -1, 0));
-               const groundHits = collisionRaycaster.intersectObjects(collidableObjects, false);
+               const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false);
                
                if (groundHits.length > 0 && groundHits[0].distance < 2.5) {
                   agent.userData.yVelocity = 0;
@@ -1507,12 +1872,16 @@
                  dirToPlayer.normalize();
                  
                  collisionRaycaster.set(eyePos, dirToPlayer);
-                 const losHits = collisionRaycaster.intersectObjects(collidableObjects, false);
+                 const losHits = collisionRaycaster.intersectObjects(terrainObjects, false);
                  
                  let hasLOS = true;
-                 if (losHits.length > 0 && losHits[0].distance < distToPlayer) hasLOS = false;
+                 if (losHits.length > 0 && losHits[0].distance < distToPlayer) {
+                    hasLOS = false;
+                 }
                  
-                 if (hasLOS) enemyShoot(agent);
+                 if (hasLOS) {
+                    enemyShoot(agent);
+                 }
                  agent.userData.lastShootTime = gameTime + enemyFireBase + Math.random() * enemyFireRand;
                }
              }
@@ -1526,6 +1895,7 @@
            });
         }
 
+        // --- 敵人的子彈物理 ---
         for (let i = projectiles.length - 1; i >= 0; i--) {
           const p = projectiles[i];
           const moveStep = p.userData.velocity.clone().multiplyScalar(delta);
@@ -1533,7 +1903,7 @@
           const dir = p.userData.velocity.clone().normalize();
           
           collisionRaycaster.set(p.position, dir);
-          const hitWall = collisionRaycaster.intersectObjects(collidableObjects, false);
+          const hitWall = collisionRaycaster.intersectObjects(terrainObjects, false);
           
           if (hitWall.length > 0 && hitWall[0].distance < dist) {
             createImpactEffect(hitWall[0].point, 0xff5500);
@@ -1558,6 +1928,7 @@
           }
         }
 
+        // --- 玩家的真實物理子彈飛行與命中判定 ---
         for (let i = playerProjectiles.length - 1; i >= 0; i--) {
           const p = playerProjectiles[i];
           const moveStep = p.userData.velocity.clone().multiplyScalar(delta);
@@ -1575,9 +1946,26 @@
           
           if (hit.length > 0 && hit[0].distance < dist) {
             createImpactEffect(hit[0].point, 0xffff00);
+            
+            let hitObj = hit[0].object;
+            let parentObj = hitObj;
+            while (parentObj && (!parentObj.userData || parentObj.userData.text === undefined) && parentObj.parent) {
+              parentObj = parentObj.parent;
+            }
+            
+            if (parentObj && parentObj.userData && parentObj.userData.text !== undefined && !parentObj.userData.dying) {
+               if (connectionMode !== 'join') {
+                  handleHostEnemyHit(parentObj.userData.uid, 'host');
+               } else {
+                  if (hostConnection) {
+                     try{ hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid }); }catch(e){}
+                  }
+               }
+            }
+
             scene.remove(p);
             playerProjectiles.splice(i, 1);
-            continue; 
+            continue;
           }
 
           p.position.add(moveStep);
@@ -1636,7 +2024,7 @@
 
            const feetOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 1.0, camera.position.z); 
            collisionRaycaster.set(feetOrigin, new THREE.Vector3(0, -1, 0));
-           const groundHits = collisionRaycaster.intersectObjects(collidableObjects, false);
+           const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false);
            
            if (groundHits.length > 0) {
              const groundY = groundHits[0].point.y;
@@ -1654,12 +2042,12 @@
 
            const checkOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 0.4, camera.position.z);
            if (Math.abs(moveStep.x) > 0) {
-             if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(Math.sign(moveStep.x), 0, 0), Math.abs(moveStep.x) + 0.5)) {
+             if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(Math.sign(moveStep.x), 0, 0), Math.abs(moveStep.x) + 0.5, terrainObjects)) {
                camera.position.x += moveStep.x;
              }
            }
            if (Math.abs(moveStep.z) > 0) {
-             if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(0, 0, Math.sign(moveStep.z)), Math.abs(moveStep.z) + 0.5)) {
+             if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(0, 0, Math.sign(moveStep.z)), Math.abs(moveStep.z) + 0.5, terrainObjects)) {
                camera.position.z += moveStep.z;
              }
            }
