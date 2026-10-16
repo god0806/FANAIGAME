@@ -836,4 +836,260 @@
       if(isTransitioning || hp <= 0 || isGodMode) return;
       hp = Math.max(0, hp - amount); document.getElementById('hud-hp').textContent = hp;
       const damageOverlay = document.getElementById('damage-overlay'); damageOverlay.classList.add('hurt'); setTimeout(() => damageOverlay.classList.remove('hurt'), 300);
-      if (hp <= 0) { showReviewScreen("KIA 任務失敗 (陣亡)"); if (connectionMode === 'host') { for(let
+      if (hp <= 0) { showReviewScreen("KIA 任務失敗 (陣亡)"); if (connectionMode === 'host') { for(let id in clientConnections) { try{ clientConnections[id].send({ event: 'game_over', msg: "KIA 任務失敗 (全隊陣亡)" }); }catch(e){} } } }
+    }
+
+    function fireWeapon() {
+      if (hp <= 0 || isTransitioning || isGameOver || isPaused || isGodMode) return;
+      document.getElementById('crosshair').classList.add('fire'); setTimeout(() => document.getElementById('crosshair').classList.remove('fire'), 80);
+      
+      const bullet = new THREE.Mesh(playerProjectileGeo, playerProjectileMat); const startPos = camera.position.clone(); startPos.y -= 0.2; const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); startPos.add(right.multiplyScalar(0.2)); bullet.position.copy(startPos);
+      raycaster.setFromCamera(screenCenter, camera); const direction = raycaster.ray.direction.clone().normalize();
+      bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction); bullet.userData = { velocity: direction.clone().multiplyScalar(150.0), aliveTimer: 1.0 }; scene.add(bullet); playerProjectiles.push(bullet);
+
+      // 主機或單機立即判定
+      const checkObjects = [...collidableObjects]; agents.forEach(a => { if(a.userData.hitMeshes && !a.userData.dying) checkObjects.push(...a.userData.hitMeshes); });
+      const intersects = raycaster.intersectObjects(checkObjects, true);
+
+      if (intersects.length > 0) {
+        createImpactEffect(intersects[0].point, 0xffff00);
+        let hitObj = intersects[0].object, parentObj = hitObj;
+        while (parentObj && (!parentObj.userData || parentObj.userData.text === undefined) && parentObj.parent) { parentObj = parentObj.parent; }
+        if (parentObj && parentObj.userData && parentObj.userData.text !== undefined && !parentObj.userData.dying) {
+           if (connectionMode !== 'join') { handleHostEnemyHit(parentObj.userData.uid, 'host'); } 
+           else { if (hostConnection) { try{ hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid }); }catch(e){} } }
+        }
+      }
+      euler.setFromQuaternion(camera.quaternion); euler.x += 0.015; camera.quaternion.setFromEuler(euler);
+    }
+
+    const radarCanvas = document.getElementById('radar'); const ctx = radarCanvas.getContext('2d'); const radarScale = 2.0; 
+    function updateRadar() {
+      if(!isGameStarted || isGameOver || isPaused || hp <= 0) return; ctx.clearRect(0, 0, 150, 150);
+      ctx.beginPath(); ctx.arc(75, 75, 74, 0, Math.PI * 2); ctx.fillStyle = 'rgba(15, 23, 42, 0.6)'; ctx.fill(); ctx.strokeStyle = 'rgba(16, 185, 129, 0.4)'; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(75, 0); ctx.lineTo(75, 150); ctx.moveTo(0, 75); ctx.lineTo(150, 75); ctx.strokeStyle = 'rgba(16, 185, 129, 0.2)'; ctx.stroke();
+      ctx.fillStyle = '#ffffff'; ctx.beginPath(); ctx.moveTo(75, 68); ctx.lineTo(71, 78); ctx.lineTo(79, 78); ctx.fill();
+      const pX = camera.position.x, pZ = camera.position.z, pRy = euler.y;
+      const drawDot = (objX, objZ, color, isTeammate) => {
+        const dx = objX - pX, dz = objZ - pZ, cos = Math.cos(pRy), sin = Math.sin(pRy), rx = dx * cos + dz * sin, rz = -dx * sin + dz * cos;
+        const cx = 75 + rx * radarScale, cy = 75 + rz * radarScale;
+        if (Math.hypot(cx - 75, cy - 75) < 70) { ctx.fillStyle = color; ctx.beginPath(); ctx.arc(cx, cy, isTeammate ? 3.5 : 2.5, 0, Math.PI * 2); ctx.fill(); }
+      };
+      agents.forEach(agent => { if (!agent.userData.dying) drawDot(agent.position.x, agent.position.z, '#ef4444', false); });
+      if (connectionMode === 'host') { for(let id in clientPlayers) { const cp = clientPlayers[id]; const colorHex = '#' + playerColors[cp.colorIndex % playerColors.length].toString(16).padStart(6, '0'); drawDot(cp.pos.x, cp.pos.z, colorHex, true); } } 
+      else if (connectionMode === 'join' && hostConnection) { if(hostPosSync.y < 10) drawDot(hostPosSync.x, hostPosSync.z, '#3b82f6', true); for(let id in clientPlayers) { if(id !== myPeerId) { const cp = clientPlayers[id]; const colorHex = '#' + playerColors[cp.colorIndex % playerColors.length].toString(16).padStart(6, '0'); drawDot(cp.pos.x, cp.pos.z, colorHex, true); } } }
+    }
+
+    // ==========================================
+    // 5. FPS 操作與碰撞
+    // ==========================================
+    const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+    const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false, e: false, q: false };
+    let joystickVector = new THREE.Vector2(0, 0); let yVelocity = 0; const gravity = -60.0, jumpSpeed = 22.0;
+
+    document.addEventListener('mousemove', (e) => {
+      if (!isTouchDevice && document.pointerLockElement === document.body && !isGameOver && !isPaused && hp > 0) {
+        euler.setFromQuaternion(camera.quaternion); euler.y -= e.movementX * 0.002; euler.x -= e.movementY * 0.002; euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x)); camera.quaternion.setFromEuler(euler);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => { if (e.code === 'Escape' || e.code === 'KeyP') { togglePause(); return; } if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = true; if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = true; if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = true; if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = true; if(e.code === 'Space') keys.jump = true; if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = true; if(e.code === 'KeyE') keys.e = true; if(e.code === 'KeyQ') keys.q = true; });
+    document.addEventListener('keyup', (e) => { if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = false; if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = false; if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = false; if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false; if(e.code === 'Space') keys.jump = false; if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = false; if(e.code === 'KeyE') keys.e = false; if(e.code === 'KeyQ') keys.q = false; });
+
+    const raycaster = new THREE.Raycaster(); const screenCenter = new THREE.Vector2(0, 0);
+
+    // 【PC 滑鼠鎖定優化】
+    // 解決客機剛載入時沒有自動鎖定視角的問題。當使用者點擊畫面時，如果還沒鎖定則要求鎖定；如果已鎖定則開火。
+    document.addEventListener('mousedown', (e) => {
+      if (!isTouchDevice && !isGameOver && isGameStarted && !isPaused) {
+        if (document.pointerLockElement !== document.body) {
+          document.body.requestPointerLock();
+        } else {
+          if (e.button === 0) fireWeapon(); 
+        }
+      }
+    });
+
+    let touchControlsInitialized = false;
+    function initTouchControls() {
+      if (touchControlsInitialized) return; touchControlsInitialized = true;
+      const joystickManager = nipplejs.create({ zone: document.getElementById('joystick-zone'), mode: 'static', position: { left: '50%', top: '50%' }, color: '#38bdf8' });
+      joystickManager.on('move', (evt, data) => { joystickVector.set(data.vector.x, data.vector.y); }); joystickManager.on('end', () => { joystickVector.set(0, 0); });
+      let lastTouchX = 0, lastTouchY = 0, lookTouchId = null; const lookZone = document.getElementById('look-zone');
+      lookZone.addEventListener('touchstart', (e) => { e.preventDefault(); for(let i=0; i<e.changedTouches.length; i++){ if(lookTouchId === null) { lookTouchId = e.changedTouches[i].identifier; lastTouchX = e.changedTouches[i].clientX; lastTouchY = e.changedTouches[i].clientY; } } }, { passive: false });
+      lookZone.addEventListener('touchmove', (e) => { e.preventDefault(); if(isPaused || isGameOver) return; for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === lookTouchId) { const touch = e.changedTouches[i]; euler.setFromQuaternion(camera.quaternion); euler.y -= (touch.clientX - lastTouchX) * 0.005; euler.x -= (touch.clientY - lastTouchY) * 0.005; euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x)); camera.quaternion.setFromEuler(euler); lastTouchX = touch.clientX; lastTouchY = touch.clientY; } } }, { passive: false });
+      lookZone.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === lookTouchId) lookTouchId = null; } });
+      document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; }); document.getElementById('btn-jump').addEventListener('touchend', (e) => { e.preventDefault(); keys.jump = false; });
+      document.getElementById('btn-crouch').addEventListener('touchstart', (e) => { e.preventDefault(); keys.crouch = true; }); document.getElementById('btn-crouch').addEventListener('touchend', (e) => { e.preventDefault(); keys.crouch = false; });
+      document.getElementById('btn-fire').addEventListener('touchstart', (e) => { e.preventDefault(); fireWeapon(); });
+    }
+
+    const collisionRaycaster = new THREE.Raycaster();
+    function checkHorizontalCollision(pos, dir, distance, objectsArray = collidableObjects) {
+      collisionRaycaster.set(pos, dir); const intersects = collisionRaycaster.intersectObjects(objectsArray, false);
+      if (intersects.length > 0 && intersects[0].distance < distance) { if (Math.abs(intersects[0].face.normal.y) < 0.5) return true; } return false; 
+    }
+
+    // ==========================================
+    // 6. 主渲染迴圈與物理更新 
+    // ==========================================
+    let lastNetworkSync = 0;
+    function animate() {
+      requestAnimationFrame(animate); const time = performance.now(); const delta = Math.min((time - prevTime) / 1000, 0.1); prevTime = time;
+
+      for (let i = impacts.length - 1; i >= 0; i--) {
+        const imp = impacts[i]; imp.timer -= delta;
+        if (imp.timer <= 0) { scene.remove(imp.main); imp.debris.forEach(d => scene.remove(d.mesh)); impacts.splice(i, 1); } 
+        else { const ratio = imp.timer / 0.25; imp.main.scale.set(ratio * 1.5, ratio * 1.5, ratio * 1.5); imp.main.material.opacity = ratio; imp.debris.forEach(d => { d.vel.y -= 20.0 * delta; d.mesh.position.add(d.vel.clone().multiplyScalar(delta)); }); }
+      }
+
+      if (isGameStarted && !isGameOver && !isPaused && hp > 0) {
+        gameTime += delta * 1000; updateRadar();
+
+        // 網路同步
+        if (connectionMode === 'host' && time - lastNetworkSync > 50) {
+           let syncP = []; syncP.push({ id: 'host', x: camera.position.x, y: camera.position.y, z: camera.position.z, ry: euler.y, c: 0 });
+           for(let id in clientPlayers) { syncP.push({ id: id, x: clientPlayers[id].pos.x, y: clientPlayers[id].pos.y, z: clientPlayers[id].pos.z, ry: clientPlayers[id].pos.ry, c: clientPlayers[id].colorIndex }); }
+           let syncE = []; agents.forEach(a => { if(!a.userData.dying) syncE.push({ id: a.userData.uid, x: a.position.x, y: a.position.y, z: a.position.z }); });
+           for(let id in clientConnections) { try{ clientConnections[id].send({ event: 'sync', p: syncP, e: syncE, hp: hp, myScore: clientPlayers[id].score, cHits: currentQuestionCorrectHits, cNeeded: currentQuestionCorrectNeeded }); }catch(e){} }
+           lastNetworkSync = time;
+        }
+
+        if (connectionMode === 'join' && hostConnection && time - lastNetworkSync > 50) {
+           try{ hostConnection.send({ event: 'my_pos', pos: { x: camera.position.x, y: camera.position.y, z: camera.position.z, ry: euler.y } }); }catch(e){}
+           lastNetworkSync = time;
+        }
+
+        // 輔助瞄準
+        if (autoAimEnabled && !isTransitioning && !isGodMode) {
+          let closestAgent = null; let minDist = 0.25; 
+          agents.forEach(agent => {
+            if (agent.userData.dying) return;
+            const dirToAgent = new THREE.Vector3().subVectors(agent.position, camera.position); const distToAgent = dirToAgent.length(); dirToAgent.normalize();
+            collisionRaycaster.set(camera.position, dirToAgent); const hits = collisionRaycaster.intersectObjects(terrainObjects, false); // 視線被地形阻礙
+            if (hits.length > 0 && hits[0].distance < distToAgent - 1.0) return; 
+            const screenPos = agent.position.clone(); screenPos.y += 1.5; screenPos.project(camera);
+            if (screenPos.z < 1) { const distToCenter = Math.sqrt(screenPos.x * screenPos.x + screenPos.y * screenPos.y); if (distToCenter < minDist) { minDist = distToCenter; closestAgent = agent; } }
+          });
+          if (closestAgent) {
+            const targetPos = closestAgent.position.clone(); targetPos.y += 1.5; const dummyCam = camera.clone(); dummyCam.lookAt(targetPos);
+            camera.quaternion.slerp(dummyCam.quaternion, 6.0 * delta); euler.setFromQuaternion(camera.quaternion); document.getElementById('crosshair').classList.add('locked');
+          } else { document.getElementById('crosshair').classList.remove('locked'); }
+        } else { document.getElementById('crosshair').classList.remove('locked'); }
+
+        // 敵人AI
+        if (connectionMode !== 'join') {
+           agents.forEach(agent => {
+             if (agent.userData.dying) { agent.scale.multiplyScalar(0.9); agent.rotation.x -= 5 * delta; } else {
+               agent.lookAt(camera.position.x, agent.position.y, camera.position.z);
+               const dist = agent.position.distanceTo(camera.position); let isMoving = false;
+               
+               if (enemyMoveSpeed > 0 && dist > 5) { 
+                 const dir = new THREE.Vector3(); dir.subVectors(camera.position, agent.position); dir.y = 0; dir.normalize();
+                 const moveStepX = dir.x * enemyMoveSpeed * delta; const moveStepZ = dir.z * enemyMoveSpeed * delta;
+                 const enemyCheckOrigin = new THREE.Vector3(agent.position.x, agent.position.y + 0.5, agent.position.z);
+                 
+                 // 敵人物理只受 terrainObjects 阻擋
+                 if (Math.abs(moveStepX) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(Math.sign(moveStepX), 0, 0), Math.abs(moveStepX) + 1.2, terrainObjects)) { agent.position.x += moveStepX; isMoving = true; }
+                 if (Math.abs(moveStepZ) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(0, 0, Math.sign(moveStepZ)), Math.abs(moveStepZ) + 1.2, terrainObjects)) { agent.position.z += moveStepZ; isMoving = true; }
+               }
+               const walkSpeed = 10; const walkTime = isMoving ? (gameTime / 1000 * walkSpeed + agent.userData.walkOffset) : 0;
+               agent.userData.leftLeg.rotation.x = Math.sin(walkTime) * 0.4; agent.userData.rightLeg.rotation.x = Math.sin(walkTime + Math.PI) * 0.4;
+               
+               agent.userData.yVelocity += gravity * delta; const agentFeetPos = agent.position.clone(); agentFeetPos.y += 2.0; 
+               collisionRaycaster.set(agentFeetPos, new THREE.Vector3(0, -1, 0)); const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false); // 避免踩自己
+               
+               if (groundHits.length > 0 && groundHits[0].distance < 2.5) { agent.userData.yVelocity = 0; agent.position.y = groundHits[0].point.y + (isMoving ? Math.abs(Math.sin(walkTime))*0.1 : 0); } 
+               else { agent.position.y += agent.userData.yVelocity * delta; }
+               
+               if (gameTime > agent.userData.lastShootTime && !isTransitioning) {
+                 const eyePos = agent.position.clone(); eyePos.y += 2.0; 
+                 let targetCamPos = camera.position.clone();
+                 if (connectionMode === 'host') {
+                    const keys = Object.keys(clientPlayers); if (!isGodMode) keys.push('host'); 
+                    if(keys.length > 0) { const randId = keys[Math.floor(Math.random() * keys.length)]; if(randId === 'host') targetCamPos.set(camera.position.x, camera.position.y, camera.position.z); else targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z); }
+                 }
+                 const dirToPlayer = new THREE.Vector3().subVectors(targetCamPos, eyePos); const distToPlayer = dirToPlayer.length(); dirToPlayer.normalize();
+                 collisionRaycaster.set(eyePos, dirToPlayer); const losHits = collisionRaycaster.intersectObjects(terrainObjects, false); // 視線只受地形阻擋
+                 let hasLOS = true; if (losHits.length > 0 && losHits[0].distance < distToPlayer) { hasLOS = false; }
+                 if (hasLOS) { enemyShoot(agent); }
+                 agent.userData.lastShootTime = gameTime + enemyFireBase + Math.random() * enemyFireRand;
+               }
+             }
+           });
+        } else {
+           agents.forEach(agent => { const walkSpeed = 10; const walkTime = gameTime / 1000 * walkSpeed + agent.userData.walkOffset; agent.userData.leftLeg.rotation.x = Math.sin(walkTime) * 0.4; agent.userData.rightLeg.rotation.x = Math.sin(walkTime + Math.PI) * 0.4; });
+        }
+
+        // 敵人子彈
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+          const p = projectiles[i]; const moveStep = p.userData.velocity.clone().multiplyScalar(delta); const dist = moveStep.length(); const dir = p.userData.velocity.clone().normalize();
+          collisionRaycaster.set(p.position, dir); const hitWall = collisionRaycaster.intersectObjects(terrainObjects, false); // 敵人子彈受地形阻擋
+          if (hitWall.length > 0 && hitWall[0].distance < dist) { createImpactEffect(hitWall[0].point, 0xff5500); scene.remove(p); projectiles.splice(i, 1); continue; }
+          p.position.add(moveStep); p.userData.aliveTimer -= delta;
+          if (p.position.distanceTo(camera.position) < 1.2 && !isGodMode) { createImpactEffect(camera.position.clone().add(new THREE.Vector3(0, -0.5, -0.5)), 0xff0000); if(connectionMode !== 'join') takeDamage(10); scene.remove(p); projectiles.splice(i, 1); continue; }
+          if (p.userData.aliveTimer <= 0) { scene.remove(p); projectiles.splice(i, 1); }
+        }
+
+        // 玩家子彈
+        for (let i = playerProjectiles.length - 1; i >= 0; i--) {
+          const p = playerProjectiles[i]; const moveStep = p.userData.velocity.clone().multiplyScalar(delta); const dist = moveStep.length(); const dir = p.userData.velocity.clone().normalize();
+          collisionRaycaster.set(p.position, dir); const checkObjects = [...collidableObjects]; agents.forEach(a => { if(a.userData.hitMeshes && !a.userData.dying) checkObjects.push(...a.userData.hitMeshes); });
+          const hit = collisionRaycaster.intersectObjects(checkObjects, true);
+          if (hit.length > 0 && hit[0].distance < dist) {
+            createImpactEffect(hit[0].point, 0xffff00);
+            let hitObj = hit[0].object; let parentObj = hitObj; while (parentObj && (!parentObj.userData || parentObj.userData.text === undefined) && parentObj.parent) { parentObj = parentObj.parent; }
+            if (parentObj && parentObj.userData && parentObj.userData.text !== undefined && !parentObj.userData.dying) {
+               if (connectionMode !== 'join') { handleHostEnemyHit(parentObj.userData.uid, 'host'); } else { if (hostConnection) { try{ hostConnection.send({ event: 'hit', enemyId: parentObj.userData.uid }); }catch(e){} } }
+            }
+            scene.remove(p); playerProjectiles.splice(i, 1); continue;
+          }
+          p.position.add(moveStep); p.userData.aliveTimer -= delta;
+          if (p.userData.aliveTimer <= 0) { scene.remove(p); playerProjectiles.splice(i, 1); }
+        }
+
+        // 玩家視角與移動物理
+        let baseSpeed = isGodMode ? 35.0 : 22.0; 
+        const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); if(!isGodMode) forward.y = 0; forward.normalize();
+        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); if(!isGodMode) right.y = 0; right.normalize();
+        const up = new THREE.Vector3(0, 1, 0);
+
+        const moveDirection = new THREE.Vector3();
+        if (keys.w) moveDirection.add(forward); if (keys.s) moveDirection.sub(forward); if (keys.d) moveDirection.add(right); if (keys.a) moveDirection.sub(right);
+        if (isGodMode) { if (keys.e) moveDirection.add(up); if (keys.q) moveDirection.sub(up); }
+        if (joystickVector.x !== 0 || joystickVector.y !== 0) { moveDirection.addScaledVector(forward, joystickVector.y); moveDirection.addScaledVector(right, joystickVector.x); }
+        if (moveDirection.lengthSq() > 0) moveDirection.normalize();
+
+        const moveStep = moveDirection.clone().multiplyScalar(baseSpeed * delta);
+
+        if (isGodMode) {
+           camera.position.add(moveStep);
+        } else {
+           let targetHeight = STAND_HEIGHT; if (keys.crouch) { targetHeight = CROUCH_HEIGHT; baseSpeed = 10.0; document.getElementById('stance-indicator').textContent = '[ CROUCHING ]'; } else { document.getElementById('stance-indicator').textContent = '[ STANDING ]'; }
+           currentHeight += (targetHeight - currentHeight) * 15.0 * delta;
+           yVelocity += gravity * delta; let nextY = playerBaseY + yVelocity * delta;
+
+           const feetOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 1.0, camera.position.z); collisionRaycaster.set(feetOrigin, new THREE.Vector3(0, -1, 0));
+           const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false); // 玩家只跟地形碰撞
+           
+           if (groundHits.length > 0) {
+             const groundY = groundHits[0].point.y;
+             if (nextY <= groundY + 0.3) { if (yVelocity <= 0 || playerBaseY < groundY) { yVelocity = 0; nextY = groundY; if (keys.jump) yVelocity = jumpSpeed; } }
+           }
+           
+           playerBaseY = nextY; camera.position.y = playerBaseY + currentHeight;
+
+           const checkOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 0.4, camera.position.z);
+           if (Math.abs(moveStep.x) > 0) { if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(Math.sign(moveStep.x), 0, 0), Math.abs(moveStep.x) + 0.5, terrainObjects)) { camera.position.x += moveStep.x; } }
+           if (Math.abs(moveStep.z) > 0) { if (!checkHorizontalCollision(checkOrigin, new THREE.Vector3(0, 0, Math.sign(moveStep.z)), Math.abs(moveStep.z) + 0.5, terrainObjects)) { camera.position.z += moveStep.z; } }
+           if (camera.position.y < -15) { takeDamage(100); }
+        }
+      }
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isTouchDevice ? 1.5 : 2)); renderer.setSize(window.innerWidth, window.innerHeight); });
+    animate();
+  </script>
+</body>
+</html>
