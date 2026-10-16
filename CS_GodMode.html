@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>數戰空間：CS 實戰特勤訓練場 (多人戰場完美修復版)</title>
+  <title>數戰空間：CS 實戰特勤訓練場 (指揮官觀戰與真AI索敵版)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
@@ -33,7 +33,7 @@
     input[type=range] { accent-color: #38bdf8; cursor: pointer; }
     input[type=checkbox] { width: 1.2rem; height: 1.2rem; accent-color: #10b981; cursor: pointer; }
     
-    #killfeed { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; z-index: 11;}
+    #killfeed { position: absolute; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; z-index: 11; }
     .kill-msg { background: rgba(0,0,0,0.8); padding: 8px 16px; border-radius: 4px; color: white; font-family: monospace; font-size: 1.1rem; animation: fadeOut 4s forwards; border-right: 4px solid #10b981; }
     .kill-msg.error { border-right-color: #ef4444; }
     @keyframes fadeOut { 0% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; display: none; } }
@@ -55,7 +55,7 @@
 
     #god-mode-panel { position: absolute; top: 20px; right: 50%; transform: translateX(50%); background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); border: 2px solid #38bdf8; border-radius: 12px; padding: 15px 25px; z-index: 55; pointer-events: auto; display: none; width: 90%; max-width: 500px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
     #qrcode-container img { margin: 0 auto; border: 4px solid white; border-radius: 8px; }
-    .god-mode-active #hud-hp-container, .god-mode-active #hud-score-container, .god-mode-active .crosshair, .god-mode-active #btn-fire, .god-mode-active #btn-jump, .god-mode-active #btn-crouch, .god-mode-active #stance-indicator { display: none !important; }
+    .god-mode-active #hud-hp-container, .god-mode-active #hud-score-container, .god-mode-active .crosshair, .god-mode-active #btn-fire, .god-mode-active #btn-jump, .god-mode-active #btn-crouch { display: none !important; }
   </style>
 </head>
 <body>
@@ -65,7 +65,6 @@
     <h1 class="text-4xl md:text-6xl font-black text-white mb-2 md:mb-4 tracking-wider italic text-center">TACTICAL <span class="text-sky-500">MATH</span></h1>
     <p class="text-emerald-400 font-bold mb-4" id="device-info">系統偵測中...</p>
     
-    <!-- 模式選擇 -->
     <div class="flex flex-wrap justify-center gap-4 mb-6 w-full max-w-4xl px-4">
       <button id="mode-single" class="flex-1 py-3 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold border-2 border-sky-400 transition-all ring-4 ring-sky-300">👤 單機特訓</button>
       <button id="mode-host" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white rounded-lg font-bold border-2 border-rose-400 transition-all">📡 建立多人房間 (主機)</button>
@@ -77,11 +76,11 @@
       <div class="text-slate-300 md:w-1/3 leading-relaxed bg-slate-800/50 p-6 rounded-xl border border-slate-600 shadow-lg text-sm md:text-base flex flex-col justify-between">
         <div>
             <div class="font-bold text-rose-400 mb-2 text-lg border-b border-slate-700 pb-2">【特勤作戰指令】</div>
-            <span class="text-white font-bold">電腦端</span>: WASD 移動，滑鼠瞄準與左鍵射擊，空白鍵跳躍，Shift 蹲下。<br><br>
+            <span class="text-white font-bold">電腦端</span>: WASD 移動，滑鼠瞄準與左鍵射擊，空白鍵跳躍，Shift 蹲下。<br>
+            <span class="text-sky-300 font-bold text-xs">上帝視角限定：WASD 飛行，Q/E 下降/上升，空白鍵觀戰隊友。</span><br><br>
             <span class="text-white font-bold">手機平板</span>: 左搖桿移動，右半螢幕滑動瞄準，按鈕操作跳躍/蹲下/開火。
         </div>
 
-        <!-- 連線資訊與 QR Code 區域 -->
         <div id="multiplayer-info" class="hidden mt-4 p-4 bg-slate-800 border-2 border-rose-500 rounded-lg text-center relative">
             <p class="text-slate-300 mb-2 font-bold text-sm">請隊員掃描加入 (支援中途加入)：</p>
             <div id="qrcode-container" class="flex justify-center mb-2 bg-white p-2 rounded-lg inline-block w-32 h-32 mx-auto"></div>
@@ -93,10 +92,9 @@
 
       <div class="bg-slate-900 md:w-2/3 p-6 rounded-xl border border-slate-600 shadow-lg flex flex-col justify-between">
         
-        <!-- 上帝視角開關 -->
         <div id="god-mode-toggle-container" class="hidden mb-4 p-3 bg-indigo-900/50 border border-indigo-500 rounded-lg flex items-center gap-3">
             <input type="checkbox" id="god-mode-toggle" class="w-5 h-5 accent-indigo-500">
-            <label for="god-mode-toggle" class="text-indigo-200 font-bold cursor-pointer select-none text-sm md:text-base">啟用上帝視角 (主機純觀戰，不參與對戰)</label>
+            <label for="god-mode-toggle" class="text-indigo-200 font-bold cursor-pointer select-none text-sm md:text-base">啟用上帝視角 (隱身觀戰，敵人不會鎖定你)</label>
         </div>
 
         <div class="flex flex-col sm:flex-row gap-4 mb-4">
@@ -151,7 +149,7 @@
       <p id="join-status-msg" class="text-sky-400 mt-4 font-bold"></p>
     </div>
 
-    <!-- 題庫選擇區塊 (主機/單機模式才顯示) -->
+    <!-- 題庫選擇區塊 -->
     <div id="bank-panel" class="w-full max-w-4xl bg-slate-900/80 border border-sky-700 rounded-xl p-6 mt-3 mb-3 shadow-2xl">
       <div class="flex flex-col md:flex-row gap-6 items-end">
         <div class="flex-1 w-full">
@@ -197,8 +195,7 @@
     
     <div class="bg-slate-800 border border-slate-600 rounded-lg p-4 md:p-6 w-full max-w-3xl mb-8 shadow-2xl">
       <h3 class="text-amber-400 font-bold text-xl md:text-2xl mb-4 border-b border-slate-700 pb-2">誤擊紀錄 (錯題本)</h3>
-      <ul id="mistake-list" class="max-h-[40vh] overflow-y-auto custom-scroll pr-4 space-y-4">
-      </ul>
+      <ul id="mistake-list" class="max-h-[40vh] overflow-y-auto custom-scroll pr-4 space-y-4"></ul>
     </div>
 
     <button id="restart-btn" class="px-8 md:px-10 py-3 md:py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-lg font-bold text-xl md:text-2xl transition-all shadow-lg border-2 border-sky-400">
@@ -209,7 +206,7 @@
   <div id="damage-overlay"></div>
   <div id="canvas-container"></div>
 
-  <!-- 戰術微縮雷達 (Mini-map) -->
+  <!-- 戰術微縮雷達 -->
   <div class="absolute top-4 right-4 md:top-6 md:right-6 z-20 pointer-events-auto" id="radar-container" style="display:none;">
     <canvas id="radar" width="150" height="150" class="bg-slate-900/80 border-2 border-emerald-500 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.5)]"></canvas>
     <div class="text-center text-xs font-bold text-emerald-400 mt-1 drop-shadow-md tracking-widest">RADAR</div>
@@ -218,7 +215,7 @@
   <!-- 上帝視角控制面板 -->
   <div id="god-mode-panel">
     <div class="flex justify-between items-center border-b border-slate-600 pb-2 mb-3">
-      <h3 class="text-sky-400 font-black text-lg">⚙️ 上帝視角 (即時調控)</h3>
+      <h3 class="text-sky-400 font-black text-lg">⚙️ 上帝視角指揮官</h3>
       <button id="close-god-mode" class="text-slate-400 hover:text-white font-bold text-xl px-2">×</button>
     </div>
     <div class="flex flex-col gap-3">
@@ -235,7 +232,7 @@
         <input type="range" id="god-fire-slider" min="0.5" max="5.0" step="0.1" value="2.0" class="w-full">
       </div>
     </div>
-    <p class="text-xs text-slate-400 mt-3 text-center">調整後將即時同步給所有隊員 (操作：WASD 平移，E 上升，Q 下降)</p>
+    <p class="text-xs text-slate-400 mt-3 text-center">調整後將即時同步給所有隊員</p>
   </div>
   <button id="open-god-mode" class="hidden absolute top-4 left-1/2 transform -translate-x-1/2 bg-indigo-600/80 hover:bg-indigo-500 text-white font-bold py-2 px-4 rounded-full border border-indigo-300 z-[55] shadow-lg pointer-events-auto text-sm backdrop-blur-sm">
     👁️ 觀戰控制
@@ -293,12 +290,14 @@
     let enemyMoveSpeed = 4.0, enemyFireBase = 2000, enemyFireRand = 1000, enemyBulletSpeed = 40.0;
     let autoAimEnabled = true;
 
-    // 連線相關變數
+    // 連線相關與上帝觀戰變數
     let connectionMode = 'single', isGodMode = false, peer = null, myPeerId = null, roomPrefix = 'TCMATH-';
     let hostConnection = null, clientConnections = {}, clientPlayers = {}, otherPlayerMeshes = {};
     let hostPosSync = {x:0, y:0, z:0, ry:0}, currentQuestionCorrectNeeded = 1, currentQuestionCorrectHits = 0;
     const playerColors = [0x3b82f6, 0xef4444, 0x22c55e, 0xa855f7];
     let myPlayerColorIndex = 0, qrCodeObj = null;
+    let spectateIndex = -1; // -1 代表上帝視角自由飛行，大於等於0 代表正在觀戰特定單位
+    let spectateTargetsList = [];
 
     // 內建題庫
     const cloudData = {
@@ -509,7 +508,7 @@
     });
 
     function startGameAsHost(data) {
-      applySettings(); questions = data; currentQuestionIndex = 0; score = 0; hp = 100; wrongAnswersLog = []; isGameOver = false; isPaused = false; gameTime = 0; myPlayerColorIndex = 0; 
+      applySettings(); questions = data; currentQuestionIndex = 0; score = 0; hp = 100; wrongAnswersLog = []; isGameOver = false; isPaused = false; gameTime = 0; myPlayerColorIndex = 0; spectateIndex = -1;
       document.getElementById('hud-hp').textContent = hp; document.getElementById('hud-score').textContent = score;
 
       buildMap(document.getElementById('map-select').value); yVelocity = 0;
@@ -763,7 +762,7 @@
 
       if (aData.isCorrect) {
         board.material = createHoloBoardTexture(aData.text, 'rgba(16, 185, 129, 0.9)'); 
-        if(shooterPeerId === 'host') score += 100; else if(clientPlayers[shooterPeerId]) clientPlayers[shooterPeerId].score += 100;
+        if(shooterPeerId === 'host' && !isGodMode) score += 100; else if(clientPlayers[shooterPeerId]) clientPlayers[shooterPeerId].score += 100;
         addKillfeed(`✓ [小隊] 擊斃目標 [${aData.text}]`); aData.dying = true; currentQuestionCorrectHits++; updateTargetHUD();
         if (currentQuestionCorrectHits >= currentQuestionCorrectNeeded) { isTransitioning = true; currentQuestionIndex++; setTimeout(() => { if(connectionMode !== 'join') loadNextQuestionHost(); }, 1500); }
       } else {
@@ -774,7 +773,7 @@
           wrongAnswersLog.push({ qIndex: currentQuestionIndex, question: currentQ['題目'], correct: correctAnswer, picked: aData.text });
         }
         if(!isGodMode) hp = Math.max(0, hp - 20); document.getElementById('hud-hp').textContent = hp;
-        if(shooterPeerId === 'host') score = Math.max(0, score - 50); else if(clientPlayers[shooterPeerId]) clientPlayers[shooterPeerId].score = Math.max(0, clientPlayers[shooterPeerId].score - 50);
+        if(shooterPeerId === 'host' && !isGodMode) score = Math.max(0, score - 50); else if(clientPlayers[shooterPeerId]) clientPlayers[shooterPeerId].score = Math.max(0, clientPlayers[shooterPeerId].score - 50);
         addKillfeed(`✕ [小隊] 誤殺平民 [${aData.text}]`, true); setTimeout(() => { if (!aData.dying) board.material = createHoloBoardTexture(aData.text, aData.originalColor); }, 500);
         if (hp <= 0 && !isGodMode) {
            showReviewScreen("KIA 任務失敗 (全隊陣亡)");
@@ -803,11 +802,11 @@
 
        data.p.forEach(pSync => {
           if (pSync.id === 'host') hostPosSync = pSync;
-          if (pSync.id === myPeerId) return; // 忽略自己，避免拉扯
+          if (pSync.id === myPeerId) return; // 忽略自己
           
           if (!otherPlayerMeshes[pSync.id]) {
              otherPlayerMeshes[pSync.id] = createPlayerMesh(pSync.c);
-             if(pSync.id === 'host' && pSync.y > 10) return; // 上帝不顯示
+             if(pSync.id === 'host' && pSync.y > 10) return; // 上帝不顯示模型
              scene.add(otherPlayerMeshes[pSync.id]);
           }
           otherPlayerMeshes[pSync.id].position.set(pSync.x, pSync.y, pSync.z); otherPlayerMeshes[pSync.id].rotation.y = pSync.ry;
@@ -820,18 +819,10 @@
     const projectileGeo = new THREE.CylinderGeometry(0.06, 0.06, 0.8, 6); projectileGeo.rotateX(Math.PI / 2); const projectileMat = new THREE.MeshBasicMaterial({ color: 0xff5500 }); 
     const playerProjectileGeo = new THREE.CylinderGeometry(0.04, 0.04, 2.5, 6); playerProjectileGeo.rotateX(Math.PI / 2); const playerProjectileMat = new THREE.MeshBasicMaterial({ color: 0xffff00 }); 
 
-    function enemyShoot(agent) {
-      if (isTransitioning) return;
+    function enemyShoot(agent, targetAimPos) {
+      if (isTransitioning || !targetAimPos) return;
       const bullet = new THREE.Mesh(projectileGeo, projectileMat); const startPos = new THREE.Vector3(); agent.userData.gunMesh.getWorldPosition(startPos); bullet.position.copy(startPos);
-
-      let targetCamPos = camera.position.clone();
-      if (isGodMode && connectionMode === 'host') {
-         const keys = Object.keys(clientPlayers);
-         if(keys.length > 0) { const randId = keys[Math.floor(Math.random() * keys.length)]; targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z); } 
-         else { return; }
-      }
-
-      const direction = new THREE.Vector3(); direction.subVectors(targetCamPos, startPos).normalize();
+      const direction = new THREE.Vector3(); direction.subVectors(targetAimPos, startPos).normalize();
       bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction); bullet.userData = { velocity: direction.multiplyScalar(enemyBulletSpeed), aliveTimer: 2.0 }; scene.add(bullet); projectiles.push(bullet);
     }
 
@@ -850,7 +841,7 @@
       raycaster.setFromCamera(screenCenter, camera); const direction = raycaster.ray.direction.clone().normalize();
       bullet.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1), direction); bullet.userData = { velocity: direction.clone().multiplyScalar(150.0), aliveTimer: 1.0 }; scene.add(bullet); playerProjectiles.push(bullet);
 
-      // 主機或單機立即判定
+      // 命中判定
       const checkObjects = [...collidableObjects]; agents.forEach(a => { if(a.userData.hitMeshes && !a.userData.dying) checkObjects.push(...a.userData.hitMeshes); });
       const intersects = raycaster.intersectObjects(checkObjects, true);
 
@@ -884,7 +875,7 @@
     }
 
     // ==========================================
-    // 5. FPS 操作與碰撞
+    // 5. FPS 操作與碰撞 (包含上帝視角觀戰控制)
     // ==========================================
     const euler = new THREE.Euler(0, 0, 0, 'YXZ');
     const keys = { w: false, a: false, s: false, d: false, jump: false, crouch: false, e: false, q: false };
@@ -892,23 +883,43 @@
 
     document.addEventListener('mousemove', (e) => {
       if (!isTouchDevice && document.pointerLockElement === document.body && !isGameOver && !isPaused && hp > 0) {
+        if (isGodMode && spectateIndex >= 0) return; // 觀戰模式鎖定滑鼠視角
         euler.setFromQuaternion(camera.quaternion); euler.y -= e.movementX * 0.002; euler.x -= e.movementY * 0.002; euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x)); camera.quaternion.setFromEuler(euler);
       }
     });
 
-    document.addEventListener('keydown', (e) => { if (e.code === 'Escape' || e.code === 'KeyP') { togglePause(); return; } if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = true; if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = true; if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = true; if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = true; if(e.code === 'Space') keys.jump = true; if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = true; if(e.code === 'KeyE') keys.e = true; if(e.code === 'KeyQ') keys.q = true; });
+    document.addEventListener('keydown', (e) => { 
+      if (e.code === 'Escape' || e.code === 'KeyP') { togglePause(); return; } 
+      
+      // 上帝模式：空白鍵切換觀戰目標
+      if (isGodMode && e.code === 'Space') {
+          e.preventDefault();
+          spectateTargetsList = [];
+          for(let id in clientPlayers) spectateTargetsList.push({ type: 'player', id: id });
+          agents.forEach(a => { if(!a.userData.dying) spectateTargetsList.push({ type: 'enemy', agent: a }); });
+          if(spectateTargetsList.length > 0) spectateIndex = (spectateIndex + 1) % spectateTargetsList.length;
+          else spectateIndex = -1;
+          return;
+      }
+      
+      if(e.code === 'KeyW' || e.code === 'ArrowUp') { keys.w = true; if(isGodMode) spectateIndex = -1; }
+      if(e.code === 'KeyS' || e.code === 'ArrowDown') { keys.s = true; if(isGodMode) spectateIndex = -1; }
+      if(e.code === 'KeyA' || e.code === 'ArrowLeft') { keys.a = true; if(isGodMode) spectateIndex = -1; }
+      if(e.code === 'KeyD' || e.code === 'ArrowRight') { keys.d = true; if(isGodMode) spectateIndex = -1; }
+      if(e.code === 'Space' && !isGodMode) keys.jump = true; 
+      if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = true; 
+      if(e.code === 'KeyE') { keys.e = true; if(isGodMode) spectateIndex = -1; } 
+      if(e.code === 'KeyQ') { keys.q = true; if(isGodMode) spectateIndex = -1; }
+    });
+    
     document.addEventListener('keyup', (e) => { if(e.code === 'KeyW' || e.code === 'ArrowUp') keys.w = false; if(e.code === 'KeyS' || e.code === 'ArrowDown') keys.s = false; if(e.code === 'KeyA' || e.code === 'ArrowLeft') keys.a = false; if(e.code === 'KeyD' || e.code === 'ArrowRight') keys.d = false; if(e.code === 'Space') keys.jump = false; if(e.code === 'ShiftLeft' || e.code === 'KeyC') keys.crouch = false; if(e.code === 'KeyE') keys.e = false; if(e.code === 'KeyQ') keys.q = false; });
 
     const raycaster = new THREE.Raycaster(); const screenCenter = new THREE.Vector2(0, 0);
 
-    // 解決客機剛載入時沒有自動鎖定視角的問題。當使用者點擊畫面時，如果還沒鎖定則要求鎖定；如果已鎖定則開火。
     document.addEventListener('mousedown', (e) => {
       if (!isTouchDevice && !isGameOver && isGameStarted && !isPaused) {
-        if (document.pointerLockElement !== document.body && document.body.requestPointerLock) {
-          document.body.requestPointerLock();
-        } else {
-          if (e.button === 0) fireWeapon(); 
-        }
+        if (document.pointerLockElement !== document.body && document.body.requestPointerLock) { document.body.requestPointerLock(); } 
+        else { if (e.button === 0) fireWeapon(); }
       }
     });
 
@@ -916,10 +927,10 @@
     function initTouchControls() {
       if (touchControlsInitialized) return; touchControlsInitialized = true;
       const joystickManager = nipplejs.create({ zone: document.getElementById('joystick-zone'), mode: 'static', position: { left: '50%', top: '50%' }, color: '#38bdf8' });
-      joystickManager.on('move', (evt, data) => { joystickVector.set(data.vector.x, data.vector.y); }); joystickManager.on('end', () => { joystickVector.set(0, 0); });
+      joystickManager.on('move', (evt, data) => { joystickVector.set(data.vector.x, data.vector.y); if(isGodMode) spectateIndex = -1; }); joystickManager.on('end', () => { joystickVector.set(0, 0); });
       let lastTouchX = 0, lastTouchY = 0, lookTouchId = null; const lookZone = document.getElementById('look-zone');
       lookZone.addEventListener('touchstart', (e) => { e.preventDefault(); for(let i=0; i<e.changedTouches.length; i++){ if(lookTouchId === null) { lookTouchId = e.changedTouches[i].identifier; lastTouchX = e.changedTouches[i].clientX; lastTouchY = e.changedTouches[i].clientY; } } }, { passive: false });
-      lookZone.addEventListener('touchmove', (e) => { e.preventDefault(); if(isPaused || isGameOver) return; for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === lookTouchId) { const touch = e.changedTouches[i]; euler.setFromQuaternion(camera.quaternion); euler.y -= (touch.clientX - lastTouchX) * 0.005; euler.x -= (touch.clientY - lastTouchY) * 0.005; euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x)); camera.quaternion.setFromEuler(euler); lastTouchX = touch.clientX; lastTouchY = touch.clientY; } } }, { passive: false });
+      lookZone.addEventListener('touchmove', (e) => { e.preventDefault(); if(isPaused || isGameOver) return; for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === lookTouchId) { const touch = e.changedTouches[i]; if(isGodMode && spectateIndex >= 0) return; euler.setFromQuaternion(camera.quaternion); euler.y -= (touch.clientX - lastTouchX) * 0.005; euler.x -= (touch.clientY - lastTouchY) * 0.005; euler.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, euler.x)); camera.quaternion.setFromEuler(euler); lastTouchX = touch.clientX; lastTouchY = touch.clientY; } } }, { passive: false });
       lookZone.addEventListener('touchend', (e) => { for(let i=0; i<e.changedTouches.length; i++){ if(e.changedTouches[i].identifier === lookTouchId) lookTouchId = null; } });
       document.getElementById('btn-jump').addEventListener('touchstart', (e) => { e.preventDefault(); keys.jump = true; }); document.getElementById('btn-jump').addEventListener('touchend', (e) => { e.preventDefault(); keys.jump = false; });
       document.getElementById('btn-crouch').addEventListener('touchstart', (e) => { e.preventDefault(); keys.crouch = true; }); document.getElementById('btn-crouch').addEventListener('touchend', (e) => { e.preventDefault(); keys.crouch = false; });
@@ -979,42 +990,65 @@
           } else { document.getElementById('crosshair').classList.remove('locked'); }
         } else { document.getElementById('crosshair').classList.remove('locked'); }
 
-        // 敵人AI
+        // --- 收集 AI 的合法目標 ---
+        let validTargets = [];
+        if (!isGodMode && hp > 0) {
+            validTargets.push({ id: 'host', pos: camera.position.clone() });
+        }
+        for (let id in clientPlayers) {
+            validTargets.push({ id: id, pos: new THREE.Vector3(clientPlayers[id].pos.x, clientPlayers[id].pos.y, clientPlayers[id].pos.z) });
+        }
+
+        // --- 敵人真 AI 運算 ---
         if (connectionMode !== 'join') {
            agents.forEach(agent => {
-             if (agent.userData.dying) { agent.scale.multiplyScalar(0.9); agent.rotation.x -= 5 * delta; } else {
-               agent.lookAt(camera.position.x, agent.position.y, camera.position.z);
-               const dist = agent.position.distanceTo(camera.position); let isMoving = false;
-               
-               if (enemyMoveSpeed > 0 && dist > 5) { 
-                 const dir = new THREE.Vector3(); dir.subVectors(camera.position, agent.position); dir.y = 0; dir.normalize();
-                 const moveStepX = dir.x * enemyMoveSpeed * delta; const moveStepZ = dir.z * enemyMoveSpeed * delta;
-                 const enemyCheckOrigin = new THREE.Vector3(agent.position.x, agent.position.y + 0.5, agent.position.z);
-                 
-                 // 敵人物理只受 terrainObjects 阻擋
-                 if (Math.abs(moveStepX) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(Math.sign(moveStepX), 0, 0), Math.abs(moveStepX) + 1.2, terrainObjects)) { agent.position.x += moveStepX; isMoving = true; }
-                 if (Math.abs(moveStepZ) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(0, 0, Math.sign(moveStepZ)), Math.abs(moveStepZ) + 1.2, terrainObjects)) { agent.position.z += moveStepZ; isMoving = true; }
+             if (agent.userData.dying) { 
+               agent.scale.multiplyScalar(0.9); agent.rotation.x -= 5 * delta; 
+             } else {
+               // 尋找最近的合法目標
+               let closestTarget = null;
+               let minDist = Infinity;
+               for (let t of validTargets) {
+                   let d = agent.position.distanceTo(t.pos);
+                   if (d < minDist) { minDist = d; closestTarget = t; }
                }
+
+               let isMoving = false;
+               
+               if (closestTarget) {
+                 agent.lookAt(closestTarget.pos.x, agent.position.y, closestTarget.pos.z);
+                 
+                 if (enemyMoveSpeed > 0 && minDist > 5) { 
+                   const dir = new THREE.Vector3(); dir.subVectors(closestTarget.pos, agent.position); dir.y = 0; dir.normalize();
+                   const moveStepX = dir.x * enemyMoveSpeed * delta; const moveStepZ = dir.z * enemyMoveSpeed * delta;
+                   const enemyCheckOrigin = new THREE.Vector3(agent.position.x, agent.position.y + 0.5, agent.position.z);
+                   
+                   if (Math.abs(moveStepX) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(Math.sign(moveStepX), 0, 0), Math.abs(moveStepX) + 1.2, terrainObjects)) { agent.position.x += moveStepX; isMoving = true; }
+                   if (Math.abs(moveStepZ) > 0 && !checkHorizontalCollision(enemyCheckOrigin, new THREE.Vector3(0, 0, Math.sign(moveStepZ)), Math.abs(moveStepZ) + 1.2, terrainObjects)) { agent.position.z += moveStepZ; isMoving = true; }
+                 }
+               }
+
                const walkSpeed = 10; const walkTime = isMoving ? (gameTime / 1000 * walkSpeed + agent.userData.walkOffset) : 0;
                agent.userData.leftLeg.rotation.x = Math.sin(walkTime) * 0.4; agent.userData.rightLeg.rotation.x = Math.sin(walkTime + Math.PI) * 0.4;
                
                agent.userData.yVelocity += gravity * delta; const agentFeetPos = agent.position.clone(); agentFeetPos.y += 2.0; 
-               collisionRaycaster.set(agentFeetPos, new THREE.Vector3(0, -1, 0)); const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false); // 避免踩自己
+               collisionRaycaster.set(agentFeetPos, new THREE.Vector3(0, -1, 0)); const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false);
                
                if (groundHits.length > 0 && groundHits[0].distance < 2.5) { agent.userData.yVelocity = 0; agent.position.y = groundHits[0].point.y + (isMoving ? Math.abs(Math.sin(walkTime))*0.1 : 0); } 
                else { agent.position.y += agent.userData.yVelocity * delta; }
                
-               if (gameTime > agent.userData.lastShootTime && !isTransitioning) {
+               // 開火判定
+               if (gameTime > agent.userData.lastShootTime && !isTransitioning && closestTarget) {
                  const eyePos = agent.position.clone(); eyePos.y += 2.0; 
-                 let targetCamPos = camera.position.clone();
-                 if (connectionMode === 'host') {
-                    const keys = Object.keys(clientPlayers); if (!isGodMode) keys.push('host'); 
-                    if(keys.length > 0) { const randId = keys[Math.floor(Math.random() * keys.length)]; if(randId === 'host') targetCamPos.set(camera.position.x, camera.position.y, camera.position.z); else targetCamPos.set(clientPlayers[randId].pos.x, clientPlayers[randId].pos.y, clientPlayers[randId].pos.z); }
-                 }
-                 const dirToPlayer = new THREE.Vector3().subVectors(targetCamPos, eyePos); const distToPlayer = dirToPlayer.length(); dirToPlayer.normalize();
-                 collisionRaycaster.set(eyePos, dirToPlayer); const losHits = collisionRaycaster.intersectObjects(terrainObjects, false); // 視線只受地形阻擋
+                 
+                 let targetAimPos = closestTarget.pos.clone();
+                 if(closestTarget.id !== 'host') targetAimPos.y += 1.5; // 瞄準胸口/頭部
+                 
+                 const dirToPlayer = new THREE.Vector3().subVectors(targetAimPos, eyePos); const distToPlayer = dirToPlayer.length(); dirToPlayer.normalize();
+                 collisionRaycaster.set(eyePos, dirToPlayer); const losHits = collisionRaycaster.intersectObjects(terrainObjects, false); 
+                 
                  let hasLOS = true; if (losHits.length > 0 && losHits[0].distance < distToPlayer) { hasLOS = false; }
-                 if (hasLOS) { enemyShoot(agent); }
+                 if (hasLOS) { enemyShoot(agent, targetAimPos); }
                  agent.userData.lastShootTime = gameTime + enemyFireBase + Math.random() * enemyFireRand;
                }
              }
@@ -1026,9 +1060,10 @@
         // 敵人子彈
         for (let i = projectiles.length - 1; i >= 0; i--) {
           const p = projectiles[i]; const moveStep = p.userData.velocity.clone().multiplyScalar(delta); const dist = moveStep.length(); const dir = p.userData.velocity.clone().normalize();
-          collisionRaycaster.set(p.position, dir); const hitWall = collisionRaycaster.intersectObjects(terrainObjects, false); // 敵人子彈受地形阻擋
+          collisionRaycaster.set(p.position, dir); const hitWall = collisionRaycaster.intersectObjects(terrainObjects, false); 
           if (hitWall.length > 0 && hitWall[0].distance < dist) { createImpactEffect(hitWall[0].point, 0xff5500); scene.remove(p); projectiles.splice(i, 1); continue; }
           p.position.add(moveStep); p.userData.aliveTimer -= delta;
+          
           if (p.position.distanceTo(camera.position) < 1.2 && !isGodMode) { createImpactEffect(camera.position.clone().add(new THREE.Vector3(0, -0.5, -0.5)), 0xff0000); if(connectionMode !== 'join') takeDamage(10); scene.remove(p); projectiles.splice(i, 1); continue; }
           if (p.userData.aliveTimer <= 0) { scene.remove(p); projectiles.splice(i, 1); }
         }
@@ -1050,7 +1085,7 @@
           if (p.userData.aliveTimer <= 0) { scene.remove(p); playerProjectiles.splice(i, 1); }
         }
 
-        // 玩家視角與移動物理
+        // 玩家與觀戰視角操作更新
         let baseSpeed = isGodMode ? 35.0 : 22.0; 
         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); if(!isGodMode) forward.y = 0; forward.normalize();
         const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion); if(!isGodMode) right.y = 0; right.normalize();
@@ -1065,14 +1100,46 @@
         const moveStep = moveDirection.clone().multiplyScalar(baseSpeed * delta);
 
         if (isGodMode) {
-           camera.position.add(moveStep);
+           if (spectateIndex >= 0 && spectateTargetsList.length > 0) {
+               document.getElementById('stance-indicator').textContent = '[ SPECTATING ]';
+               if (spectateIndex >= spectateTargetsList.length) spectateIndex = 0;
+               let target = spectateTargetsList[spectateIndex];
+               let tX = 0, tY = 0, tZ = 0, tRy = 0;
+               let isValid = false;
+
+               if (target.type === 'player' && clientPlayers[target.id]) {
+                   tX = clientPlayers[target.id].pos.x; tY = clientPlayers[target.id].pos.y; tZ = clientPlayers[target.id].pos.z; tRy = clientPlayers[target.id].pos.ry;
+                   isValid = true;
+               } else if (target.type === 'enemy' && target.agent && !target.agent.userData.dying) {
+                   tX = target.agent.position.x; tY = target.agent.position.y; tZ = target.agent.position.z; tRy = target.agent.rotation.y;
+                   isValid = true;
+               }
+
+               if (isValid) {
+                   let offset = new THREE.Vector3(0, 3, 6);
+                   offset.applyAxisAngle(new THREE.Vector3(0,1,0), tRy);
+                   camera.position.lerp(new THREE.Vector3(tX + offset.x, tY + offset.y, tZ + offset.z), 10 * delta);
+                   
+                   let lookTarget = new THREE.Vector3(tX, tY + 1.5, tZ);
+                   let dummyCam = camera.clone(); dummyCam.lookAt(lookTarget);
+                   camera.quaternion.slerp(dummyCam.quaternion, 10 * delta);
+                   euler.setFromQuaternion(camera.quaternion);
+               } else {
+                   spectateTargetsList.splice(spectateIndex, 1);
+                   if (spectateTargetsList.length === 0) spectateIndex = -1;
+                   else spectateIndex = spectateIndex % spectateTargetsList.length;
+               }
+           } else {
+               document.getElementById('stance-indicator').textContent = '[ GOD MODE ]';
+               camera.position.add(moveStep);
+           }
         } else {
            let targetHeight = STAND_HEIGHT; if (keys.crouch) { targetHeight = CROUCH_HEIGHT; baseSpeed = 10.0; document.getElementById('stance-indicator').textContent = '[ CROUCHING ]'; } else { document.getElementById('stance-indicator').textContent = '[ STANDING ]'; }
            currentHeight += (targetHeight - currentHeight) * 15.0 * delta;
            yVelocity += gravity * delta; let nextY = playerBaseY + yVelocity * delta;
 
            const feetOrigin = new THREE.Vector3(camera.position.x, playerBaseY + 1.0, camera.position.z); collisionRaycaster.set(feetOrigin, new THREE.Vector3(0, -1, 0));
-           const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false); // 玩家只跟地形碰撞
+           const groundHits = collisionRaycaster.intersectObjects(terrainObjects, false); 
            
            if (groundHits.length > 0) {
              const groundY = groundHits[0].point.y;
