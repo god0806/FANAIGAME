@@ -111,7 +111,7 @@
         <h1>數字密碼對決</h1>
         <div id="top-room-display">連線房號：<span id="top-room-id">----</span></div>
     </header>
-<details style="width:100%;max-width:1280px;background:#fffdf8;border-radius:12px;padding:14px;margin:0 0 12px"><summary style="cursor:pointer;font-weight:bold">📚 倍數判別法與遊戲說明</summary><p>每人設定一個秘密數字，不排序。按原位序猜出對手的完整數字即可獲勝。倍數題以整個三位數／五位數判斷，回答「是」或「否」；數量、加減乘與位值題填數字。答案可以是 0 或負數。</p><div class="question-board"><div class="question-card" style="display:block;text-align:left"><strong>2 的倍數</strong><p>個位數為 0、2、4、6、8。</p></div><div class="question-card" style="display:block;text-align:left"><strong>3 的倍數</strong><p>各位數字相加，總和為 3 的倍數。</p></div><div class="question-card" style="display:block;text-align:left"><strong>4 的倍數</strong><p>末兩位組成的數為 4 的倍數（含 00）。</p></div><div class="question-card" style="display:block;text-align:left"><strong>5 的倍數</strong><p>個位數為 0 或 5。</p></div><div class="question-card" style="display:block;text-align:left"><strong>7 的倍數</strong><p>去掉個位數後的數，減去個位數的兩倍，結果為 7 的整數倍（含 0、負倍數）；可反覆判斷。例：203 → 20 − 6 = 14。</p></div><div class="question-card" style="display:block;text-align:left"><strong>9 的倍數</strong><p>各位數字相加，總和為 9 的倍數。</p></div><div class="question-card" style="display:block;text-align:left"><strong>11 的倍數</strong><p>奇數位數字和與偶數位數字和的差為 11 的整數倍（含 0、負倍數）。</p></div><div class="question-card" style="display:block;text-align:left"><strong>25 的倍數</strong><p>末兩位為 00、25、50、75。</p></div></div><p>連線時雙方請使用本版本。</p></details>
+<details style="width:100%;max-width:1280px;background:#fffdf8;border-radius:12px;padding:14px;margin:0 0 12px"><summary style="cursor:pointer;font-weight:bold">📚 倍數判別法與遊戲說明</summary><p>每人設定一個秘密數字，不排序；必須是 2、3、4、5、7、9、11、25 中至少一個數的倍數，符合多個也可以。按原位序猜出對手的完整數字即可獲勝。倍數題以整個三位數／五位數判斷，回答「是」或「否」；數量、加減乘與位值題填數字。答案可以是 0 或負數。</p><div class="question-board"><div class="question-card" style="display:block;text-align:left"><strong>2 的倍數</strong><p>個位數為 0、2、4、6、8。</p></div><div class="question-card" style="display:block;text-align:left"><strong>3 的倍數</strong><p>各位數字相加，總和為 3 的倍數。</p></div><div class="question-card" style="display:block;text-align:left"><strong>4 的倍數</strong><p>末兩位組成的數為 4 的倍數（含 00）。</p></div><div class="question-card" style="display:block;text-align:left"><strong>5 的倍數</strong><p>個位數為 0 或 5。</p></div><div class="question-card" style="display:block;text-align:left"><strong>7 的倍數</strong><p>去掉個位數後的數，減去個位數的兩倍，結果為 7 的整數倍（含 0、負倍數）；可反覆判斷。例：203 → 20 − 6 = 14。</p></div><div class="question-card" style="display:block;text-align:left"><strong>9 的倍數</strong><p>各位數字相加，總和為 9 的倍數。</p></div><div class="question-card" style="display:block;text-align:left"><strong>11 的倍數</strong><p>奇數位數字和與偶數位數字和的差為 11 的整數倍（含 0、負倍數）。</p></div><div class="question-card" style="display:block;text-align:left"><strong>25 的倍數</strong><p>末兩位為 00、25、50、75。</p></div></div><p>連線時雙方請使用本版本。</p></details>
 
     <div id="main-menu" class="container active-section">
         <h2 class="section-title">選擇連線模式</h2>
@@ -201,7 +201,7 @@
 
     <div id="setup-section" class="container">
         <h2 class="section-title">設定你的秘密數字</h2>
-        <p style="text-align: center; margin-bottom: 5px;">輸入三位數或五位數，第一位不可為 0，其餘各位為 0～9，可重複；位數依本局模式決定。</p>
+        <p style="text-align: center; margin-bottom: 5px;">輸入三位數或五位數，第一位不可為 0，其餘各位為 0～9，可重複；位數依本局模式決定。秘密數字必須是 2、3、4、5、7、9、11、25 中至少一個數的倍數。</p>
         <div id="player-sort-cards" class="card-row" style="margin: 30px 0;"></div>
         <button class="btn" id="btn-ready" onclick="checkSorting()">確認密碼，準備對決！</button>
         <div id="sort-error" style="color: red; text-align: center; font-weight: bold; margin-top: 10px;"></div>
@@ -788,18 +788,31 @@
             }
         }
 
+        const SECRET_DIVISORS = [2,3,4,5,7,9,11,25];
+        function isAllowedSecret(value) {
+            return SECRET_DIVISORS.some(d => Number(value) % d === 0);
+        }
         function randomDigits(count) {
-            return Array.from({length:count},(_,i)=>Math.floor(Math.random()*(i===0?9:10))+(i===0?1:0));
+            const minimum = 10 ** (count - 1);
+            const candidates = [];
+            for (let n = minimum; n < minimum * 10; n++) {
+                if (isAllowedSecret(n)) candidates.push(n);
+            }
+            return Array.from(String(candidates[Math.floor(Math.random() * candidates.length)]), Number);
         }
         function renderSortingCards() {
             const container=document.getElementById('player-sort-cards');
-            container.innerHTML='<label style="text-align:center">請輸入 '+cardCount+' 位秘密數字<br><input id="secret-number" type="text" inputmode="numeric" maxlength="'+cardCount+'" autocomplete="off" aria-label="秘密數字" style="font-size:32px;width:220px;text-align:center;letter-spacing:6px;margin-top:12px"></label>';
+            container.innerHTML='<label style="text-align:center">請輸入 '+cardCount+' 位秘密數字（須符合至少一種倍數條件）<br><input id="secret-number" type="text" inputmode="numeric" maxlength="'+cardCount+'" autocomplete="off" aria-label="秘密數字" style="font-size:32px;width:220px;text-align:center;letter-spacing:6px;margin-top:12px"></label>';
             document.getElementById('secret-number').value=myCards.join('');
         }
         function checkSorting() {
             const value=document.getElementById('secret-number').value.trim();
             if(!new RegExp('^[1-9][0-9]{'+(cardCount-1)+'}$').test(value)) {
                 document.getElementById('sort-error').textContent='請輸入 '+cardCount+' 位數字，首位不可為 0，其他位為 0～9。'; return;
+            }
+            if (!isAllowedSecret(value)) {
+                document.getElementById('sort-error').textContent='這個數字不符合規則！必須是 2、3、4、5、7、9、11、25 中至少一個數的倍數，例如 '+(cardCount===3?'100、105、121':'10000、10005、10010')+'。';
+                return;
             }
             myCards=Array.from(value,Number);
             if(isHost) hostCards=[...myCards]; else guestCards=[...myCards];
