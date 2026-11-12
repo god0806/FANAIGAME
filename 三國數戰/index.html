@@ -257,11 +257,11 @@ window.characterDesign = (() => {
     const p=profile(id), faces=[];
     const modernMentor=id==='teacher', quartermaster=id==='officer', armorer=id==='weapons', grocer=id==='supplies', innkeeper=id==='inn';
     const {main,dark,trim,figure,armor}=p;
-    const skin=p.face==='elder'?'#d6a782':'#e4b48a';
+    const skin=({teacher:'#e4b398',officer:'#edc1a4',inn:'#edbea3',supplies:'#dfb69b',villager:'#d8ad92',weapons:'#d8ad8c'})[id]||(p.face==='elder'?'#d6a782':'#e4b48a');
     const hair=p.face==='elder'?'#c9c6bc':'#332e2c';
     const steel='#c2d0d1', wood='#846248';
     const add=(points,color,light=1)=>faces.push({points,color:rgb(color).map(c=>Math.min(1,c*light))});
-    function loft(x,z,rows,color,sides=8){
+    function loft(x,z,rows,color,sides=16){
       const rings=rows.map(([y,w,d])=>Array.from({length:sides},(_,i)=>{
         const a=(i+.5)*Math.PI*2/sides;
         return [x+Math.cos(a)*w,y,z+Math.sin(a)*d];
@@ -381,8 +381,8 @@ window.characterDesign = (() => {
     }
     const headStart=faces.length;
     loft(0,0,[[48,4.1,3.7],[56,4.5,4]],skin);
-    const jaw=modernMentor?6.3:p.face==='elder'?5.6:p.face==='youth'?4.4:5.1;
-    loft(0,.4,[[54,jaw,4.4],[57,6.5,6.3],[62,8.2,7],[68,8.55,7.35],[73,7.35,6]],skin,12);
+    const jaw=modernMentor?6.3:quartermaster?5.1:innkeeper?5.5:grocer?5.8:id==='villager'?5.9:p.face==='elder'?5.6:p.face==='youth'?4.4:5.1;
+    loft(0,.4,[[54,jaw,4.4],[55.5,jaw+.5,5.5],[57,6.5,6.3],[59,7.5,6.8],[62,8.2,7],[65,8.5,7.3],[68,8.55,7.35],[71,8,6.9],[73,7.35,6]],skin,24);
     loft(0,-1,[[65,8.8,6.6],[73,8.3,6.6],[76,5.5,4.6]],hair,12);
     for(const side of [-1,1]){
       const x=side*3.3;
@@ -406,6 +406,19 @@ window.characterDesign = (() => {
     }
     if(p.face!=='plain'&&p.face!=='youth'&&!modernMentor&&!quartermaster)add([[-5,59.3,7],[0,61,8.5],[5,59.3,7],[2,58.3,8],[0,59,9],[-2,58.3,8]],hair);
 
+    // Fine facial details remain part of the head and follow every pose.
+    for(const side of [-1,1]){
+      const x=side*3.3;
+      add([[x-1.8,63.9,8.18],[x,64.23,8.25],[x+1.8,63.85,8.18],[x,64.05,8.28]],'#946e5d');
+      add([[x-1.5,61.8,8.1],[x,61.5,8.2],[x+1.4,61.85,8.1]],skin,.94);
+      add([[side*.45,60.15,9.32],[side*1.15,60.15,8.8],[side*.82,59.9,8.9]],'#986c58');
+      add([[side*8.05,61,2],[side*8.7,63,2.4],[side*8.6,59.5,2.6]],skin,.78);
+    }
+    add([[-1.7,56.8,7.95],[0,56.55,8.08],[1.7,56.8,7.95],[0,56.7,8.12]],skin,1.05);
+    if(grocer){
+      add([[-2.8,58,8.22],[0,57.5,8.4],[2.8,58,8.22],[1.6,56.8,8.1],[-1.6,56.8,8.1]],'#995d55');
+      add([[-2.1,57.8,8.43],[2.1,57.8,8.43],[1.3,57.25,8.45],[-1.3,57.25,8.45]],'#f4e7d7');
+    }
     if(armorer){
       for(const side of [-1,1]){
         loft(side*8.7,1,[[60,2,2],[64,2.9,2.3],[67,2.3,1.9]],'#896048',10);
@@ -520,6 +533,17 @@ window.characterDesign = (() => {
         box(-4,77,-.5,8,2,1.3,trim);
     }
 
+    if(['short','crop','bob'].includes(p.hat)){
+      const bob=p.hat==='bob';
+      for(let i=0;i<14;i++){
+        const x=-7.4+i*1.1, y=74.3-Math.abs(x)*.32;
+        add([[x,y,7.2],[x+.23,y+.1,7.3],[x+(grocer?2: .6),y-3.5,7.83]],bob?'#78503f':'#454347');
+      }
+      if(modernMentor||grocer){
+        for(const side of [-1,1])add([[side*2,65,9.1],[side*5,65,9.1],[side*6.5,63.5,9.1],[side*6,63.5,9.1]],'#857b78');
+      }
+      if(quartermaster)for(const side of [-1,1])crest(side*8.7,58.5,3, .65,'#dcb882');
+    }
     const headEnd=faces.length;
     const hand=shoulder+2, z=6-step*.62;
     const upright=(bottom,top,color)=>box(hand-1.5,bottom,z-1.4,3,top-bottom,3,color);
