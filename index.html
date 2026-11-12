@@ -224,13 +224,13 @@ window.characterDesign = (() => {
     'ally-1': {name:'諸葛亮', main:'#eeebde', dark:'#254454', trim:'#388b91', hat:'scholar', tool:'fan', figure:.98, face:'beard', jewel:'#5fbebd', detail:'青碧金飾高冠、白袍藍襟、長鬚與白羽扇。'},
     'ally-2': {name:'魯肅', main:'#4e637e', dark:'#263749', trim:'#d4ad70', hat:'court', tool:'scroll', figure:1.06, face:'moustache', jewel:'#83a59a', detail:'靛藍長袍繡邊、展翅文冠與外交卷冊。'},
     'ally-3': {name:'黃蓋', main:'#56565b', dark:'#30292b', trim:'#b28a53', hat:'veteran', tool:'whip', figure:1.19, face:'elder', armor:true, cape:'#8c3c2f', jewel:'#8c3e38', detail:'灰白鬚髮、深鋼重甲與銅飾，手持節節相連的鐵鞭。'},
-    teacher:  {name:'阿帆', main:'#cbdcf0', dark:'#222731', trim:'#e9effb', hat:'short', tool:'none', figure:1.16, face:'mentor', detail:'短黑髮、深色方框眼鏡、淺藍襯衫與紅色花紋領帶。'},
-    officer:  {name:'校尉小蓉', main:'#e9a6ae', dark:'#262739', trim:'#f9edf1', hat:'bob', tool:'none', figure:.94, face:'smile', detail:'棕色齊肩髮、深色圓框眼鏡、粉色毛衣與白色高領。'},
-    villager: {name:'阿倫', main:'#282931', dark:'#1e2028', trim:'#71819b', hat:'crop', tool:'basket', figure:.98, face:'youth', detail:'短黑髮、黑外套與藍灰點紋襯衫，帶著竹籃往返糧道。'},
+    teacher:  {name:'阿帆', main:'#cbdcf0', dark:'#222731', trim:'#e9effb', hat:'short', tool:'mathbook', figure:1.16, face:'mentor', detail:'短黑髮、深色方框眼鏡、淺藍襯衫、紅色領帶，手拿藍封數學課本。'},
+    officer:  {name:'校尉小蓉', main:'#364761', dark:'#222c3c', trim:'#e8b269', hat:'bob', tool:'none', figure:.94, face:'smile', detail:'棕色齊肩髮、深色圓框眼鏡、深藍軍官制服、金色肩章與軍徽。'},
+    villager: {name:'阿倫', main:'#305a88', dark:'#202e43', trim:'#b9d9ee', hat:'crop', tool:'basketball', figure:.98, face:'youth', detail:'短黑髮、藍色球衣與橘色籃球，是村裡的籃球高手。'},
     guard:    {name:'前線守衛', main:'#628775', dark:'#35584e', trim:'#b8ad84', hat:'helmet', tool:'halberd', figure:1.05, face:'plain', armor:true},
     weapons:  {name:'武器店阿豪', main:'#b9c2d5', dark:'#293c64', trim:'#dce2ed', hat:'short', tool:'goldenStaff', figure:1.04, face:'plain', detail:'武器店阿豪的美猴王造型。金色頭箍、細框眼鏡與金箍棒，搭配淺灰麻花毛衣。'},
-    supplies: {name:'糧食店老徐', main:'#a84953', dark:'#777f90', trim:'#e1b4ad', hat:'short', tool:'sack', figure:1.03, face:'plain', detail:'側分短黑髮、煙色方框眼鏡、紅格紋襯衫與灰色長褲。'},
-    inn:      {name:'飯店阿慧', main:'#922f4d', dark:'#223247', trim:'#e2d7cd', hat:'bob', tool:'tray', figure:.94, face:'youth', detail:'棕色短髮配齊瀏海、酒紅背心與深藍襯衫，端著飯店的熱湯。'},
+    supplies: {name:'招募所老徐', main:'#7564a2', dark:'#3e3659', trim:'#f2d59a', hat:'short', tool:'staff', figure:1.03, face:'plain', detail:'側分短黑髮、煙色方框眼鏡、紫袍金邊，手持聖杖，在招募所指引軍師尋找夥伴。'},
+    inn:      {name:'化學老師阿慧', main:'#e8ecec', dark:'#622a48', trim:'#73cbc1', hat:'bob', tool:'potion', figure:.94, face:'youth', detail:'棕色短髮配齊瀏海、白色實驗外套配酒紅內衫，手拿補血藥瓶。'},
     scout:    {name:'曹軍斥候', main:'#98604f', dark:'#593e3b', trim:'#c68e6a', hat:'band', tool:'dagger', figure:.87, face:'plain'},
     shieldman:{name:'曹軍刀盾兵', main:'#954c43', dark:'#542f34', trim:'#b4a080', hat:'helmet', tool:'shield', figure:1.14, face:'plain', armor:true},
     archer:   {name:'曹軍弓手', main:'#ad7753', dark:'#67493a', trim:'#d1b487', hat:'hood', tool:'bow', figure:.91, face:'plain'},
@@ -330,8 +330,8 @@ window.characterDesign = (() => {
       for(const side of [-1,1])add([[side*5,52,5],[side*1,48,8],[side*5,44,8],[side*9,49,7]],dark);
       for(const y of [15,22,33,39])crest(0,y,8.3,1.15,trim);
     }else if(grocer){
-      for(const x of [-8,-4,0,4,8])box(x,24,8,1,22,.25,'#40374b');
-      for(const y of [26,31,36,41,46])box(-9,y,8,18,1,.3,'#dca9aa');
+      crest(0,38,8.7,4,trim);
+      for(const x of [-7,7])box(x,16,8,1,23,.35,trim);
       for(const side of [-1,1])add([[side*6,52,5],[side*1,48,8.5],[side*5,44,8.5],[side*9,49,7]],'#873340');
     }else if(armorer){
       for(const side of [-1,1])add([[side*5,52,5],[side*1,48,8],[side*5,44,8],[side*9,49,7]],'#305fa7');
@@ -340,9 +340,9 @@ window.characterDesign = (() => {
       }
     }else if(quartermaster){
       loft(0,0,[[48,6.5,5.2],[52,5.3,4.8],[55,4.8,4.3]],trim,12);
-      for(const y of [23,34,40,45]){
-        for(let x=-8;x<=8;x+=2)add([[x,y,8.25],[x+1,y+.55,8.3],[x+2,y,8.25],[x+1,y-.55,8.3]],'#f8c0c8');
-      }
+      for(const side of [-1,1])box(side*10-3,45,7,6,3,2,trim);
+      for(const y of [32,37,42])crest(0,y,8.5,.9,trim);
+      crest(-7,42,8.6,2.4,'#ed9cae');
     }else if(modernMentor){
       add([[-8,52,5],[-1,48,8],[-5,43,8],[-10,49,7]],trim);
       add([[8,52,5],[1,48,8],[5,43,8],[10,49,7]],trim);
@@ -578,6 +578,33 @@ window.characterDesign = (() => {
           for(const y of [bottom+1,bottom+4,top-2])loft(hand,z,[[y,2.7,2.7],[y+1,2.7,2.7]],'#ffda69',10);
         }
         break;
+      case 'mathbook':
+        box(hand-8,20,z+2,16,20,4,'#244670');
+        box(hand-6,21,z+3,13,18,3,'#f7ecd2');
+        box(hand-8,20,z+6,16,20,1.3,'#3878a8');
+        box(hand-7,20,z+7,1.4,20,.65,'#1b4267');
+        box(hand-3,33,z+7.4,6,1.2,.5,'#ffdf93');
+        box(hand-.6,30.6,z+7.4,1.2,6,.5,'#ffdf93');
+        for(const y of [25,27])box(hand-3,y,z+7.4,6,.65,.5,'#ffdf93');
+        break;
+      case 'potion':
+        loft(hand,z+4,[[23,2,2],[24,5,4],[30,5.5,4.6],[34,2,2],[38,2,2]],'#54c9ba',14);
+        loft(hand,z+4,[[23.4,2.5,2.4],[25,4.9,4.1],[29,5,4.3]],'#bc436f',14);
+        loft(hand,z+4,[[36,2.6,2.6],[39,2.6,2.6]],'#dbae6e',12);
+        box(hand-2,26,z+8.1,4,4,.5,'#fff0ce');
+        box(hand-1.35,27.6,z+8.65,2.7,.7,.3,'#b73659');
+        box(hand-.35,26.6,z+8.65,.7,2.7,.3,'#b73659');
+        break;
+      case 'basketball': {
+        const cy=25, cz=z+6, r=7;
+        loft(hand,cz,[-1,-.92,-.7,-.4,0,.4,.7,.92,1].map(k=>[cy+r*k,Math.max(.06,r*Math.sqrt(1-k*k)),Math.max(.06,r*Math.sqrt(1-k*k))]),'#e88136',24);
+        for(const [u,v] of [[[1,0,0],[0,0,1]],[[0,1,0],[0,0,1]],[[.707,.707,0],[0,0,1]]]){
+          const ring=(t,h)=>[hand+7.09*(u[0]*Math.cos(t)+v[0]*Math.sin(t))+h*u[1],cy+7.09*(u[1]*Math.cos(t)+v[1]*Math.sin(t))-h*u[0],cz+7.09*(u[2]*Math.cos(t)+v[2]*Math.sin(t))];
+          const band=ring;
+          for(let j=0;j<24;j++){const a=j*Math.PI/12,b=(j+1)*Math.PI/12;add([band(a,-.22),band(b,-.22),band(b,.22),band(a,.22)],'#61392c');}
+        }
+        break;
+      }
       case 'none': break;
       default: for(let i=0;i<4;i++)box(hand-5+i*2.4,20,z+i*.6,2,16,2,trim);
     }
@@ -817,13 +844,13 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
       {id:'sword',name:'精鐵軍刀',price:35,bonus:3,text:'主線答對一題，多獲得 3 點謀略。'},
       {id:'blade',name:'青鋼長刀',price:75,bonus:6,text:'主線答對一題，多獲得 6 點謀略。'},
     ]},
-    supplies:{name:'糧食店',keeper:'糧食店老徐',items:[
+    supplies:{name:'招募所',keeper:'招募所老徐',intro:'我是聖者老徐。來看看招募名冊，找到能與你同行的夥伴。',items:[
       {id:'rice',name:'軍糧飯糰',price:12,heal:20,text:'立即回復 20 點兵力。'},
       {id:'provisions',name:'行軍糧袋',price:23,heal:45,text:'立即回復 45 點兵力。'},
     ]},
-    inn:{name:'飯店',keeper:'飯店阿慧',items:[
-      {id:'meal',name:'熱湯與飯',price:16,heal:30,text:'立即回復 30 點兵力。'},
-      {id:'rest',name:'住店休整',price:30,heal:100,text:'兵力回復至 100。'},
+    inn:{name:'阿慧藥房',keeper:'化學老師阿慧',intro:'我是化學老師阿慧。這裡有兩種補血藥，出征前先看看需要哪一瓶。',items:[
+      {id:'meal',name:'初級補血藥',price:16,heal:30,text:'立即回復 30 點兵力。'},
+      {id:'rest',name:'強效補血藥',price:30,heal:100,text:'兵力回復至 100。'},
     ]},
   };
   const operations=[
@@ -904,7 +931,7 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
       ['江岸船夫','sailor','江水深，只有棧橋和甲板能通行。要回主營，沿小地圖的道路走。'],
       ['聯軍文書','officer','各處的軍報都會送回主營。準備好後，按「前往戰場」可走向目前任務。'],
       ['林間嚮導','villager','林道旁的屋舍可以當地標。趕路時按住 Shift 跑步。'],
-      ['補給隊員','supplies','此處儲存軍糧。購買補給請到主營商街找糧食店老徐。'],
+      ['補給隊員','supplies','此處儲存軍糧。購買軍糧或查看招募名冊，請到主營商街找招募所老徐。'],
       ['遠哨守軍','shieldman','這是本區外圍哨站。想知道本章戰況，我可以把軍情說給你聽。'],
     ];
     settlements.forEach(([px,pz],i)=>{
@@ -1954,12 +1981,12 @@ window.createVillageScene = function (canvas) {
 (() => {
 const el=id=>document.getElementById(id), main=document.querySelector('main');
 main.insertAdjacentHTML('afterbegin',`<nav class="world-tabs" aria-label="遊戲場景"><button id="village-tab" aria-pressed="true">⌂ 村莊探索</button><button id="combat-tab" aria-pressed="false">⚔ 前往戰場</button><span>走訪驛站 · 整備出征</span></nav>`);
-document.querySelector('.campaign-brief').insertAdjacentHTML('afterend',`<section id="village" aria-label="村莊探索"><div class="village-heading"><div><span class="eyebrow">RED CLIFFS CAMP · 赤壁軍營</span><h2 id="world-name">赤壁軍營</h2><p id="world-terrain"></p></div><span id="village-resources"></span></div><div class="village-map" id="village-map" tabindex="0" role="group" aria-label="第一人稱村莊。方向鍵或 WASD 移動，滑鼠轉向，E 對話。"><canvas id="village-3d" class="village-scene" aria-hidden="true"></canvas><div id="village-npcs"></div><span class="map-corner">第一人稱 <strong>3D</strong></span><div class="proximity" id="proximity" aria-live="polite">靠近人物，按 E 對話</div></div><div class="village-controls"><div class="movement-pad" aria-label="移動控制"><button data-move="up" aria-label="向上走">↑</button><button data-move="strafe-left" aria-label="向左移動">←</button><button data-move="down" aria-label="向下走">↓</button><button data-move="strafe-right" aria-label="向右移動">→</button></div><p>方向鍵 / WASD 移動 · Shift 跑步<br><small>滑鼠轉向 · Esc 釋放滑鼠 · E 對話</small></p><button id="mouse-look" type="button" aria-pressed="false">滑鼠轉向</button><button id="side-quest" type="button">支線任務</button><button id="talk" class="primary" disabled>靠近人物交談</button></div><p class="village-tip" id="village-tip">沿商街找武器店、糧食店與飯店。往北可到碼頭登船；紅色標記是巡邏敵兵，靠近會引來追擊。</p></section>`);
+document.querySelector('.campaign-brief').insertAdjacentHTML('afterend',`<section id="village" aria-label="村莊探索"><div class="village-heading"><div><span class="eyebrow">RED CLIFFS CAMP · 赤壁軍營</span><h2 id="world-name">赤壁軍營</h2><p id="world-terrain"></p></div><span id="village-resources"></span></div><div class="village-map" id="village-map" tabindex="0" role="group" aria-label="第一人稱村莊。方向鍵或 WASD 移動，滑鼠轉向，E 對話。"><canvas id="village-3d" class="village-scene" aria-hidden="true"></canvas><div id="village-npcs"></div><span class="map-corner">第一人稱 <strong>3D</strong></span><div class="proximity" id="proximity" aria-live="polite">靠近人物，按 E 對話</div></div><div class="village-controls"><div class="movement-pad" aria-label="移動控制"><button data-move="up" aria-label="向上走">↑</button><button data-move="strafe-left" aria-label="向左移動">←</button><button data-move="down" aria-label="向下走">↓</button><button data-move="strafe-right" aria-label="向右移動">→</button></div><p>方向鍵 / WASD 移動 · Shift 跑步<br><small>滑鼠轉向 · Esc 釋放滑鼠 · E 對話</small></p><button id="mouse-look" type="button" aria-pressed="false">滑鼠轉向</button><button id="side-quest" type="button">支線任務</button><button id="talk" class="primary" disabled>靠近人物交談</button></div><p class="village-tip" id="village-tip">沿商街找武器店、招募所和阿慧藥房。往北可到碼頭登船；紅色標記是巡邏敵兵，靠近會引來追擊。</p></section>`);
 document.body.insertAdjacentHTML('beforeend','<dialog id="village-dialog" class="world-dialog" aria-labelledby="npc-speaker"><div class="npc-dialog-head"><div id="npc-portrait"></div><div><div class="eyebrow" id="npc-role"></div><h2 id="npc-speaker"></h2></div><button id="dialog-close" aria-label="結束對話">×</button></div><p id="npc-line" aria-live="polite"></p><div id="npc-choices"></div><small>E / 空白鍵 繼續對話 · Esc 離開</small></dialog>');
 const campCharacters=[
   {id:'teacher',name:'阿帆',role:'師長 · 指點迷津'},
   {id:'officer',name:'校尉小蓉',role:'友軍 · 兵力整備'},
-  {id:'villager',name:'阿倫',role:'村民 · 糧道消息'},
+  {id:'villager',name:'阿倫',role:'籃球高手 · 糧道消息'},
   {id:'guard',name:'前線守衛',role:'友軍 · 引路出征'},
 ];
 let world, npcs=[], loadedStage=-1, operation=0, introduced=false, hazardTime=0;
@@ -2405,15 +2432,16 @@ function choices() {
   if(currentNpc.id!=='guard')addChoice('結束對話',finish);
   el('npc-choices').querySelector('button')?.focus();
 }
-function shopMenu(shop, message='選擇要購買的物品。'){
+function shopMenu(shop, message){
   sync();
   const store=window.redCliffsWorld.shops[shop.id];
   el('npc-role').textContent='赤壁商街 · 銅錢 '+state.coins;
-  el('npc-speaker').textContent=store.name;
+  el('npc-speaker').textContent=store.keeper;
   showNpcAppearance(shop.id,shop.name);
-  el('npc-line').textContent=message;
+  el('npc-line').textContent=message ?? store.intro ?? '選擇要購買的物品。';
   const choices=el('npc-choices');
   choices.replaceChildren();
+  if(shop.id==='supplies')addChoice('查看招募名冊',()=>{finish();el('party').click();});
   for(const item of store.items){
     const button=document.createElement('button');
     button.type='button';
@@ -2467,7 +2495,7 @@ function talk(n){if(!active||dialog.open)return;
     el('npc-choices').replaceChildren();
     addChoice(n.action,()=>{finishOperation(n);dialogResult(n.result);},true);
     choosing=true;dialog.showModal();return;
-  }heading=Math.atan2(n.x-pos.x,pos.y-n.y);n.heading=Math.atan2(pos.x-n.x,pos.y-n.y);draw(performance.now());savePosition();if(n.shop){held.clear();destination=null;shopMenu(n);return;}held.clear();destination=null;currentNpc=n;seen.add(n.id);savePosition();el('npc-'+n.id).querySelector('.quest-marker').textContent='⋯';sync();lineIndex=0;el('npc-speaker').textContent=n.name;el('npc-role').textContent=n.role;showNpcAppearance(n.kind||n.id,n.name);const lines={teacher:['徒兒，你來了。前路雖有山賊設陣，只要看清數字的規律，便有破局之道。','算式就是軍令。先找質因數、共同倍數或餘數，再選擇合適的算法。你也可以試做一題再出征。'],officer:['軍師，運糧隊已在此休整。首次可找我補充兵力。用過之後，要等兵力歸零才能再領補給。'],villager:['我是阿倫，平時替村裡搬運米豆。我跟船隊往返兩岸。想知道這一章的前線消息，可以問我。'],guard:[window.campaignChapter(state.stage).scene,'跨出此門，就要以數破陣。若想先回村補給，可隨時按上方的「村莊探索」。']};dialogLines=n.quest?[world.sideQuest.title+' · '+(state.sideProgress===2?world.sideQuest.result:world.sideQuest.greeting)]:n.lines||lines[n.id];dialog.showModal();line()}
+  }heading=Math.atan2(n.x-pos.x,pos.y-n.y);n.heading=Math.atan2(pos.x-n.x,pos.y-n.y);draw(performance.now());savePosition();if(n.shop){held.clear();destination=null;shopMenu(n);return;}held.clear();destination=null;currentNpc=n;seen.add(n.id);savePosition();el('npc-'+n.id).querySelector('.quest-marker').textContent='⋯';sync();lineIndex=0;el('npc-speaker').textContent=n.name;el('npc-role').textContent=n.role;showNpcAppearance(n.kind||n.id,n.name);const lines={teacher:['徒兒，你來了。先翻開我手上的數學課本，看看因倍數和指數律，等會兒就能用來破陣。','算式就是軍令。先找質因數、共同倍數或餘數，再選擇合適的算法。你也可以試做一題再出征。'],officer:['軍師，運糧隊已在此休整。首次可找我補充兵力。用過之後，要等兵力歸零才能再領補給。'],villager:['我是阿倫，村裡的籃球高手！投籃要看準角度，過江也得看準時機。想知道這一章的前線消息，可以問我。'],guard:[window.campaignChapter(state.stage).scene,'跨出此門，就要以數破陣。若想先回村補給，可隨時按上方的「村莊探索」。']};dialogLines=n.quest?[world.sideQuest.title+' · '+(state.sideProgress===2?world.sideQuest.result:world.sideQuest.greeting)]:n.lines||lines[n.id];dialog.showModal();line()}
 el('dialog-close').onclick=finish;dialog.addEventListener('cancel',()=>{held.clear();savePosition()});dialog.addEventListener('close',()=>map.focus({preventScroll:true}));dialog.addEventListener('keydown',e=>{if(e.target.closest('.npc-model-controls'))return;if(['e','E',' '].includes(e.key)&&!e.repeat&&!choosing){e.preventDefault();if(lineIndex<dialogLines.length-1){lineIndex++;line()}else choices()}});el('talk').onclick=()=>{if(near)talk(near)};el('village-tab').onclick=()=>show(true);el('combat-tab').onclick=openFront;
 el('side-quest').onclick=()=>{releaseMouse();const target=npcs.find(n=>state.sideProgress===0?n.quest:n.device);if(target)approach(target);};
 show(true);draw();requestAnimationFrame(loop);
