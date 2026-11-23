@@ -205,8 +205,6 @@
 .npc-dialog-head #npc-portrait.npc-portrait-3d { width:clamp(96px,28vw,180px); height:auto; }
 #npc-portrait .npc-model { width:100%; aspect-ratio:1; height:auto; }
 #npc-portrait svg[hidden], #npc-portrait .npc-model[hidden] { display:none; }
-.npc-model-controls { display:flex; justify-content:center; gap:8px; padding-bottom:6px; }
-.npc-model-controls button { min-width:34px; min-height:34px; cursor:pointer; }
 .patrol-marker.pursuing span { background:#9f3025; color:#fff3db; }
 .patrol-marker.pursuing span::before { content:'! '; }
 .movement-pad button[data-move="strafe-left"] { grid-area:2 / 1; }
@@ -808,24 +806,10 @@ window.mountPatrolFighter=(container,id,label,facing,visible)=>{
   return animateModel(container.firstElementChild,id==='player'?'combat-player':id,{facing,visible});
 };
 window.mountCharacterPreview=(container,id,label,visible)=>{
-  let angle=-.4;
   container.innerHTML='<canvas class="npc-model battle-model" width="480" height="480" role="img" hidden></canvas>'+portrait(id,label);
   const canvas=container.firstElementChild;
   canvas.setAttribute('aria-label',label+'的 Q 版 3D 模型');
-  const model=animateModel(canvas,id,{angle:()=>angle,visible});
-  if(!model)return;
-  const controls=document.createElement('div');
-  controls.className='npc-model-controls';
-  for(const [direction,text,accessibleName] of [[-1,"↶","向左旋轉模型"],[1,"↷","向右旋轉模型"]]){
-    const button=document.createElement('button');
-    button.type='button';
-    button.textContent=text;
-    button.setAttribute('aria-label',accessibleName);
-    button.onclick=()=>{angle+=direction*Math.PI/6;};
-    controls.append(button);
-  }
-  container.append(controls);
-  return model;
+  return animateModel(canvas,id,{angle:()=>-.4,visible});
 };
 window.currentBattleLeader=()=>battleLeader;
 const bandit=index=>portrait('enemy-'+index);
@@ -3184,7 +3168,7 @@ function talk(n,normal=false){if(!active||dialog.open)return;
     addChoice(n.action,()=>{finishOperation(n);dialogResult(n.result);},true);
     choosing=true;dialog.showModal();return;
   }heading=Math.atan2(n.x-pos.x,pos.y-n.y);n.heading=Math.atan2(pos.x-n.x,pos.y-n.y);draw(performance.now());savePosition();if(n.shop){held.clear();destination=null;shopMenu(n);return;}held.clear();destination=null;currentNpc=n;seen.add(n.id);savePosition();el('npc-'+n.id).querySelector('.quest-marker').textContent='⋯';sync();lineIndex=0;el('npc-speaker').textContent=n.name;el('npc-role').textContent=n.role;showNpcAppearance(n.kind||n.id,n.name);const lines={teacher:['徒兒，你來了。先翻開我手上的數學課本，看看因倍數和指數律，等會兒就能用來破陣。','算式就是軍令。先找質因數、共同倍數或餘數，再選擇合適的算法。你也可以試做一題再出征。'],officer:['軍師，運糧隊已在此休整。首次可找我補充兵力。用過之後，要等兵力歸零才能再領補給。'],villager:['我是阿倫，村裡的籃球高手！投籃要看準角度，過江也得看準時機。想知道這一章的前線消息，可以問我。'],guard:[window.campaignChapter(state.stage).scene,'跨出此門，就要以數破陣。若想先回村補給，可隨時按上方的「村莊探索」。']};dialogLines=n.quest?[world.sideQuest.title+' · '+(state.sideProgress===2?world.sideQuest.result:world.sideQuest.greeting)]:n.lines||lines[n.id];dialog.showModal();line()}
-el('dialog-close').onclick=finish;dialog.addEventListener('cancel',()=>{held.clear();savePosition()});dialog.addEventListener('close',()=>map.focus({preventScroll:true}));dialog.addEventListener('keydown',e=>{if(e.target.closest('.npc-model-controls'))return;if(['e','E',' '].includes(e.key)&&!e.repeat&&!choosing){e.preventDefault();if(lineIndex<dialogLines.length-1){lineIndex++;line()}else choices()}});el('talk').onclick=()=>{if(near)talk(near)};el('village-tab').onclick=()=>show(true);el('combat-tab').onclick=openFront;
+el('dialog-close').onclick=finish;dialog.addEventListener('cancel',()=>{held.clear();savePosition()});dialog.addEventListener('close',()=>map.focus({preventScroll:true}));dialog.addEventListener('keydown',e=>{if(['e','E',' '].includes(e.key)&&!e.repeat&&!choosing){e.preventDefault();if(lineIndex<dialogLines.length-1){lineIndex++;line()}else choices()}});el('talk').onclick=()=>{if(near)talk(near)};el('village-tab').onclick=()=>show(true);el('combat-tab').onclick=openFront;
 el('side-quest').onclick=()=>{releaseMouse();adventures.journal();};
 show(true);draw();requestAnimationFrame(loop);
 })();
