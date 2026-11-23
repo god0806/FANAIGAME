@@ -258,6 +258,27 @@ window.characterDesign = (() => {
   designs.zhouYu={...designs['ally-1'],name:'周瑜',main:'#eef0ed',dark:'#25466d',trim:'#8baac2',hat:'court',tool:'sword',face:'youth'};
   designs.jiangGan={...designs['ally-2'],name:'蔣幹',main:'#87715e',dark:'#433749',trim:'#b8a386',hat:'wrap',face:'plain'};
   designs['combat-player']={...designs.player,main:'#50545a',dark:'#262429',trim:'#af7d48',hat:'plume',tool:'guandao',armor:true,cape:'#832e2a',plume:'#b83329'};
+  // Residents have their own silhouettes and work clothing, not copies of the named heroes.
+  Object.assign(designs,{
+    'district-0':{name:'巡路斥候',main:'#507452',dark:'#2b4938',trim:'#d7c18a',hat:'band',tool:'spear',figure:.87,face:'plain',costume:'scarf',cape:'#3a5540',detail:'綠色短披肩、皮革護腕，攜長槍巡查。'},
+    'district-1':{name:'江岸船夫',main:'#5d8592',dark:'#293e51',trim:'#d8c4a1',hat:'straw',tool:'oar',figure:1.17,face:'moustache',costume:'vest',skin:'#c89472',detail:'寬簷斗笠、靛藍背心與捲袖，手持船槳。'},
+    'district-2':{name:'聯軍文書',main:'#9c7855',dark:'#4f3c37',trim:'#ead7ad',hat:'court',tool:'ledger',figure:.93,face:'plain',costume:'sash',detail:'褐金文袍、束腰與低冠，隨身攜帶帳冊。'},
+    'district-3':{name:'林間嚮導',main:'#66764b',dark:'#344537',trim:'#babf79',hat:'hood',tool:'lantern',figure:.92,face:'plain',costume:'scarf',cape:'#405542',detail:'苔綠兜帽與灰綠圍巾，手持引路燈籠。'},
+    'district-4':{name:'補給隊員',main:'#bb8c48',dark:'#6b4b2d',trim:'#ead3a0',hat:'wrap',tool:'sack',figure:1.18,face:'plain',costume:'apron',detail:'土黃頭巾、厚布圍裙與糧袋。'},
+    'district-5':{name:'遠哨守軍',main:'#3d6378',dark:'#233647',trim:'#b6c1bb',hat:'helmet',tool:'shield',figure:1.12,face:'moustache',armor:true,cape:'#364f61',detail:'青鋼甲、白色肩飾，持盾守望遠哨。'},
+    'local-0':{name:'村中信使',main:'#ce7854',dark:'#634136',trim:'#f4d49a',hat:'band',tool:'scroll',figure:.79,face:'youth',costume:'satchel',height:.95,detail:'橘色短袍、斜背信袋與紅色頭帶。'},
+    'local-1':{name:'河岸漁民',main:'#457e83',dark:'#284c55',trim:'#cbb994',hat:'wrap',tool:'fishbasket',figure:1.03,face:'elder',costume:'vest',skin:'#d1a082',detail:'青藍漁衣、白鬚，提著魚簍。'},
+    'local-2':{name:'木匠',main:'#8a5c44',dark:'#46352c',trim:'#d4ae77',hat:'round',tool:'hammer',figure:1.2,face:'moustache',costume:'apron',detail:'皮圍裙、木工帽與鐵錘，胸前掛著工具。'},
+    'local-3':{name:'採藥人',main:'#87729b',dark:'#493e61',trim:'#cbd4b5',hat:'ribbon',tool:'herbbasket',figure:.9,face:'youth',costume:'sash',hair:'#4b3532',detail:'紫色長衫、綠色髮帶，竹籃裝著草藥。'},
+    'local-4':{name:'牧童',main:'#c3a55b',dark:'#79613c',trim:'#ece0b6',hat:'straw',tool:'crook',figure:.72,face:'youth',costume:'vest',height:.82,detail:'小斗笠、土黃背心，握著牧羊短杖。'},
+    'local-5':{name:'旅人',main:'#894e62',dark:'#49354b',trim:'#d9b18e',hat:'hood',tool:'staff',figure:1,face:'beard',costume:'satchel',cape:'#714358',detail:'酒紅旅袍與厚披風，背負遠行布包。'},
+    'encounter-0':{name:'驛路行商',main:'#b8753f',dark:'#603f30',trim:'#f1d48d',hat:'round',tool:'ledger',figure:1.24,face:'moustache',costume:'sash',detail:'赭色商袍、金色腰帶與算帳薄冊。'},
+    'encounter-1':{name:'歇腳旅人',main:'#5d8295',dark:'#384c68',trim:'#c6d9cd',hat:'topknot',tool:'rucksack',figure:.95,face:'youth',costume:'scarf',detail:'藍灰旅行衣、長圍巾與沉甸甸的行囊。'},
+    'encounter-2':{name:'遠行說書人',main:'#9a667a',dark:'#4b3c53',trim:'#e6c9b0',hat:'elder',tool:'fan',figure:1.02,face:'elder',costume:'sash',detail:'梅色長袍、白鬚與摺扇，胸前繡著行雲。'},
+    spearman:{name:'曹軍長槍兵',main:'#686d72',dark:'#333e4d',trim:'#d0ba8e',hat:'helmet',tool:'spear',figure:1.02,face:'plain',armor:true,costume:'scarf'},
+    raider:{name:'曹營游擊兵',main:'#764c77',dark:'#3d2c48',trim:'#c48f86',hat:'band',tool:'sword',figure:.9,face:'plain',costume:'scarf',cape:'#4d324e'},
+    fireguard:{name:'曹軍火衛',main:'#b35737',dark:'#583139',trim:'#e7b86f',hat:'veteran',tool:'halberd',figure:1.2,face:'beard',armor:true,cape:'#89352c'}
+  });
   function profile(id){return designs[id]||designs.player;}
   function key(actor){return actor.kind==='guard'?'shieldman':actor.kind||actor.id;}
 
@@ -265,8 +286,8 @@ window.characterDesign = (() => {
     const p=profile(id), faces=[];
     const modernMentor=id==='teacher', quartermaster=id==='officer', armorer=id==='weapons', grocer=id==='supplies', innkeeper=id==='inn';
     const {main,dark,trim,figure,armor}=p;
-    const skin=({teacher:'#e4b398',officer:'#edc1a4',inn:'#edbea3',supplies:'#dfb69b',villager:'#d8ad92',weapons:'#d8ad8c'})[id]||(p.face==='elder'?'#d6a782':'#e4b48a');
-    const hair=p.face==='elder'?'#c9c6bc':'#332e2c';
+    const skin=p.skin||({teacher:'#e4b398',officer:'#edc1a4',inn:'#edbea3',supplies:'#dfb69b',villager:'#d8ad92',weapons:'#d8ad8c'})[id]||(p.face==='elder'?'#d6a782':'#e4b48a');
+    const hair=p.hair||(p.face==='elder'?'#c9c6bc':'#332e2c');
     const steel='#c2d0d1', wood='#846248';
     const add=(points,color,light=1)=>faces.push({points,color:rgb(color).map(c=>Math.min(1,c*light))});
     function loft(x,z,rows,color,sides=16){
@@ -365,6 +386,24 @@ window.characterDesign = (() => {
         add([[x,10,7.3],[x+1.5,10,7.3],[x+2.9,25,6.9],[x+1.7,25,6.9]],main,i%2?.71:1.17);
       }
       for(let i=0;i<4;i++)crest(-7+i*4.4,14,8.2,1.15,trim);
+    }
+    if(p.costume==='apron'){
+      add([[-9,46,8.8],[9,46,8.8],[12,14,8.7],[-12,14,8.7]],dark);
+      box(-7,29,9,14,7,1,trim);
+      for(const side of [-1,1])box(side*7-1,44,8.6,2,8,.6,trim);
+      if(id==='local-2'){box(-5,32,10,1.5,8,1,'#b5bec5');box(2,31,10,2,9,1,'#86623e');}
+    }else if(p.costume==='vest'){
+      for(const side of [-1,1])add([[side*7,51,6],[side*17,44,7],[side*12,29,9],[side*2,30,9],[side*3,44,8]],dark);
+      for(let y=32;y<45;y+=4)crest(0,y,8.8,.8,trim);
+    }else if(p.costume==='scarf'){
+      loft(0,0,[[48,7,6],[53,7,5]],trim,12);
+      add([[-7,49,8],[-2,48,9],[-3,28,10],[-10,31,9]],trim);
+    }else if(p.costume==='satchel'){
+      add([[-14,49,8],[-11,50,8],[14,29,9],[11,27,9]],trim);
+      box(10,22,6,11,14,7,dark);box(10,32,13,11,3,1,trim);crest(15,30,14,1.5,trim);
+    }else if(p.costume==='sash'){
+      for(const y of [28,30])box(-12,y,8,24,1.2,.8,trim);
+      add([[8,28,9],[12,28,9],[13,12,8],[8,15,9]],trim);
     }
     if(id==='ally-0'){
       for(const side of [-1,1]){
@@ -514,6 +553,12 @@ window.characterDesign = (() => {
         if(p.hat==='court')for(const side of [-1,1])box(side*10-5,77,-4,9,2,4,dark);
         if(p.jewel)crest(0,73,6.7,3,p.jewel);
         break;
+      case 'ribbon':
+        loft(0,-2,[[66,9,7],[74,8,6.5],[78,4,3]],hair,16);
+        loft(0,-6,[[74,4,3],[81,4.4,3.2],[84,2,2]],hair,12);
+        box(-8,70,6.8,16,2,1.5,trim);
+        add([[7,72,7],[11,75,6],[13,72,6],[10,70,7],[14,57,5],[10,60,6]],trim);
+        break;
       case 'straw':
         loft(0,0,[[68,16,13],[71,15.5,12.5],[78,5.5,4.8]],trim);
         break;
@@ -600,6 +645,25 @@ window.characterDesign = (() => {
       case 'hammer': upright(14,44,wood);box(hand-7,40,z-2,14,8,6,steel);break;
       case 'ledger': box(hand-5,22,z,10,13,3,dark);for(let i=0;i<3;i++)box(hand-4,25+i*3,z+3,8,.7,1,trim);break;
       case 'basket': loft(hand,z,[[18,7,4],[30,8,5]],wood);loft(hand,z,[[28,8.3,5],[31,8.5,5.4]],trim);break;
+      case 'fishbasket': case 'herbbasket':
+        loft(hand,z,[[17,6,4],[31,9,5.5]],wood,12);
+        for(const y of [20,25,30])loft(hand,z,[[y,8,5],[y+.8,8.5,5.5]],trim,12);
+        if(p.tool==='fishbasket')for(const dx of [-3,2])add([[hand+dx,29,z+6],[hand+dx-2,35,z+6],[hand+dx,39,z+6],[hand+dx+2,35,z+6]],'#92aeb1');
+        else for(const dx of [-5,0,5])add([[hand+dx,29,z+4],[hand+dx-3,36,z+4],[hand+dx+1,41,z+4],[hand+dx+2,34,z+4]],'#6a9b5b');
+        break;
+      case 'crook':
+        upright(4,61,wood);
+        add([[hand-1,60,z],[hand-5,64,z],[hand-9,62,z],[hand-9,57,z],[hand-7,57,z],[hand-7,61,z],[hand-4,62,z],[hand+1,59,z]],wood);
+        break;
+      case 'lantern':
+        upright(22,49,wood);
+        box(hand-6,24,z-3,12,14,8,'#d7a752');
+        box(hand-7,22,z-4,14,2,10,dark);box(hand-7,38,z-4,14,2,10,dark);
+        for(const dx of [-5,0,5])box(hand+dx,24,z+5,1,14,1,dark);
+        break;
+      case 'rucksack':
+        loft(hand,z,[[16,5,4],[21,8,6],[34,7,5],[38,3,3]],dark,12);
+        box(hand-1,18,z+6,2,18,1,trim);box(hand-6,29,z+5,12,2,1,trim);break;
       case 'sack': loft(hand,z,[[17,5,4],[22,8,5],[31,6,5],[35,3,3]],trim);box(hand-4,32,z-2,8,2,5,wood);break;
       case 'tray': box(hand-7,27,z-2,14,2,11,wood);loft(hand,z+3,[[29,3,3],[34,5,4]],'#dbbc86');break;
       case 'scroll': box(hand-3,19,z,6,16,4,trim);if(id==='ally-2'){box(hand-3,25,z+4,6,1.3,.5,'#8a4434');crest(hand,26,z+4.6,1.4,'#8a4434');}box(hand-4,18,z-1,8,2,6,wood);box(hand-4,34,z-1,8,2,6,wood);break;
@@ -650,7 +714,8 @@ window.characterDesign = (() => {
         }
         return [x*.94,y*(isProp?.8:.72),z*.94];
       };
-      return {points:points.map(shape),color,...(pivot?{pivot:shape(pivot)}:{})};
+      const scaled=point=>{const result=shape(point);return result.map(value=>value*(p.height||1));};
+      return {points:points.map(scaled),color,...(pivot?{pivot:scaled(pivot)}:{})};
     });
   }
 
@@ -863,7 +928,7 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
   };
 })();
 </script><script>window.redCliffsWorld = (() => {
-  const width=7590, depth=5313;
+  const width=3000, depth=2500;
   const areas=[
     {name:'烏林夜哨', terrain:'山林、斥候營與糧道渡口', shore:520, camp:[1120,815], port:1030, trees:[[170,760,620,680,46],[1690,720,520,780,35]], roofs:'#765246', grass:'#243a32', water:'#283e49', sky:'#192b3a', boats:2},
     {name:'群英夜宴', terrain:'江東水師大營、宴席與木棧道', shore:470, camp:[1380,790], port:1530, trees:[[130,660,560,750,28],[1880,650,365,710,29]], roofs:'#476966', grass:'#554837', water:'#3d4850', sky:'#46333c', boats:3},
@@ -957,7 +1022,7 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
     const [title,mechanism,greeting,prompt,options,answer,result]=sideStories[stage];
     const sideQuest={title,mechanism,greeting,prompt,options,answer,result,reward:30};
     const animals=[];
-    const settlements=[[2350,920],[4050,1080],[5990,1240],[2250,2750],[4180,3330],[6410,4230]];
+    const settlements=[[540,1250],[1250,1390],[2090,1290],[600,1860],[1370,2010],[2250,1880]];
     const residents=[
       ['巡路斥候','scout','我沿這條路巡查。遇見曹軍，先拉開距離，或利用地形避開追擊。'],
       ['江岸船夫','sailor','江水深，只有棧橋和甲板能通行。要回主營，沿小地圖的道路走。'],
@@ -968,8 +1033,8 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
     ];
     settlements.forEach(([px,pz],i)=>{
       const [name,kind,message]=residents[i];
-      people.push({id:'district-'+i,name,kind,x:px,y:pz,role:districts[i],lines:[message]});
-      people.push({id:'local-'+i,name:['村中信使','河岸漁民','木匠','採藥人','牧童','旅人'][i],kind:['villager','sailor','weapons','teacher','villager','supplies'][i],x:px+58,y:pz+91,role:districts[i],lines:['我住在'+districts[i]+'。沿路可找到其他居民和聯軍哨站。'],quest:i===0});
+      people.push({id:'district-'+i,name,kind:'district-'+i,x:px,y:pz,role:districts[i],lines:[message]});
+      people.push({id:'local-'+i,name:['村中信使','河岸漁民','木匠','採藥人','牧童','旅人'][i],kind:'local-'+i,x:px+58,y:pz+91,role:districts[i],lines:['我住在'+districts[i]+'。沿路可找到其他居民和聯軍哨站。'],quest:i===0});
       animals.push({id:'animal-'+i+'-goat',animal:'goat',x:px-100,y:pz+130},{id:'animal-'+i+'-chicken',animal:'chicken',x:px+112,y:pz+151});
       routes.push([[px-185,pz+245],[px+135,pz+245]]);
       buildings.push({x:px-82,z:pz-58,w:100,d:78,h:66,roof:area.roofs},{x:px+89,z:pz-66,w:119,d:85,h:77,roof:area.roofs});
@@ -978,8 +1043,16 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
         treeModels.push({x:px+Math.cos(angle)*205,z:pz+Math.sin(angle)*172,size:65+random()*47,type:tree%2});
       }
     });
-    Object.assign(sideQuest,{id:'side-device',x:2480,y:1140,name:mechanism,role:'支線機關',device:true});
-    const roads=[[[x,z+60],[2350,980],[4050,1140],[5990,1300]],[[2350,980],[2250,2810],[4180,3390],[6410,4290]],[[4050,1140],[4180,3390]]];
+    Object.assign(sideQuest,{id:'side-device',x:700,y:1450,name:mechanism,role:'支線機關',device:true});
+    const roads=[
+      [[x,z],[x,z+60],[x,1120],[880,1120],[880,1312]],
+      [[540,1312],[880,1312],[880,1452],[1250,1452],[1700,1452],[1700,1352],[2090,1352]],
+      [[540,1312],[330,1312],[330,1922],[600,1922]],
+      [[600,1922],[990,1922],[990,2072],[1370,2072],[1810,2072],[1810,1942],[2250,1942]],
+      [[2090,1352],[2470,1352],[2470,1942],[2250,1942]],
+      [[1250,1452],[1250,1740],[990,1740],[990,1922]],
+      [[540,1312],[700,1312],[700,1450]]
+    ];
     const missionPaths=[
       [[[x,z-28],[x+105,z-100],[x+128,z-170],[x+65,z-220],[x-45,z-235],[x-110,z-295]]],
       [Array.from({length:9},(_,i)=>[x+Math.sin(i*Math.PI/4)*158,z+Math.cos(i*Math.PI/4)*158-245])],
@@ -998,7 +1071,119 @@ window.battleAnimate=(action,final=false)=>{if(action==='hit')mainModel?.strike(
     const points=[[missionPaths[0][2],missionPaths[0].at(-1)],[missionPaths[0][6],missionPaths[0][2]],[[area.port-154,area.shore-186],[area.port,area.shore-186]],[missionPaths[0][3],[area.port,area.shore-174]],[missionPaths[0][1],missionPaths[1]?.[1]]][stage];
     const objectives=operations[stage].map(([title,action,result,enemy,rounds],i)=>({title,action,result,enemy,rounds,x:points[i][0],y:points[i][1]}));
     const cliffs=stage===0?missionPaths[0].slice(1,-1).flatMap(([px,pz],i)=>[-1,1].map(side=>({x:px+side*(94+i%2*10),z:pz,w:47,d:42,h:90+i*13}))):[];
-    return {...area,sideQuest,animals,roads,missionPaths,objectives,cliffs,width,depth,spawn:{x,y:z},people,merchants,buildings,boats,harbor,routes,landmark,treeModels};
+    const roadWidth=64,hub=[x,z+60];
+    // Short side streets connect services to the district loop. All are visible terrain.
+    for(const n of [...people.slice(0,4),...merchants])roads.push([hub,[n.x,n.y]]);
+    for(const path of missionPaths){
+      const first=path[0];
+      if(first[1]>=area.shore)roads.push([hub,first]);
+      else roads.push([hub,[area.port,area.shore+40],[area.port,first[1]],first]);
+    }
+    settlements.forEach(([px,pz],i)=>{
+      const h=[px,pz+62];
+      for(const n of people.filter(n=>n.id==='district-'+i||n.id==='local-'+i))roads.push([h,[n.x,n.y]]);
+      for(const a of animals.filter(a=>a.id.startsWith('animal-'+i+'-')))roads.push([h,[a.x,h[1]],[a.x,a.y]]);
+    });
+    const encounters=[
+      {id:'encounter-0',x:x-110,y:z+170,name:'驛路行商',kind:'encounter-0',encounter:0,role:'驛路奇遇'},
+      {id:'encounter-1',x:905,y:1515,name:'歇腳旅人',kind:'encounter-1',encounter:1,role:'驛路奇遇'},
+      {id:'encounter-2',x:2140,y:1995,name:'遠行說書人',kind:'encounter-2',encounter:2,role:'驛路奇遇'}
+    ];
+    roads.push([hub,[encounters[0].x,encounters[0].y]],[[880,1452],[905,1452],[905,1515]],[[2250,1942],[2140,1942],[2140,1995]]);
+    if(stage===3)roads.push([missionPaths[0][0],[area.port,area.shore-174]]);
+    const allPaths=[...roads,...missionPaths];
+    const pointDistance=(px,pz,a,b)=>{
+      const dx=b[0]-a[0],dz=b[1]-a[1],t=Math.max(0,Math.min(1,((px-a[0])*dx+(pz-a[1])*dz)/(dx*dx+dz*dz||1)));
+      return Math.hypot(px-a[0]-dx*t,pz-a[1]-dz*t);
+    };
+    const touchesRoad=(px,pz,margin=roadWidth/2)=>allPaths.some(path=>path.some((b,i)=>i&&pointDistance(px,pz,path[i-1],b)<margin));
+    function crossesBuilding(b,pad=40){
+      return allPaths.some(path=>path.some((end,i)=>{
+        if(!i)return false;
+        const start=path[i-1];let low=0,high=1;
+        for(const [origin,delta,center,radius] of [[start[0],end[0]-start[0],b.x,b.w/2+pad],[start[1],end[1]-start[1],b.z,b.d/2+pad]]){
+          if(!delta){if(Math.abs(origin-center)>=radius)return false;continue;}
+          const a=(center-radius-origin)/delta,c=(center+radius-origin)/delta;
+          low=Math.max(low,Math.min(a,c));high=Math.min(high,Math.max(a,c));
+        }
+        return low<high;
+      }));
+    }
+    for(let i=cliffs.length-1;i>=0;i--){
+      if(!crossesBuilding(cliffs[i]))continue;
+      const original=cliffs[i],shifted=[-160,160,-240,240].map(dx=>({...original,x:original.x+dx})).find(c=>!crossesBuilding(c));
+      if(shifted)cliffs[i]=shifted;else cliffs.splice(i,1);
+    }
+    const protectedPoints=[...people,...merchants,...animals,...encounters,sideQuest,...objectives];
+    const occupied=(px,pz,r=30)=>buildings.some(b=>Math.abs(b.x-px)<b.w/2+r&&Math.abs(b.z-pz)<b.d/2+r)||protectedPoints.some(n=>Math.hypot(n.x-px,n.y-pz)<r+28)||Math.hypot(landmark.x-px,landmark.z-pz)<130;
+    // Move roadside houses back from the carriageway instead of hiding the road under them.
+    const placed=[];
+    for(const b of buildings){
+      const original={...b};let chosen=null;
+      for(const [dx,dz] of [[0,0],[0,-80],[-110,0],[110,0],[0,120],[-140,-100],[140,-100],[-160,130],[160,130],[0,-200]]){
+        const candidate={...original,x:original.x+dx,z:original.z+dz};
+        if(candidate.x<90||candidate.x>width-90||candidate.z<area.shore+70||candidate.z>depth-90||crossesBuilding(candidate))continue;
+        if(placed.some(p=>Math.abs(p.x-candidate.x)<(p.w+candidate.w)/2+18&&Math.abs(p.z-candidate.z)<(p.d+candidate.d)/2+18))continue;
+        if(protectedPoints.some(n=>Math.abs(n.x-candidate.x)<candidate.w/2+30&&Math.abs(n.y-candidate.z)<candidate.d/2+30))continue;
+        chosen=candidate;break;
+      }
+      if(chosen)placed.push(chosen);
+    }
+    buildings.splice(0,buildings.length,...placed);
+    if(crossesBuilding(landmark)){
+      const original={...landmark};
+      for(const [dx,dz] of [[-180,0],[-200,150],[-300,160],[200,180]]){
+        const candidate={...original,x:original.x+dx,z:original.z+dz};
+        if(candidate.x>100&&candidate.z>area.shore+80&&!crossesBuilding(candidate)){Object.assign(landmark,candidate);break;}
+      }
+    }
+    for(let i=treeModels.length-1;i>=0;i--){
+      const t=treeModels[i];if(t.x>width-30||t.z>depth-30||touchesRoad(t.x,t.z,52)||occupied(t.x,t.z,18))treeModels.splice(i,1);
+    }
+    for(let i=0;i<140;i++){
+      const px=140+random()*(width-280),pz=area.shore+160+random()*(depth-area.shore-300);
+      if(!touchesRoad(px,pz,83)&&!occupied(px,pz,65))treeModels.push({x:px,z:pz,size:54+random()*48,type:i%2});
+    }
+    const decorations=[];
+    for(const [px,pz] of settlements){
+      for(const side of [-1,1]){
+        const b={x:px+side*168,z:pz+265,w:100,d:76,h:62,roof:area.roofs};
+        if(b.z<depth-80&&!crossesBuilding(b)&&!occupied(b.x,b.z,85))buildings.push(b);
+      }
+      for(const [dx,dz,kind] of [[-158,80,'stall'],[152,88,'lantern'],[-58,196,'garden'],[165,-145,'crates']]){
+        const px2=px+dx,pz2=pz+dz;
+        if(!touchesRoad(px2,pz2,44)&&!occupied(px2,pz2,16))decorations.push({x:px2,z:pz2,kind});
+      }
+    }
+    const seenDecorations=new Set();
+    for(const path of roads)for(let i=1;i<path.length;i++){
+      const a=path[i-1],b=path[i],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      for(let t=70;t<length;t+=160){
+        const side=i%2?1:-1,px=a[0]+(b[0]-a[0])*t/length+(b[1]-a[1])/length*55*side,pz=a[1]+(b[1]-a[1])*t/length-(b[0]-a[0])/length*55*side;
+        const key=Math.round(px/70)+','+Math.round(pz/70);
+        if(pz>area.shore+20&&!seenDecorations.has(key)&&!touchesRoad(px,pz,42)&&!occupied(px,pz,16)){
+          decorations.push({x:px,z:pz,kind:decorations.length%3?'lantern':'crates'});seenDecorations.add(key);
+        }
+      }
+    }
+    // Plank connectors keep the visible route continuous over water.
+    for(const path of allPaths)for(let i=1;i<path.length;i++){
+      const a=path[i-1],b=path[i],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      for(let t=0;t<=length;t+=24){
+        const px=a[0]+(b[0]-a[0])*t/(length||1),pz=a[1]+(b[1]-a[1])*t/(length||1);
+        if(pz<area.shore+12&&!harbor.some(d=>px>d.x+24&&px<d.x+d.w-24&&pz>d.z+24&&pz<d.z+d.d-24))harbor.push({x:px-38,z:pz-38,w:76,d:76});
+      }
+    }
+    routes.length=0;
+    for(const path of roads)for(let i=1;i<path.length;i++){
+      const a=path[i-1],b=path[i],length=Math.hypot(b[0]-a[0],b[1]-a[1]);
+      if(length<120)continue;
+      const from=[a[0]+(b[0]-a[0])*.25,a[1]+(b[1]-a[1])*.25],to=[a[0]+(b[0]-a[0])*.75,a[1]+(b[1]-a[1])*.75];
+      if(Math.hypot(from[0]-x,from[1]-z)<230||Math.hypot(to[0]-x,to[1]-z)<230)continue;
+      if(protectedPoints.some(n=>pointDistance(n.x,n.y,from,to)<58))continue;
+      routes.push([from,to]);
+    }
+    return {...area,sideQuest,animals,roads,roadWidth,layoutVersion:2,encounters,decorations,missionPaths,objectives,cliffs,width,depth,spawn:{x,y:z},people,merchants,buildings,boats,harbor,routes,landmark,treeModels};
   }
   return {layout,shops};
 })();
@@ -1601,16 +1786,19 @@ window.createVillageScene = function (canvas) {
       quad(mesh,x,.3,z,5+random()*20,3+random()*10,tint(area.grass,.87+random()*.22));
     }
     for(let i=0;i<165;i++)quad(mesh,random()*w,-4,random()*shore,12+random()*52,1.5,tint(area.water,1.28));
-    quad(mesh,90,.55,spawn.y-16,w-180,80,'#b8a17b');
-    quad(mesh,spawn.x-260,.7,spawn.y-172,530,315,'#b8a17b');
-    quad(mesh,port-39,.82,shore+20,78,spawn.y-shore+62,'#b8a17b');
-    quad(mesh,spawn.x-48,.94,spawn.y+143,94,d-spawn.y-183,'#a7916c');
-    for(let i=0;i<135;i++)quad(mesh,90+random()*(w-180),1.05,spawn.y-10+random()*63,3+random()*13,2,'#9f8c69');
+    ellipse(mesh,spawn.x,.55,spawn.y+60,96,90,'#a99570');
     for(const path of [...area.roads,...area.missionPaths])for(let i=1;i<path.length;i++){
       const [x,z]=path[i-1],[nx,nz]=path[i];
       if(Math.min(z,nz)<shore)continue;
-      const length=Math.hypot(nx-x,nz-z),a=(nz-z)/length*38,b=(x-nx)/length*38;
+      const length=Math.hypot(nx-x,nz-z);if(!length)continue;
+      const half=(area.roadWidth||64)/2,a=(nz-z)/length*half,b=(x-nx)/length*half;
       polygon(mesh,[[x-a,1.4,z-b],[x+a,1.4,z+b],[nx+a,1.4,nz+b],[nx-a,1.4,nz-b]],area.boats===0?"#625345":"#81785c");
+      ellipse(mesh,x,1.4,z,half,half,area.boats===0?'#625345':'#81785c');
+      ellipse(mesh,nx,1.4,nz,half,half,area.boats===0?'#625345':'#81785c');
+      for(let t=20;t<length;t+=38){
+        const px=x+(nx-x)*t/length,pz=z+(nz-z)*t/length;
+        quad(mesh,px-7,1.48,pz-2,14,4,'#a59979');
+      }
     }
     for(const objective of area.objectives){
       const {x,y:z}=objective, level=z<shore?4:0;
@@ -1643,9 +1831,30 @@ window.createVillageScene = function (canvas) {
       prism(mesh,x,0,z,5,99,5,'#674b37');
       polygon(mesh,[[x,94,z],[x+43,94,z],[x+36,77,z],[x+44,64,z],[x,65,z]],'#a04e42');
     }
-    for(let i=0;i<22;i++){
-      const x=spawn.x-480+random()*950,z=spawn.y+200+random()*330;
-      if(Math.abs(x-spawn.x)>65)prism(mesh,x,0,z,13+random()*15,8+random()*8,15,'#9d8b67');
+    for(const item of area.decorations||[]){
+      const {x,z,kind}=item;
+      if(kind==='lantern'){
+        prism(mesh,x-2,0,z-2,4,74,4,'#6e4c35');
+        prism(mesh,x-11,56,z-10,22,20,20,'#d69b45');
+        prism(mesh,x-13,75,z-12,26,4,24,'#824b39');
+        prism(mesh,x-8,59,z+10,16,12,1,'#ffe2a1');
+      }else if(kind==='stall'){
+        prism(mesh,x-21,0,z-13,42,28,26,'#8e6948');
+        for(const dx of [-24,22])prism(mesh,x+dx,0,z-14,3,61,3,'#755336');
+        polygon(mesh,[[x-29,64,z-20],[x+29,64,z-20],[x+29,49,z+24],[x-29,49,z+24]],'#a05243');
+        for(let i=0;i<4;i++)prism(mesh,x-16+i*9,28,z-7,7,8,13,i%2?'#d4b270':'#8ca06a');
+      }else if(kind==='garden'){
+        quad(mesh,x-28,.6,z-20,56,40,'#63563c');
+        for(let row=0;row<3;row++)for(let col=0;col<5;col++){
+          const px=x-23+col*10,pz=z-15+row*13;
+          polygon(mesh,[[px-3,1,pz],[px+3,1,pz],[px,12,pz]],'#6d9256');
+        }
+      }else{
+        prism(mesh,x-15,0,z-12,28,22,24,'#9d774c');
+        prism(mesh,x-16,7,z-13,30,3,26,'#634c34');
+        prism(mesh,x-16,16,z-13,30,3,26,'#634c34');
+        prism(mesh,x+9,0,z+5,19,16,19,'#ae8b5d');
+      }
     }
     return mesh;
   }
@@ -1829,8 +2038,12 @@ window.createVillageScene = function (canvas) {
     {name:'曹軍弓手',kind:'archer',speed:46,attack:5},
     {name:'曹營水軍',kind:'sailor',speed:51,attack:6},
     {name:'曹軍驍將',kind:'veteran',speed:39,attack:8},
+    {name:'曹軍長槍兵',kind:'spearman',speed:42,attack:6},
+    {name:'曹營游擊兵',kind:'raider',speed:60,attack:5},
+    {name:'曹軍火衛',kind:'fireguard',speed:36,attack:8},
   ];
-  const rosters = [[0,1],[0,1,2],[0,2,3],[1,2,3,4],[1,2,3,4]];
+  const rosters = [[0,2,5],[6,1,2,0],[3,5,2,1],[7,4,5,2],[4,6,1,5]];
+  const stageTitles=['烏林','宴營','連艦','火線','華容'];
   const random = (min,max) => min + Math.floor(Math.random()*(max-min+1));
   function question(stage) {
     const common=2**random(2,5), period=random(2,4);
@@ -1843,7 +2056,7 @@ window.createVillageScene = function (canvas) {
     }
   }
 
-  window.createPatrols = ({map, routes, canStand, clearSegment, anchor, freeze, retreat, resume}) => {
+  window.createPatrols = ({map, routes, canStand, clearSegment, anchor, freeze, retreat, resume, roadAllowed=()=>true, safeZone=()=>false}) => {
     const markers=document.createElement('div');
     markers.className='patrol-markers';
     markers.setAttribute('aria-hidden','true');
@@ -1864,23 +2077,31 @@ window.createVillageScene = function (canvas) {
     const message=find('.patrol-feedback');
     const byStage=new Map();
     let stage=-1, enemies=[], active=null, delay=0;
+    function roadSegment(from,x,y){
+      if(safeZone(x,y)||!clearSegment(from,x,y))return false;
+      const steps=Math.max(1,Math.ceil(Math.hypot(x-from.x,y-from.y)/8));
+      for(let i=1;i<=steps;i++)if(!roadAllowed(from.x+(x-from.x)*i/steps,from.y+(y-from.y)*i/steps))return false;
+      return true;
+    }
 
     function enter(nextStage, position) {
       if(stage===nextStage)return;
       stage=nextStage;
       if(!byStage.has(stage)) {
         const paths=[...routes()];
-        const count=stage<3?7:8;
+        const count=stage<3?6:8;
         const spawned=[];
         while(paths.length && spawned.length<count) {
           const [path]=paths.splice(random(0,paths.length-1),1);
-          const phase=Math.random();
           const [from,to]=path;
-          const x=from[0]+(to[0]-from[0])*phase, y=from[1]+(to[1]-from[1])*phase;
-          if(!canStand(x,y))continue;
+          const spawn=[Math.random(),.5,.25,.75].map(phase=>({
+            x:from[0]+(to[0]-from[0])*phase,y:from[1]+(to[1]-from[1])*phase,
+          })).find(point=>canStand(point.x,point.y)&&roadAllowed(point.x,point.y)&&!safeZone(point.x,point.y));
+          if(!spawn)continue;
+          const {x,y}=spawn;
           const available=rosters[stage];
-          const troop=troops[available[random(0,available.length-1)]];
-          spawned.push({...troop,id:'patrol-'+spawned.length,x,y,path,target:random(0,1),walking:true});
+          const troop=troops[available[spawned.length%available.length]];
+          spawned.push({...troop,name:stageTitles[stage]+' · '+troop.name,id:'patrol-'+spawned.length,x,y,path,target:random(0,1),walking:true});
         }
         byStage.set(stage,spawned);
       }
@@ -1943,7 +2164,7 @@ window.createVillageScene = function (canvas) {
       active.heroModel?.stop();
       active.foeModel?.stop();
       active=null;
-      delay=1.4;
+      delay=4;
       dialog.close();
       if(won)resume();else {
         window.villageGame.patrolRegroup();
@@ -1999,7 +2220,7 @@ window.createVillageScene = function (canvas) {
       for(const enemy of enemies){
         const range=Math.hypot(enemy.x-position.x,enemy.y-position.y);
         const alertRange=enemy.pursuing?190:145;
-        enemy.pursuing=hp>0&&delay===0&&range<=alertRange&&clearSegment(enemy,position.x,position.y);
+        enemy.pursuing=hp>0&&delay===0&&range<=alertRange&&roadSegment(enemy,position.x,position.y);
         enemy.marker.classList.toggle('pursuing',enemy.pursuing);
         if(enemy.pursuing&&range<=34){engage(enemy);break;}
 
@@ -2012,7 +2233,7 @@ window.createVillageScene = function (canvas) {
         const speed=enemy.pursuing?enemy.speed+65:enemy.speed;
         const travel=Math.min(speed*dt,distance);
         const x=enemy.x+dx/distance*travel,y=enemy.y+dy/distance*travel;
-        if(clearSegment(enemy,x,y)){
+        if(roadSegment(enemy,x,y)){
           enemy.x=x;
           enemy.y=y;
           enemy.heading=Math.atan2(dx,dy);
@@ -2327,7 +2548,7 @@ window.createAdventureUI = function(api) {
   function run(q,n){
     const stage=api.stage(),p=engine.progress(stage,q.id);
     if(!p.accepted){
-      const root=open(q.title,q.giver+' · 新委託',q.description+' 完成獎勵：'+rewardText(q.reward),q.kind);
+      const root=open(q.title,q.giver+' · 新委託',q.description+' 完成獎勵：'+rewardText(q.reward),n.kind||n.id);
       button(root,'接受委託',()=>{engine.accept(stage,q.id);refresh();run(q,n);},true);button(root,'稍後再來',api.close);focus();return;
     }
     const step=q.steps[p.index];if(!step)return;
@@ -2368,6 +2589,87 @@ window.createAdventureUI = function(api) {
   }
   return {refresh,journal,interact};
 };
+
+</script><script>/* Paths are constrained to the same road corridors drawn on the map. */
+window.createRoadNavigator=function(world,{canStand,clearSegment}) {
+  const half=(world.roadWidth||64)/2, segments=[];
+  for(const path of [...world.roads,...world.missionPaths]){
+    for(let i=1;i<path.length;i++){
+      const [ax,ay]=path[i-1],[bx,by]=path[i],dx=bx-ax,dy=by-ay;
+      if(dx||dy)segments.push({ax,ay,bx,by,dx,dy,length:dx*dx+dy*dy});
+    }
+  }
+  function projection(x,y,s){
+    const t=Math.max(0,Math.min(1,((x-s.ax)*s.dx+(y-s.ay)*s.dy)/s.length));
+    return {x:s.ax+t*s.dx,y:s.ay+t*s.dy};
+  }
+  function distance(x,y){
+    let best=Infinity;
+    for(const s of segments){
+      if(x<Math.min(s.ax,s.bx)-best||x>Math.max(s.ax,s.bx)+best||y<Math.min(s.ay,s.by)-best||y>Math.max(s.ay,s.by)+best)continue;
+      const p=projection(x,y,s);best=Math.min(best,Math.hypot(x-p.x,y-p.y));
+    }
+    return best;
+  }
+  const isRoad=(x,y)=>distance(x,y)<=half+.01;
+  function roadSegment(a,b){
+    const count=Math.max(1,Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/6));
+    for(let i=0;i<=count;i++)if(!isRoad(a.x+(b.x-a.x)*i/count,a.y+(b.y-a.y)*i/count))return false;
+    return true;
+  }
+  function plan(from,target){
+    const cell=16,queue=[],best=new Map(),cache=new Map(),startOnRoad=isRoad(from.x,from.y);
+    const key=(x,y)=>x+','+y;
+    const before=(a,b)=>a.rank<b.rank||a.rank===b.rank&&a.cost>b.cost;
+    function push(n){
+      let i=queue.length;queue.push(n);
+      while(i){const p=(i-1)>>1;if(!before(n,queue[p]))break;queue[i]=queue[p];i=p;}queue[i]=n;
+    }
+    function pop(){
+      const n=queue[0],tail=queue.pop();
+      if(queue.length){
+        let i=0;
+        while(i*2+1<queue.length){let c=i*2+1;if(c+1<queue.length&&before(queue[c+1],queue[c]))c++;if(!before(queue[c],tail))break;queue[i]=queue[c];i=c;}
+        queue[i]=tail;
+      }
+      return n;
+    }
+    const estimate=(x,y)=>Math.max(0,Math.hypot(target.x-x,target.y-y)-62);
+    function usable(x,y){
+      const k=key(x,y);
+      if(!cache.has(k))cache.set(k,canStand(x,y)?distance(x,y):Infinity);
+      return cache.get(k);
+    }
+    // A manually positioned player may first take a short approach to the road.
+    const entries=startOnRoad?[from]:segments.map(s=>projection(from.x,from.y,s)).sort((a,b)=>Math.hypot(a.x-from.x,a.y-from.y)-Math.hypot(b.x-from.x,b.y-from.y)).slice(0,12);
+    for(const entry of entries){
+      const sx=Math.round(entry.x/cell)*cell,sy=Math.round(entry.y/cell)*cell;
+      for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){
+        const x=sx+dx*cell,y=sy+dy*cell,dist=Math.hypot(x-from.x,y-from.y);
+        if(dist>260||usable(x,y)>half||!clearSegment(from,x,y)||startOnRoad&&!roadSegment(from,{x,y}))continue;
+        const cost=dist,k=key(x,y);if(cost>=(best.get(k)??Infinity))continue;
+        best.set(k,cost);push({x,y,cost,rank:cost+estimate(x,y),parent:null});
+      }
+      if(queue.length&&!startOnRoad)break;
+    }
+    while(queue.length){
+      const point=pop();if(point.cost!==best.get(key(point.x,point.y)))continue;
+      if(Math.hypot(target.x-point.x,target.y-point.y)<=62){
+        const path=[];for(let p=point;p;p=p.parent)path.push({x:p.x,y:p.y});path.reverse();
+        return {path,joinedRoad:!startOnRoad};
+      }
+      for(const [dx,dy]of [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]]){
+        const x=point.x+dx*cell,y=point.y+dy*cell,off=usable(x,y);
+        if(off>half)continue;
+        const cost=point.cost+Math.hypot(dx,dy)*cell*(1+.35*(off/half)**2),k=key(x,y);
+        if(cost>=(best.get(k)??Infinity)||!roadSegment(point,{x,y})||!clearSegment(point,x,y))continue;
+        best.set(k,cost);push({x,y,cost,rank:cost+estimate(x,y),parent:point});
+      }
+    }
+    return null;
+  }
+  return {isRoad,roadSegment,plan,distance};
+};
 </script><script>/* Walkable 3D village, keyboard/touch navigation and proximity dialogue. */
 (() => {
 const el=id=>document.getElementById(id), main=document.querySelector('main');
@@ -2380,7 +2682,7 @@ const campCharacters=[
   {id:'villager',name:'阿倫',role:'籃球高手 · 糧道消息'},
   {id:'guard',name:'前線守衛',role:'友軍 · 引路出征'},
 ];
-let world, npcs=[], loadedStage=-1, operation=0, introduced=false, hazardTime=0;
+let navigator, world, npcs=[], loadedStage=-1, operation=0, introduced=false, hazardTime=0;
 let state=window.villageGame.state(), pos={x:0,y:0},near=null,active=true,destination=null,last=0,walkPhase=0,dialogLines=[],lineIndex=0,currentNpc=null,seen=new Set(),walking=false,choosing=false;
 const held=new Set(),map=el('village-map'),dialog=el('village-dialog');
 const scene=window.createVillageScene(el('village-3d'));
@@ -2392,7 +2694,8 @@ let minimapPlayer;
 const positions={};
 try { Object.assign(positions,JSON.parse(localStorage.getItem('sanguo-world-v1')||'{}')); } catch {}
 const patrols=window.createPatrols({
-  map, routes:()=>world.routes, canStand, clearSegment, anchor,
+  map, routes:()=>world.routes, canStand, clearSegment, anchor, roadAllowed:(x,y)=>navigator?.isRoad(x,y)??false,
+  safeZone:(x,y)=>Math.hypot(x-world.spawn.x,y-world.spawn.y)<190,
   freeze(){releaseMouse();held.clear();destination=null;walking=false;},
   resume(){map.focus({preventScroll:true});savePosition();},
   retreat(){
@@ -2421,7 +2724,7 @@ function canStand(x,y){
 }
 function savePosition(){
   if(loadedStage<0)return;
-  positions[loadedStage]={...pos,heading,seen:[...seen],operation,introduced};
+  positions[loadedStage]={...pos,heading,seen:[...seen],operation,introduced,layoutVersion:world.layoutVersion};
   try{localStorage.setItem('sanguo-world-v1',JSON.stringify(positions));}catch{}
 }
 function npcMarkup(){el('village-npcs').innerHTML=npcs.map(n=>`<button class="village-npc" id="npc-${n.id}" aria-label="與${n.name}對話"><span class="quest-marker">${seen.has(n.id)?'⋯':'!'}</span><span class="walker-label">${n.name}</span></button>`).join('');npcs.forEach(n=>el('npc-'+n.id).onclick=()=>approach(n));}
@@ -2432,12 +2735,13 @@ function loadWorld(stage){
   world.solids=[...world.buildings,world.landmark,...world.cliffs];
   npcs=[...world.people.map(person=>({...campCharacters.find(n=>n.id===person.id),...person})),
     world.sideQuest,...world.animals.map(a=>({...a,name:a.animal==='goat'?'山羊':'小雞',role:'村落動物'})),
-    ...[[world.spawn.x-150,world.spawn.y+165],[2510,1080],[6150,1400]].map(([x,y],i)=>({id:'encounter-'+i,x,y,name:['驛路行商','歇腳旅人','遠行說書人'][i],kind:['supplies','villager','teacher'][i],encounter:i,role:'驛路奇遇'})),...world.merchants.map(shop=>({...shop,shop:true,role:'赤壁商街 · '+window.redCliffsWorld.shops[shop.id].name}))];
+    ...world.encounters,...world.merchants.map(shop=>({...shop,shop:true,role:'赤壁商街 · '+window.redCliffsWorld.shops[shop.id].name}))];
+  navigator=window.createRoadNavigator(world,{canStand,clearSegment});
   const stored=positions[stage];
   operation=Math.max(0,Math.min(2,Math.trunc(stored?.operation)||0));
   introduced=stored?.introduced===true;
   hazardTime=0;
-  pos=stored&&Number.isFinite(stored.x)&&Number.isFinite(stored.y)&&canStand(stored.x,stored.y)?{x:stored.x,y:stored.y}:{...world.spawn};
+  pos=stored&&stored.layoutVersion===world.layoutVersion&&Number.isFinite(stored.x)&&Number.isFinite(stored.y)&&canStand(stored.x,stored.y)?{x:stored.x,y:stored.y}:{...world.spawn};
   seen=new Set(Array.isArray(stored?.seen)?stored.seen:[]);
   heading=Number.isFinite(stored?.heading)?stored.heading:0;
   destination=null;
@@ -2456,7 +2760,7 @@ function loadWorld(stage){
   const forests=world.trees.map(([x,z,w,d])=>`<rect x="${x}" y="${z}" width="${w}" height="${d}" rx="80" fill="#3b6450"/>`).join('');
   const paths=[...world.roads,...world.missionPaths].map(path=>'<polyline points="'+path.map(pair=>pair.join(",")).join(" ")+'" fill="none" stroke="#ffe4a9" stroke-width="22"/>').join("");
   const bridges=world.harbor.map(deck=>`<rect x="${deck.x}" y="${deck.z}" width="${deck.w}" height="${deck.d}" fill="#b59165"/>`).join('');
-  minimap.innerHTML=`<rect width="100%" height="100%" fill="#6a8058"/><rect width="100%" height="${world.shore}" fill="${world.water}"/>${forests}${bridges}<path d="M90 ${world.spawn.y}H2310" stroke="#bbac82" stroke-width="72"/>${paths}${shops}<circle r="57" fill="#fff8ce" stroke="#233c32" stroke-width="23"/>`;
+  minimap.innerHTML=`<rect width="100%" height="100%" fill="#6a8058"/><rect width="100%" height="${world.shore}" fill="${world.water}"/>${forests}${bridges}${paths}${shops}<polyline class="walking-route" fill="none" stroke="#7fffe0" stroke-width="14" stroke-linejoin="round"/><circle r="28" fill="#fff8ce" stroke="#233c32" stroke-width="10"/>`;
   minimapPlayer=minimap.querySelector('circle');
 }
 function sync(){
@@ -2533,56 +2837,24 @@ function approach(npc){
   held.clear();
   destination=null;
   if(Math.hypot(npc.x-pos.x,npc.y-pos.y)<=72){talk(npc);return;}
-  const step=16;
-  const start={...pos,parent:null};
-  const estimate=(x,y)=>Math.max(0,Math.hypot(npc.x-x,npc.y-y)-65);
-  const queue=[{...start,cost:0,rank:estimate(start.x,start.y)}], best=new Map([['0,0',0]]);
-  const precedes=(a,b)=>a.rank<b.rank||a.rank===b.rank&&a.cost>b.cost;
-  function push(point){
-    let i=queue.length;queue.push(point);
-    while(i>0){const parent=(i-1)>>1;if(!precedes(point,queue[parent]))break;queue[i]=queue[parent];i=parent;}queue[i]=point;
+  const route=navigator.plan(pos,npc);
+  if(route?.path.length){
+    const points=[{...pos},...route.path];
+    const path=route.path;
+    destination={...path.shift(),path,npc};
+    const preview=minimap.querySelector('.walking-route');
+    if(preview)preview.setAttribute('points',points.map(p=>p.x+','+p.y).join(' '));
+    el('village-tip').textContent='沿道路前往'+npc.name+'。可用方向鍵取消自動行走；小地圖青線為行走路線。';
+    return;
   }
-  function pop(){
-    const first=queue[0],tail=queue.pop();
-    if(queue.length){
-      let i=0;
-      while(i*2+1<queue.length){
-        let child=i*2+1;
-        if(child+1<queue.length&&precedes(queue[child+1],queue[child]))child++;
-        if(!precedes(queue[child],tail))break;
-        queue[i]=queue[child];i=child;
-      }
-      queue[i]=tail;
-    }
-    return first;
-  }
-  const offsets=[[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[-1,1],[1,-1],[1,1]];
-  while(queue.length){
-    const point=pop();
-    const keyAt=(x,y)=>Math.round((x-start.x)/step)+','+Math.round((y-start.y)/step);
-    if(point.cost!==best.get(keyAt(point.x,point.y)))continue;
-    if(Math.hypot(npc.x-point.x,npc.y-point.y)<=65){
-      const path=[];
-      for(let next=point;next.parent;next=next.parent)path.push(next);
-      path.reverse();
-      destination={...path.shift(),path,npc};
-      return;
-    }
-    for(const [column,row] of offsets){
-      const dx=column*step,dy=row*step,x=point.x+dx,y=point.y+dy;
-      const key=keyAt(x,y),cost=point.cost+Math.hypot(dx,dy);
-      if(cost>=(best.get(key)??Infinity)||!clearSegment(point,x,y))continue;
-      best.set(key,cost);
-      push({x,y,cost,rank:cost+estimate(x,y),parent:point});
-    }
-  }
-  el('village-tip').textContent='目前沒有可通行的路徑，請換個位置再試。';
+  el('village-tip').textContent='找不到安全的道路連接。請先走到附近道路，再選擇目標。';
 }
+
 function anchor(node, actor) {
   const lift=actor.y<world.shore?6:0;
   const top=scene.project(actor.x, (actor.id==='ally-0'?106:actor.id==='scout'?80:95)+lift, actor.y);
   const foot=scene.project(actor.x,lift,actor.y);
-  node.hidden=top.depth<18||top.depth>1500||top.x<-20||top.x>map.clientWidth+20||foot.y<20||top.y>map.clientHeight;
+  node.hidden=top.depth<18||top.depth>600||top.x<-20||top.x>map.clientWidth+20||foot.y<20||top.y>map.clientHeight;
   node.style.left=top.x+'px';
   node.style.top=foot.y+'px';
   node.style.height=Math.max(22,foot.y-top.y)+'px';
@@ -2597,6 +2869,7 @@ function draw(time=0){
 
   npcs.forEach(n=>anchor(el('npc-'+n.id),n));
   patrols.draw();
+  minimap.querySelector('.walking-route')?.setAttribute('visibility',destination?'visible':'hidden');
   const closest=npcs.map(n=>({n,d:Math.hypot(n.x-pos.x,n.y-pos.y)})).sort((a,b)=>a.d-b.d)[0];
   near=closest.d<=100?closest.n:null;
   npcs.forEach(n=>el('npc-'+n.id).classList.toggle('nearby',n===near));
@@ -2915,6 +3188,7 @@ el('dialog-close').onclick=finish;dialog.addEventListener('cancel',()=>{held.cle
 el('side-quest').onclick=()=>{releaseMouse();adventures.journal();};
 show(true);draw();requestAnimationFrame(loop);
 })();
+
 
 
 </script></body></html>
