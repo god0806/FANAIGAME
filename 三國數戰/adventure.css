@@ -1,0 +1,8 @@
+.adventure-tracker{display:flex;align-items:center;flex-wrap:wrap;gap:10px;padding:16px;background:#223d37;color:#fff4d5;border-left:4px solid #e9b85e;border-radius:4px;margin-top:12px;font-size:1rem}
+.adventure-tracker strong{width:100%;color:#ffe09a}.adventure-tracker span{flex:1 1 260px;line-height:1.7}.adventure-tracker button{font-size:.875rem;padding:10px 14px}
+.adventure-card{width:100%;border:1px solid #a0ad97;border-radius:8px;padding:18px;background:#f1f3e9;color:#253c31}
+.adventure-card h3{font-size:1.125rem;margin:0 0 8px}.adventure-card p{font-size:1rem;line-height:1.7;margin:10px 0}.adventure-card small{font-size:.875rem;color:#50604c}
+.adventure-card button{font-size:1rem}.adventure-filters{width:100%;display:flex;gap:8px;flex-wrap:wrap}.adventure-filters button[aria-pressed=true]{background:#264e43;color:#fff}
+.adventure-target .quest-marker{color:#9effdf;text-shadow:0 0 8px #1f694e}.adventure-ending{border-top:1px solid #ccd4c5;padding-top:10px}
+#village-dialog{max-height:88vh;overflow-y:auto}#npc-choices>.adventure-card{flex-basis:100%}
+@media(max-width:600px){.adventure-tracker{padding:12px}.adventure-card{padding:14px}.village-controls{flex-wrap:wrap}}
